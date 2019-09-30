@@ -61,10 +61,11 @@ expr
     |	'(' expr ')'
     |   arrayElem
     |   compoundElem
+    |   funcCall
+    |   condExpr
     |   NUMBER
     |   STRING
     |   IDENT
-//    |   IF expr '{' expr '}' ELSE '{' expr '}'
     ;
 
 compoundElem
@@ -76,6 +77,13 @@ arrayElem
     :   IDENT '[' NUMBER ']'
     ;
 
+funcCall
+    :   IDENT '(' expr ')'
+    ;
+
+condExpr
+    : IF expr '{' expr '}' ELSE '{' expr '}'
+    ;
 
 LET         : 'let' ;
 CONST       : 'const' ;
@@ -90,6 +98,7 @@ IDENT       : [a-zA-Z_]+[a-zA-Z0-9_]* ;
 NEWLINE     : [\r\n]+ ;
 SEMICOLON   : ';' ;
 WHITESPACE  : (' ' | '\t')+ -> skip ;
+COMMENT     : '//' ~[\r\n]* -> skip ;
 
 fragment EncodingPrefix
     :   'b32'
