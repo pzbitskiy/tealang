@@ -1,0 +1,6 @@
+.vscode
+.antlr
+__pycache__
+grammar/*.class
+grammar/*.interp
+grammar/*.tokens
