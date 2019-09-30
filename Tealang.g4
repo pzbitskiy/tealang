@@ -49,23 +49,22 @@ decl
     ;
 
 expr
-    :   IDENT '=' expr                              # Assign
-    |	expr ('*'|'/') expr                         # MulDiv
-    |	expr ('+'|'-') expr                         # SumSub
-    |   expr ('%') expr                             # Mod
-    |   expr ('<'|'<='|'>'|'>='|'=='|'!=') expr     # Relation
-    |   expr ('&&'|'||') expr                       # AndOr
-    |   '!' expr                                    # Not
-    |   expr ('|'|'&'|'^') expr                     # BitOp
-    |   '~' expr                                    # BitNot
-    |	'(' expr ')'                                # Group
-    |   arrayElem                                   # ArrayElement
-    |   compoundElem                                # ObjElement
-    |   funcCall                                    # FunctionCall
-    |   condExpr                                    # IfExpr
+    :   IDENT                                       # Identifier
     |   NUMBER                                      # NumberLiteral
     |   STRING                                      # StringLiteral
-    |   IDENT                                       # Identifier
+    |	'(' expr ')'                                # Group
+    |   funcCall                                    # FunctionCall
+    |   arrayElem                                   # ArrayElement
+    |   compoundElem                                # ObjElement
+    |   '!' expr                                    # Not
+    |   '~' expr                                    # BitNot
+    |	expr ('*'|'/'|'%') expr                     # MulDivMod
+    |	expr ('+'|'-') expr                         # SumSub
+    |   expr ('<'|'<='|'>'|'>='|'=='|'!=') expr     # Relation
+    |   expr ('|'|'^'|'&') expr                     # BitOp
+    |   expr ('&&'|'||') expr                       # AndOr
+    |   condExpr                                    # IfExpr
+    |   IDENT '=' expr                              # Assign
     ;
 
 compoundElem
