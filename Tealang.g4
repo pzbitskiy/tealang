@@ -22,7 +22,7 @@ statement
     ;
 
 block
-    :   NEWLINE? '{' stmts? expr? '}' (NEWLINE|EOF)?
+    :   NEWLINE? '{' stmts? expr? '}' (NEWLINE)?
     ;
 
 declaration
@@ -56,13 +56,13 @@ expr
     |   funcCall                                    # FunctionCall
     |   arrayElem                                   # ArrayElement
     |   compoundElem                                # ObjElement
-    |   '!' expr                                    # Not
-    |   '~' expr                                    # BitNot
-    |	expr ('*'|'/'|'%') expr                     # MulDivMod
-    |	expr ('+'|'-') expr                         # SumSub
-    |   expr ('<'|'<='|'>'|'>='|'=='|'!=') expr     # Relation
-    |   expr ('|'|'^'|'&') expr                     # BitOp
-    |   expr ('&&'|'||') expr                       # AndOr
+    |   op='!' expr                                 # Not
+    |   op='~' expr                                 # BitNot
+    |	expr op=('*'|'/'|'%') expr                  # MulDivMod
+    |	expr op=('+'|'-') expr                      # SumSub
+    |   expr op=('<'|'<='|'>'|'>='|'=='|'!=') expr  # Relation
+    |   expr op=('|'|'^'|'&') expr                  # BitOp
+    |   expr op=('&&'|'||') expr                    # AndOr
     |   condExpr                                    # IfExpr
     |   IDENT '=' expr                              # Assign
     ;
@@ -80,8 +80,21 @@ funcCall
     :   IDENT '(' expr ')'
     ;
 
+// named rules for tree-walking only
 condExpr
-    : IF expr '{' expr '}' ELSE '{' expr '}'
+    : IF condIfExpr '{' condTrueExpr '}' ELSE '{' condFalseExpr '}'
+    ;
+
+condTrueExpr
+    : expr                                          # IfExprTrue
+    ;
+
+condFalseExpr
+    : expr                                          # IfExprFalse
+    ;
+
+condIfExpr
+    : expr                                          # IfExprCond
     ;
 
 LET         : 'let' ;
