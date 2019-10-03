@@ -11,15 +11,25 @@ import (
 )
 
 type tealangType int
+type parserFlag int
 
 const (
 	integer tealangType = 1
 	bytes   tealangType = 2
 )
 
+const (
+	condElsePresent parserFlag = 1
+)
+
 type literal struct {
 	offset int
 	tp     tealangType
+}
+
+type parserState struct {
+	flags   map[parserFlag]bool
+	labelID uint
 }
 
 type tealangListener struct {
@@ -33,8 +43,8 @@ type tealangListener struct {
 	variables     map[string]uint
 	variableIndex uint
 
-	counter         uint
-	nestedCondStack []uint
+	labelCounter    uint
+	nestedCondStack []parserState
 
 	program strings.Builder
 }
@@ -48,8 +58,8 @@ func newTealangListener() (listener tealangListener) {
 	listener.constants = make(map[string]string)
 
 	listener.variableIndex = 0
-	listener.counter = 0
-	listener.nestedCondStack = make([]uint, 0, 128)
+	listener.labelCounter = 0
+	listener.nestedCondStack = make([]parserState, 0, 128)
 
 	listener.program = strings.Builder{}
 	return
@@ -187,37 +197,100 @@ func (l *tealangListener) EnterIdentifier(ctx *parser.IdentifierContext) {
 	panic("Unknown identifier")
 }
 
+//--------------------------------------------------------------------------------------------------
+// code generation for If-Expr
+// the idea is to set ID on enter, and use this ID during tree walk to name goto labels
 func (l *tealangListener) EnterIfExpr(ctx *parser.IfExprContext) {
-	l.counter++
-	l.nestedCondStack = append(l.nestedCondStack, l.counter)
+	fmt.Println("EnterIfExpr")
+	l.labelCounter++
+	state := parserState{make(map[parserFlag]bool), l.labelCounter}
+	l.nestedCondStack = append(l.nestedCondStack, state)
 }
 
 func (l *tealangListener) ExitIfExpr(ctx *parser.IfExprContext) {
+	fmt.Println("ExitIfExpr")
+	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
+	l.program.WriteString(fmt.Sprintf("if_expr_end_%d:\n", labelSuffix))
 	l.nestedCondStack = l.nestedCondStack[:len(l.nestedCondStack)]
 }
 
 func (l *tealangListener) ExitIfExprCond(ctx *parser.IfExprCondContext) {
-	suffix := l.nestedCondStack[len(l.nestedCondStack)-1]
-	l.program.WriteString(fmt.Sprintf("!\nbnz if_expr_false_%d\n", suffix))
+	fmt.Println("// ExitIfExprCond")
+	state := l.nestedCondStack[len(l.nestedCondStack)-1]
+	labelSuffix := state.labelID
+	l.program.WriteString(fmt.Sprintf("!\nbnz if_expr_false_%d\n", labelSuffix))
 }
 
 func (l *tealangListener) EnterIfExprTrue(ctx *parser.IfExprTrueContext) {
+	fmt.Println("// EnterIfExprTrue")
 	// do nothing
 }
 
 func (l *tealangListener) ExitIfExprTrue(ctx *parser.IfExprTrueContext) {
-	suffix := l.nestedCondStack[len(l.nestedCondStack)-1]
-	l.program.WriteString(fmt.Sprintf("int 1\nbnz if_expr_end_%d\n", suffix))
+	fmt.Println("// ExitIfExprTrue")
+	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
+	l.program.WriteString(fmt.Sprintf("int 1\nbnz if_expr_end_%d\n", labelSuffix))
 }
 
 func (l *tealangListener) EnterIfExprFalse(ctx *parser.IfExprFalseContext) {
-	suffix := l.nestedCondStack[len(l.nestedCondStack)-1]
-	l.program.WriteString(fmt.Sprintf("if_expr_false_%d:\n", suffix))
+	state := l.nestedCondStack[len(l.nestedCondStack)-1]
+	state.flags[condElsePresent] = true
+	l.nestedCondStack[len(l.nestedCondStack)-1] = state
+
+	labelSuffix := state.labelID
+	l.program.WriteString(fmt.Sprintf("if_expr_false_%d:\n", labelSuffix))
 }
 
 func (l *tealangListener) ExitIfExprFalse(ctx *parser.IfExprFalseContext) {
-	suffix := l.nestedCondStack[len(l.nestedCondStack)-1]
-	l.program.WriteString(fmt.Sprintf("if_expr_end_%d:\n", suffix))
+	// do nothing
+}
+
+// code generation for If-Statement
+// similar to If-Expr but ELSE block might be optional,
+// so EnterIfStatementFalse sets a signal variable
+// that is taken into account in ExitIfStatement
+func (l *tealangListener) EnterIfStatement(ctx *parser.IfStatementContext) {
+	fmt.Println("IfStatement")
+	l.labelCounter++
+	state := parserState{make(map[parserFlag]bool), l.labelCounter}
+	l.nestedCondStack = append(l.nestedCondStack, state)
+}
+
+func (l *tealangListener) ExitIfStatement(ctx *parser.IfStatementContext) {
+	fmt.Println("ExitIfStatement")
+	state := l.nestedCondStack[len(l.nestedCondStack)-1]
+	labelSuffix := state.labelID
+	if !state.flags[condElsePresent] {
+		l.program.WriteString(fmt.Sprintf("if_expr_false_%d:\n", labelSuffix))
+	}
+	l.program.WriteString(fmt.Sprintf("if_expr_end_%d:\n", labelSuffix))
+
+	l.nestedCondStack = l.nestedCondStack[:len(l.nestedCondStack)]
+}
+
+func (l *tealangListener) EnterIfStatementTrue(ctx *parser.IfStatementTrueContext) {
+	fmt.Println("// EnterIfStatementTrue")
+	// do nothing
+}
+
+func (l *tealangListener) ExitIfStatementTrue(ctx *parser.IfStatementTrueContext) {
+	fmt.Println("// ExitIfStatementTrue")
+	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
+	l.program.WriteString(fmt.Sprintf("int 1\nbnz if_expr_end_%d\n", labelSuffix))
+}
+
+func (l *tealangListener) EnterIfStatementFalse(ctx *parser.IfStatementFalseContext) {
+	fmt.Println("// EnterIfStatementFalse")
+	state := l.nestedCondStack[len(l.nestedCondStack)-1]
+	state.flags[condElsePresent] = true
+	l.nestedCondStack[len(l.nestedCondStack)-1] = state
+
+	labelSuffix := state.labelID
+	l.program.WriteString(fmt.Sprintf("if_expr_false_%d:\n", labelSuffix))
+}
+
+func (l *tealangListener) ExitIfStatementFalse(ctx *parser.IfStatementFalseContext) {
+	// do nothing
 }
 
 func (l *tealangListener) Emit() {
@@ -235,6 +308,7 @@ func (l *tealangListener) Emit() {
 	if len(l.bytec) > 0 {
 		fmt.Print("bytecblock ")
 		for _, value := range l.bytec {
+			// TODO: decode string (remove quotes, decode \x)
 			fmt.Printf("0x%s ", hex.EncodeToString([]byte(value)))
 		}
 		fmt.Print("\n")
@@ -244,7 +318,16 @@ func (l *tealangListener) Emit() {
 }
 
 func main() {
-	is := antlr.NewInputStream("let a = 456; const b = 123; const c = \"1234567890123\"; let d = 1 + 2 ; let e = if a > 0 {1} else {2}\n")
+	source := `
+let a = 456; const b = 123; const c = "1234567890123"; let d = 1 + 2 ; let e = if a > 0 {1} else {2};
+if e == 1 {
+	let x = a + b;
+} else {
+	let y = 1;
+}
+`
+	fmt.Print(source)
+	is := antlr.NewInputStream(source)
 	lexer := parser.NewTealangLexer(is)
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := parser.NewTealangParser(stream)

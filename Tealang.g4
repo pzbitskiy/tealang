@@ -1,16 +1,7 @@
 grammar Tealang;
 
 prog
-    :   stmts? EOF
-    ;
-
-stmts
-    :   stmt
-    |   stmts stmt
-    ;
-
-stmt
-    :   statement
+    :   statement* EOF
     ;
 
 statement
@@ -19,10 +10,12 @@ statement
     |   condition
     |   expression
     |   termination
+    |   assignment
+    |   NEWLINE|SEMICOLON
     ;
 
 block
-    :   NEWLINE? '{' stmts? expr? '}' (NEWLINE)?
+    :   '{' statement* '}'
     ;
 
 declaration
@@ -30,11 +23,20 @@ declaration
     ;
 
 expression
-    :   expr? (NEWLINE|SEMICOLON)
+    :   expr (NEWLINE|SEMICOLON)
     ;
 
+// named rules for tree-walking only
 condition
-    :   IF expr block (ELSE block)?                 # IfStatement
+    :   IF condIfExpr condTrueBlock (ELSE condFalseBlock)?   # IfStatement
+    ;
+
+condTrueBlock
+    : block                                         # IfStatementTrue
+    ;
+
+condFalseBlock
+    : block                                         # IfStatementFalse
     ;
 
 termination
@@ -46,6 +48,10 @@ decl
     :   LET IDENT '=' expr                          # DeclareVar
     |   CONST IDENT '=' NUMBER                      # DeclareNumberConst
     |   CONST IDENT '=' STRING                      # DeclareStringConst
+    ;
+
+assignment
+    :   IDENT '=' expr                              # Assign
     ;
 
 expr
@@ -64,7 +70,6 @@ expr
     |   expr op=('|'|'^'|'&') expr                  # BitOp
     |   expr op=('&&'|'||') expr                    # AndOr
     |   condExpr                                    # IfExpr
-    |   IDENT '=' expr                              # Assign
     ;
 
 compoundElem
