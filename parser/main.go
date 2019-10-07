@@ -37,7 +37,7 @@ type tealangListener struct {
 
 	literals map[string]literal // literal value -> index in intc / bytec
 	intc     []string
-	bytec    []string
+	bytec    [][]byte
 
 	constants     map[string]string // constant name -> value
 	variables     map[string]uint
@@ -49,10 +49,12 @@ type tealangListener struct {
 	program strings.Builder
 }
 
+const ifExprPrefix = "if_expr"
+
 func newTealangListener() (listener tealangListener) {
 	listener.literals = make(map[string]literal)
 	listener.intc = make([]string, 0, 128)
-	listener.bytec = make([]string, 0, 128)
+	listener.bytec = make([][]byte, 0, 128)
 
 	listener.variables = make(map[string]uint)
 	listener.constants = make(map[string]string)
@@ -113,7 +115,11 @@ func (l *tealangListener) EnterDeclareStringConst(ctx *parser.DeclareStringConst
 	rawValue := ctx.STRING().GetSymbol().GetText()
 	if _, ok := l.literals[rawValue]; !ok {
 		idx := len(l.bytec)
-		l.bytec = append(l.bytec, rawValue)
+		parsed, err := ParseStringLiteral(rawValue)
+		if err != nil {
+			panic(fmt.Sprintf("failed to parse %v", err))
+		}
+		l.bytec = append(l.bytec, parsed)
 		l.literals[rawValue] = literal{idx, bytes}
 	}
 	l.constants[varName] = rawValue
@@ -135,7 +141,11 @@ func (l *tealangListener) EnterStringLiteral(ctx *parser.StringLiteralContext) {
 	rawValue := ctx.STRING().GetSymbol().GetText()
 	if _, ok := l.literals[rawValue]; !ok {
 		idx := len(l.bytec)
-		l.bytec = append(l.bytec, rawValue)
+		parsed, err := ParseStringLiteral(rawValue)
+		if err != nil {
+			panic(fmt.Sprintf("failed to parse %v", err))
+		}
+		l.bytec = append(l.bytec, parsed)
 		l.literals[rawValue] = literal{idx, bytes}
 	}
 	l.program.WriteString(fmt.Sprintf("bytec %d", l.literals[rawValue].offset))
@@ -197,6 +207,18 @@ func (l *tealangListener) EnterIdentifier(ctx *parser.IdentifierContext) {
 	panic("Unknown identifier")
 }
 
+func (l *tealangListener) ExitAssign(ctx *parser.AssignContext) {
+	varName := ctx.IDENT().GetSymbol().GetText()
+	if _, ok := l.constants[varName]; ok {
+		panic("assignment to a constant")
+	}
+	if _, ok := l.variables[varName]; !ok {
+		panic("undefined variable")
+	}
+
+	l.program.WriteString(fmt.Sprintf("store %d\n", l.variables[varName]))
+}
+
 //--------------------------------------------------------------------------------------------------
 // code generation for If-Expr
 // the idea is to set ID on enter, and use this ID during tree walk to name goto labels
@@ -210,7 +232,7 @@ func (l *tealangListener) EnterIfExpr(ctx *parser.IfExprContext) {
 func (l *tealangListener) ExitIfExpr(ctx *parser.IfExprContext) {
 	fmt.Println("ExitIfExpr")
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
-	l.program.WriteString(fmt.Sprintf("if_expr_end_%d:\n", labelSuffix))
+	l.program.WriteString(fmt.Sprintf("%s_end_%d:\n", ifExprPrefix, labelSuffix))
 	l.nestedCondStack = l.nestedCondStack[:len(l.nestedCondStack)]
 }
 
@@ -218,7 +240,7 @@ func (l *tealangListener) ExitIfExprCond(ctx *parser.IfExprCondContext) {
 	fmt.Println("// ExitIfExprCond")
 	state := l.nestedCondStack[len(l.nestedCondStack)-1]
 	labelSuffix := state.labelID
-	l.program.WriteString(fmt.Sprintf("!\nbnz if_expr_false_%d\n", labelSuffix))
+	l.program.WriteString(fmt.Sprintf("!\nbnz %s_false_%d\n", ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) EnterIfExprTrue(ctx *parser.IfExprTrueContext) {
@@ -229,7 +251,7 @@ func (l *tealangListener) EnterIfExprTrue(ctx *parser.IfExprTrueContext) {
 func (l *tealangListener) ExitIfExprTrue(ctx *parser.IfExprTrueContext) {
 	fmt.Println("// ExitIfExprTrue")
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
-	l.program.WriteString(fmt.Sprintf("int 1\nbnz if_expr_end_%d\n", labelSuffix))
+	l.program.WriteString(fmt.Sprintf("int 1\nbnz %s_end_%d\n", ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) EnterIfExprFalse(ctx *parser.IfExprFalseContext) {
@@ -238,7 +260,7 @@ func (l *tealangListener) EnterIfExprFalse(ctx *parser.IfExprFalseContext) {
 	l.nestedCondStack[len(l.nestedCondStack)-1] = state
 
 	labelSuffix := state.labelID
-	l.program.WriteString(fmt.Sprintf("if_expr_false_%d:\n", labelSuffix))
+	l.program.WriteString(fmt.Sprintf("%s_false_%d:\n", ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) ExitIfExprFalse(ctx *parser.IfExprFalseContext) {
@@ -261,9 +283,9 @@ func (l *tealangListener) ExitIfStatement(ctx *parser.IfStatementContext) {
 	state := l.nestedCondStack[len(l.nestedCondStack)-1]
 	labelSuffix := state.labelID
 	if !state.flags[condElsePresent] {
-		l.program.WriteString(fmt.Sprintf("if_expr_false_%d:\n", labelSuffix))
+		l.program.WriteString(fmt.Sprintf("%s_false_%d:\n", ifExprPrefix, labelSuffix))
 	}
-	l.program.WriteString(fmt.Sprintf("if_expr_end_%d:\n", labelSuffix))
+	l.program.WriteString(fmt.Sprintf("%s_end_%d:\n", ifExprPrefix, labelSuffix))
 
 	l.nestedCondStack = l.nestedCondStack[:len(l.nestedCondStack)]
 }
@@ -276,7 +298,7 @@ func (l *tealangListener) EnterIfStatementTrue(ctx *parser.IfStatementTrueContex
 func (l *tealangListener) ExitIfStatementTrue(ctx *parser.IfStatementTrueContext) {
 	fmt.Println("// ExitIfStatementTrue")
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
-	l.program.WriteString(fmt.Sprintf("int 1\nbnz if_expr_end_%d\n", labelSuffix))
+	l.program.WriteString(fmt.Sprintf("int 1\nbnz %s_end_%d\n", ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) EnterIfStatementFalse(ctx *parser.IfStatementFalseContext) {
@@ -286,7 +308,7 @@ func (l *tealangListener) EnterIfStatementFalse(ctx *parser.IfStatementFalseCont
 	l.nestedCondStack[len(l.nestedCondStack)-1] = state
 
 	labelSuffix := state.labelID
-	l.program.WriteString(fmt.Sprintf("if_expr_false_%d:\n", labelSuffix))
+	l.program.WriteString(fmt.Sprintf("%s_false_%d:\n", ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) ExitIfStatementFalse(ctx *parser.IfStatementFalseContext) {
@@ -309,7 +331,7 @@ func (l *tealangListener) Emit() {
 		fmt.Print("bytecblock ")
 		for _, value := range l.bytec {
 			// TODO: decode string (remove quotes, decode \x)
-			fmt.Printf("0x%s ", hex.EncodeToString([]byte(value)))
+			fmt.Printf("0x%s ", hex.EncodeToString(value))
 		}
 		fmt.Print("\n")
 	}
@@ -325,6 +347,7 @@ if e == 1 {
 } else {
 	let y = 1;
 }
+x = 2;
 `
 	fmt.Print(source)
 	is := antlr.NewInputStream(source)
