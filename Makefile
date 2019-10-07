@@ -2,7 +2,7 @@ default: all
 
 all:
 	java -jar ./antlr-4.7.2-complete.jar -Dlanguage=Go -o gen/go Tealang.g4
-	go run parser/main.go parser/util.go
+	go build ./main.go && go test ./...
 
 java:
 	java -jar ./antlr-4.7.2-complete.jar Tealang.g4 -o gen/java && javac gen/java/Tealang*.java

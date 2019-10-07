@@ -3,3 +3,7 @@ let e = if a > 0 {1} else {2}
 if e == 1 {
 	let x = a + b;
 }
+
+x = 2;
+x = global.GroupSize
+x = gtxn[1].Sender

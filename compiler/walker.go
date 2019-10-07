@@ -1,8 +1,10 @@
-package main
+package compiler
 
 import (
+	b "bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
@@ -232,33 +234,28 @@ func (l *tealangListener) ExitAssign(ctx *parser.AssignContext) {
 // code generation for If-Expr
 // the idea is to set ID on enter, and use this ID during tree walk to name goto labels
 func (l *tealangListener) EnterIfExpr(ctx *parser.IfExprContext) {
-	fmt.Println("EnterIfExpr")
 	l.labelCounter++
 	state := parserState{make(map[parserFlag]bool), l.labelCounter}
 	l.nestedCondStack = append(l.nestedCondStack, state)
 }
 
 func (l *tealangListener) ExitIfExpr(ctx *parser.IfExprContext) {
-	fmt.Println("ExitIfExpr")
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
 	l.program.WriteString(fmt.Sprintf("%s_end_%d:\n", ifExprPrefix, labelSuffix))
 	l.nestedCondStack = l.nestedCondStack[:len(l.nestedCondStack)]
 }
 
 func (l *tealangListener) ExitIfExprCond(ctx *parser.IfExprCondContext) {
-	fmt.Println("// ExitIfExprCond")
 	state := l.nestedCondStack[len(l.nestedCondStack)-1]
 	labelSuffix := state.labelID
 	l.program.WriteString(fmt.Sprintf("!\nbnz %s_false_%d\n", ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) EnterIfExprTrue(ctx *parser.IfExprTrueContext) {
-	fmt.Println("// EnterIfExprTrue")
 	// do nothing
 }
 
 func (l *tealangListener) ExitIfExprTrue(ctx *parser.IfExprTrueContext) {
-	fmt.Println("// ExitIfExprTrue")
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
 	l.program.WriteString(fmt.Sprintf("int 1\nbnz %s_end_%d\n", ifExprPrefix, labelSuffix))
 }
@@ -281,14 +278,12 @@ func (l *tealangListener) ExitIfExprFalse(ctx *parser.IfExprFalseContext) {
 // so EnterIfStatementFalse sets a signal variable
 // that is taken into account in ExitIfStatement
 func (l *tealangListener) EnterIfStatement(ctx *parser.IfStatementContext) {
-	fmt.Println("IfStatement")
 	l.labelCounter++
 	state := parserState{make(map[parserFlag]bool), l.labelCounter}
 	l.nestedCondStack = append(l.nestedCondStack, state)
 }
 
 func (l *tealangListener) ExitIfStatement(ctx *parser.IfStatementContext) {
-	fmt.Println("ExitIfStatement")
 	state := l.nestedCondStack[len(l.nestedCondStack)-1]
 	labelSuffix := state.labelID
 	if !state.flags[condElsePresent] {
@@ -300,18 +295,15 @@ func (l *tealangListener) ExitIfStatement(ctx *parser.IfStatementContext) {
 }
 
 func (l *tealangListener) EnterIfStatementTrue(ctx *parser.IfStatementTrueContext) {
-	fmt.Println("// EnterIfStatementTrue")
 	// do nothing
 }
 
 func (l *tealangListener) ExitIfStatementTrue(ctx *parser.IfStatementTrueContext) {
-	fmt.Println("// ExitIfStatementTrue")
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
 	l.program.WriteString(fmt.Sprintf("int 1\nbnz %s_end_%d\n", ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) EnterIfStatementFalse(ctx *parser.IfStatementFalseContext) {
-	fmt.Println("// EnterIfStatementFalse")
 	state := l.nestedCondStack[len(l.nestedCondStack)-1]
 	state.flags[condElsePresent] = true
 	l.nestedCondStack[len(l.nestedCondStack)-1] = state
@@ -347,43 +339,32 @@ func (l *tealangListener) ExitGroupTxnFieldExpr(ctx *parser.GroupTxnFieldExprCon
 	l.program.WriteString(fmt.Sprintf("gtxn %s %s\n", index, field))
 }
 
-func (l *tealangListener) Emit() {
+func (l *tealangListener) Emit(ostream io.Writer) {
 	if len(l.literals) != len(l.intc)+len(l.bytec) {
 		panic("literals unbalanced")
 	}
 	if len(l.intc) > 0 {
-		fmt.Print("intcblock ")
+		fmt.Fprintf(ostream, "intcblock ")
 		for _, value := range l.intc {
-			fmt.Printf("%s ", value)
+			fmt.Fprintf(ostream, "%s ", value)
 		}
-		fmt.Print("\n")
+		fmt.Fprintf(ostream, "\n")
 	}
 
 	if len(l.bytec) > 0 {
-		fmt.Print("bytecblock ")
+		fmt.Fprintf(ostream, "bytecblock ")
 		for _, value := range l.bytec {
 			// TODO: decode string (remove quotes, decode \x)
-			fmt.Printf("0x%s ", hex.EncodeToString(value))
+			fmt.Fprintf(ostream, "0x%s ", hex.EncodeToString(value))
 		}
-		fmt.Print("\n")
+		fmt.Fprintf(ostream, "\n")
 	}
 
-	fmt.Println(l.program.String())
+	io.WriteString(ostream, l.program.String())
 }
 
-func main() {
-	source := `
-let a = 456; const b = 123; const c = "1234567890123"; let d = 1 + 2 ; let e = if a > 0 {1} else {2};
-if e == 1 {
-	let x = a + b;
-} else {
-	let y = 1;
-}
-x = 2;
-x = global.GroupSize
-x = gtxn[1].Sender
-`
-	fmt.Print(source)
+// Compile returns TEAL assembler code for Tealang source
+func Compile(source string) string {
 	is := antlr.NewInputStream(source)
 	lexer := parser.NewTealangLexer(is)
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
@@ -395,6 +376,7 @@ x = gtxn[1].Sender
 	listener := newTealangListener()
 	antlr.ParseTreeWalkerDefault.Walk(&listener, tree)
 
-	listener.Emit()
-
+	buf := new(b.Buffer)
+	listener.Emit(buf)
+	return buf.String()
 }
