@@ -60,7 +60,7 @@ expr
     |   STRING                                      # StringLiteral
     |	'(' expr ')'                                # Group
     |   funcCall                                    # FunctionCall
-    |   arrayElem                                   # ArrayElement
+    |   builtinVarExpr                              # BuiltinObject
     |   compoundElem                                # ObjElement
     |   op='!' expr                                 # Not
     |   op='~' expr                                 # BitNot
@@ -70,6 +70,13 @@ expr
     |   expr op=('|'|'^'|'&') expr                  # BitOp
     |   expr op=('&&'|'||') expr                    # AndOr
     |   condExpr                                    # IfExpr
+    ;
+
+builtinVarExpr
+    :   GLOBAL '.' GLOBALFIELD                      # GlobalFieldExpr
+    |   TXN '.' TXNFIELD                            # TxnFieldExpr
+    |   GTXN '[' NUMBER ']' '.' TXNFIELD            # GroupTxnFieldExpr
+    |   ACCOUNT '.' ACCOUNTFIELD                    # AccountFieldExpr
     ;
 
 compoundElem
@@ -102,12 +109,96 @@ condIfExpr
     : expr                                          # IfExprCond
     ;
 
+GLOBALFIELD
+    :   ROUND
+    |   MINTXNFEE
+    |   MINBALANCE
+    |   MAXTXNLIFE
+    |   BLOCKTIME
+    |   ZEROADDRESS
+    |   GROUPSIZE
+    ;
+
+TXNFIELD
+    :   SENDER
+    |   FEE
+    |   FIRSTVALID
+    |   LASTVALID
+    |   NOTE
+    |   RECEIVER
+    |   AMOUNT
+    |   CLOSEREMINDERTO
+    |   VOTEPK
+    |   SELECTIONPK
+    |   VOTEFIRST
+    |   VOTELAST
+    |   VOTEKD
+    |   TYPE
+    |   TYPEENUM
+    |   XFERASSET
+    |   AAMOUNT
+    |   ASENDER
+    |   ARECEIVER
+    |   ACLOSETO
+    |   GROUPINDEX
+    |   TXID
+    |   SENDERBALANCE
+    ;
+
+ACCOUNTFIELD
+    :   BALANCE
+    |   FROZEN
+    |   EXISTS
+    ;
+
 LET         : 'let' ;
 CONST       : 'const' ;
 ERR         : 'error' ;
 RET         : 'return' ;
 IF          : 'if' ;
 ELSE        : 'else' ;
+
+GLOBAL      : 'global';
+TXN         : 'txn';
+GTXN        : 'gtxn';
+ACCOUNT     : 'account';
+
+ROUND       : 'Round' ;
+MINTXNFEE   : 'MinTxnFee' ;
+MINBALANCE  : 'MinBalance' ;
+MAXTXNLIFE  : 'MaxTxnLife' ;
+BLOCKTIME   : 'BlockTime' ;
+ZEROADDRESS : 'ZeroAddress' ;
+GROUPSIZE   : 'GroupSize' ;
+
+SENDER      : 'Sender' ;
+FEE         : 'Fee' ;
+FIRSTVALID  : 'FirstValid' ;
+LASTVALID   : 'LastValid' ;
+NOTE        : 'Note' ;
+RECEIVER    : 'Receiver' ;
+AMOUNT      : 'Amount' ;
+CLOSEREMINDERTO : 'CloseRemainderTo' ;
+VOTEPK      : 'VotePK' ;
+SELECTIONPK : 'SelectionPK' ;
+VOTEFIRST   : 'VoteFirst' ;
+VOTELAST    : 'VoteLast' ;
+VOTEKD      : 'VoteKeyDilution' ;
+TYPE        : 'Type' ;
+TYPEENUM    : 'TypeEnum' ;
+XFERASSET   : 'XferAsset' ;
+AAMOUNT     : 'AssetAmount' ;
+ASENDER     : 'AssetSender' ;
+ARECEIVER   : 'AssetReceiver' ;
+ACLOSETO    : 'AssetCloseTo' ;
+GROUPINDEX  : 'GroupIndex' ;
+TXID        : 'TxId' ;
+SENDERBALANCE : 'SenderBalance' ;
+
+BALANCE     : 'Balance' ;
+FROZEN      : 'Frozen' ;
+EXISTS      : 'Exists' ;
+
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
 NUMBER      : [0-9]+ ;

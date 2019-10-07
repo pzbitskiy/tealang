@@ -5,8 +5,8 @@ import (
 	"strconv"
 )
 
-// ParseStringLiteral unquotes string and returns []byte
-func ParseStringLiteral(input string) (result []byte, err error) {
+// parseStringLiteral unquotes string and returns []byte
+func parseStringLiteral(input string) (result []byte, err error) {
 	if input[0] != '"' || input[len(input)-1] != '"' {
 		err = fmt.Errorf("no quotes")
 		return

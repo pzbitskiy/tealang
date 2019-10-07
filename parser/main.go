@@ -67,6 +67,8 @@ func newTealangListener() (listener tealangListener) {
 	return
 }
 
+/* Declarations */
+
 func (l *tealangListener) ExitDeclareVar(ctx *parser.DeclareVarContext) {
 	// fmt.Printf("ExitDeclareVar %v %v\n", ctx.IDENT(), ctx.Expr())
 	varName := ctx.IDENT().GetSymbol().GetText()
@@ -115,7 +117,7 @@ func (l *tealangListener) EnterDeclareStringConst(ctx *parser.DeclareStringConst
 	rawValue := ctx.STRING().GetSymbol().GetText()
 	if _, ok := l.literals[rawValue]; !ok {
 		idx := len(l.bytec)
-		parsed, err := ParseStringLiteral(rawValue)
+		parsed, err := parseStringLiteral(rawValue)
 		if err != nil {
 			panic(fmt.Sprintf("failed to parse %v", err))
 		}
@@ -124,6 +126,8 @@ func (l *tealangListener) EnterDeclareStringConst(ctx *parser.DeclareStringConst
 	}
 	l.constants[varName] = rawValue
 }
+
+/* Literals */
 
 func (l *tealangListener) EnterNumberLiteral(ctx *parser.NumberLiteralContext) {
 	// fmt.Printf("Number %v\n", ctx.GetText())
@@ -141,7 +145,7 @@ func (l *tealangListener) EnterStringLiteral(ctx *parser.StringLiteralContext) {
 	rawValue := ctx.STRING().GetSymbol().GetText()
 	if _, ok := l.literals[rawValue]; !ok {
 		idx := len(l.bytec)
-		parsed, err := ParseStringLiteral(rawValue)
+		parsed, err := parseStringLiteral(rawValue)
 		if err != nil {
 			panic(fmt.Sprintf("failed to parse %v", err))
 		}
@@ -150,6 +154,8 @@ func (l *tealangListener) EnterStringLiteral(ctx *parser.StringLiteralContext) {
 	}
 	l.program.WriteString(fmt.Sprintf("bytec %d", l.literals[rawValue].offset))
 }
+
+/* Binary operators */
 
 func (l *tealangListener) ExitSumSub(ctx *parser.SumSubContext) {
 	op := ctx.GetOp().GetText()
@@ -182,6 +188,8 @@ func (l *tealangListener) ExitRelation(ctx *parser.RelationContext) {
 	}
 	l.program.WriteString(fmt.Sprintf("%s\n", op))
 }
+
+/* Indent and assignment */
 
 func (l *tealangListener) EnterIdentifier(ctx *parser.IdentifierContext) {
 	varName := ctx.IDENT().GetSymbol().GetText()
@@ -219,7 +227,8 @@ func (l *tealangListener) ExitAssign(ctx *parser.AssignContext) {
 	l.program.WriteString(fmt.Sprintf("store %d\n", l.variables[varName]))
 }
 
-//--------------------------------------------------------------------------------------------------
+/* If-Else */
+
 // code generation for If-Expr
 // the idea is to set ID on enter, and use this ID during tree walk to name goto labels
 func (l *tealangListener) EnterIfExpr(ctx *parser.IfExprContext) {
@@ -315,6 +324,29 @@ func (l *tealangListener) ExitIfStatementFalse(ctx *parser.IfStatementFalseConte
 	// do nothing
 }
 
+/* Builtin variables */
+
+func (l *tealangListener) ExitGlobalFieldExpr(ctx *parser.GlobalFieldExprContext) {
+	field := ctx.GLOBALFIELD().GetSymbol().GetText()
+	l.program.WriteString(fmt.Sprintf("global %s\n", field))
+}
+
+func (l *tealangListener) ExitTxnFieldExpr(ctx *parser.TxnFieldExprContext) {
+	field := ctx.TXNFIELD().GetSymbol().GetText()
+	l.program.WriteString(fmt.Sprintf("txn %s\n", field))
+}
+
+func (l *tealangListener) ExitAccountFieldExpr(ctx *parser.AccountFieldExprContext) {
+	field := ctx.ACCOUNTFIELD().GetSymbol().GetText()
+	l.program.WriteString(fmt.Sprintf("account %s\n", field))
+}
+
+func (l *tealangListener) ExitGroupTxnFieldExpr(ctx *parser.GroupTxnFieldExprContext) {
+	index := ctx.NUMBER().GetSymbol().GetText()
+	field := ctx.TXNFIELD().GetSymbol().GetText()
+	l.program.WriteString(fmt.Sprintf("gtxn %s %s\n", index, field))
+}
+
 func (l *tealangListener) Emit() {
 	if len(l.literals) != len(l.intc)+len(l.bytec) {
 		panic("literals unbalanced")
@@ -348,6 +380,8 @@ if e == 1 {
 	let y = 1;
 }
 x = 2;
+x = global.GroupSize
+x = gtxn[1].Sender
 `
 	fmt.Print(source)
 	is := antlr.NewInputStream(source)
