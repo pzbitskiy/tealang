@@ -154,7 +154,7 @@ func (l *tealangListener) EnterStringLiteral(ctx *parser.StringLiteralContext) {
 		l.bytec = append(l.bytec, parsed)
 		l.literals[rawValue] = literal{idx, bytes}
 	}
-	l.program.WriteString(fmt.Sprintf("bytec %d", l.literals[rawValue].offset))
+	l.program.WriteString(fmt.Sprintf("bytec %d\n", l.literals[rawValue].offset))
 }
 
 /* Binary operators */
@@ -170,7 +170,7 @@ func (l *tealangListener) ExitSumSub(ctx *parser.SumSubContext) {
 func (l *tealangListener) ExitMulDivMod(ctx *parser.MulDivModContext) {
 	op := ctx.GetOp().GetText()
 	if op != "*" && op != "/" && op != "%" {
-		panic("Unknown op")
+		panic("Unknown MulDiv op")
 	}
 	l.program.WriteString(fmt.Sprintf("%s\n", op))
 }
@@ -186,9 +186,35 @@ func (l *tealangListener) ExitRelation(ctx *parser.RelationContext) {
 		"!=": true,
 	}
 	if !ops[op] {
-		panic("Unknown op")
+		panic("Unknown Rel op")
 	}
 	l.program.WriteString(fmt.Sprintf("%s\n", op))
+}
+
+func (l *tealangListener) ExitAndOr(ctx *parser.AndOrContext) {
+	op := ctx.GetOp().GetText()
+	if op != "&&" && op != "||" {
+		panic("Unknown AndOr op")
+	}
+	l.program.WriteString(fmt.Sprintf("%s\n", op))
+}
+
+func (l *tealangListener) ExitBitOp(ctx *parser.BitOpContext) {
+	op := ctx.GetOp().GetText()
+	if op != "|" && op != "^" && op != "&" {
+		panic("Unknown BitOp op")
+	}
+	l.program.WriteString(fmt.Sprintf("%s\n", op))
+}
+
+/* Unary operations */
+
+func (l *tealangListener) ExitNot(ctx *parser.NotContext) {
+	l.program.WriteString(fmt.Sprintf("!\n"))
+}
+
+func (l *tealangListener) ExitBitNot(ctx *parser.BitNotContext) {
+	l.program.WriteString(fmt.Sprintf("~\n"))
 }
 
 /* Indent and assignment */
@@ -338,6 +364,24 @@ func (l *tealangListener) ExitGroupTxnFieldExpr(ctx *parser.GroupTxnFieldExprCon
 	field := ctx.TXNFIELD().GetSymbol().GetText()
 	l.program.WriteString(fmt.Sprintf("gtxn %s %s\n", index, field))
 }
+
+func (l *tealangListener) ExitBuiltinFunctionCall(ctx *parser.BuiltinFunctionCallContext) {
+	funcName := ctx.BUILTINFUNC().GetSymbol().GetText()
+	l.program.WriteString(fmt.Sprintf("%s\n", funcName))
+}
+
+/* Return and Error */
+
+func (l *tealangListener) EnterTermReturn(ctx *parser.TermReturnContext) {
+	retCode := ctx.NUMBER().GetSymbol().GetText()
+	l.program.WriteString(fmt.Sprintf("int %s\n", retCode))
+}
+
+func (l *tealangListener) EnterTermError(ctx *parser.TermErrorContext) {
+	l.program.WriteString(fmt.Sprintf("err\n"))
+}
+
+/* Emit */
 
 func (l *tealangListener) Emit(ostream io.Writer) {
 	if len(l.literals) != len(l.intc)+len(l.bytec) {

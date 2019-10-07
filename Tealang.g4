@@ -59,9 +59,10 @@ expr
     |   NUMBER                                      # NumberLiteral
     |   STRING                                      # StringLiteral
     |	'(' expr ')'                                # Group
-    |   funcCall                                    # FunctionCall
+    // |   funcCall                                    # FunctionCall
+    |   builtinFuncCall                             # BuiltinFunction
     |   builtinVarExpr                              # BuiltinObject
-    |   compoundElem                                # ObjElement
+    // |   compoundElem                                # ObjElement
     |   op='!' expr                                 # Not
     |   op='~' expr                                 # BitNot
     |	expr op=('*'|'/'|'%') expr                  # MulDivMod
@@ -70,6 +71,14 @@ expr
     |   expr op=('|'|'^'|'&') expr                  # BitOp
     |   expr op=('&&'|'||') expr                    # AndOr
     |   condExpr                                    # IfExpr
+    ;
+
+builtinFuncCall
+    :   BUILTINFUNC '(' argList ')'                 # BuiltinFunctionCall
+    ;
+
+argList
+    :   expr (',' expr)*
     ;
 
 builtinVarExpr
@@ -151,6 +160,14 @@ ACCOUNTFIELD
     |   EXISTS
     ;
 
+BUILTINFUNC
+    :   SHA256
+    |   KECCAK256
+    |   SHA512
+    |   ED25519
+    |   RAND
+    ;
+
 LET         : 'let' ;
 CONST       : 'const' ;
 ERR         : 'error' ;
@@ -198,6 +215,12 @@ SENDERBALANCE : 'SenderBalance' ;
 BALANCE     : 'Balance' ;
 FROZEN      : 'Frozen' ;
 EXISTS      : 'Exists' ;
+
+SHA256      : 'sha256' ;
+KECCAK256   : 'keccak256' ;
+SHA512      : 'sha512_256' ;
+ED25519     : 'ed25519verify' ;
+RAND        : 'rand' ;
 
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
