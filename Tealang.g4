@@ -1,7 +1,7 @@
 grammar Tealang;
 
 prog
-    :   statement* EOF
+    :   statement* EOF                              # Program
     ;
 
 statement
@@ -41,7 +41,7 @@ condFalseBlock
 
 termination
     :   ERR (NEWLINE|SEMICOLON)                     # TermError
-    |   RET NUMBER (NEWLINE|SEMICOLON)              # TermReturn
+    |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
     ;
 
 decl

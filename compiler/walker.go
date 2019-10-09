@@ -52,6 +52,11 @@ type tealangListener struct {
 }
 
 const ifExprPrefix = "if_expr"
+const endProgramLabel = "end_program"
+const trueConstName = "TRUE_INTERNAL"
+const falseConstName = "FALSE_INTERNAL"
+const trueConstValue = "1"
+const falseConstValue = "0"
 
 func newTealangListener() (listener tealangListener) {
 	listener.literals = make(map[string]literal)
@@ -67,6 +72,22 @@ func newTealangListener() (listener tealangListener) {
 
 	listener.program = strings.Builder{}
 	return
+}
+
+/* Program start-end */
+func (l *tealangListener) EnterProgram(ctx *parser.ProgramContext) {
+	// add TRUE and FALSE int constants
+	l.intc = append(l.intc, falseConstValue)
+	l.literals[falseConstValue] = literal{0, integer}
+	l.constants[falseConstName] = falseConstValue
+
+	l.intc = append(l.intc, trueConstValue)
+	l.literals[trueConstValue] = literal{1, integer}
+	l.constants[trueConstName] = trueConstValue
+}
+
+func (l *tealangListener) ExitProgram(ctx *parser.ProgramContext) {
+	l.program.WriteString(fmt.Sprintf("%s:\n", endProgramLabel))
 }
 
 /* Declarations */
@@ -132,7 +153,6 @@ func (l *tealangListener) EnterDeclareStringConst(ctx *parser.DeclareStringConst
 /* Literals */
 
 func (l *tealangListener) EnterNumberLiteral(ctx *parser.NumberLiteralContext) {
-	// fmt.Printf("Number %v\n", ctx.GetText())
 	rawValue := ctx.NUMBER().GetSymbol().GetText()
 	if _, ok := l.literals[rawValue]; !ok {
 		idx := len(l.intc)
@@ -143,7 +163,6 @@ func (l *tealangListener) EnterNumberLiteral(ctx *parser.NumberLiteralContext) {
 }
 
 func (l *tealangListener) EnterStringLiteral(ctx *parser.StringLiteralContext) {
-	// fmt.Printf("String %v\n", ctx.GetText())
 	rawValue := ctx.STRING().GetSymbol().GetText()
 	if _, ok := l.literals[rawValue]; !ok {
 		idx := len(l.bytec)
@@ -283,7 +302,7 @@ func (l *tealangListener) EnterIfExprTrue(ctx *parser.IfExprTrueContext) {
 
 func (l *tealangListener) ExitIfExprTrue(ctx *parser.IfExprTrueContext) {
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
-	l.program.WriteString(fmt.Sprintf("int 1\nbnz %s_end_%d\n", ifExprPrefix, labelSuffix))
+	l.program.WriteString(fmt.Sprintf("intc %d\nbnz %s_end_%d\n", l.literals[trueConstValue].offset, ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) EnterIfExprFalse(ctx *parser.IfExprFalseContext) {
@@ -326,7 +345,7 @@ func (l *tealangListener) EnterIfStatementTrue(ctx *parser.IfStatementTrueContex
 
 func (l *tealangListener) ExitIfStatementTrue(ctx *parser.IfStatementTrueContext) {
 	labelSuffix := l.nestedCondStack[len(l.nestedCondStack)-1].labelID
-	l.program.WriteString(fmt.Sprintf("int 1\nbnz %s_end_%d\n", ifExprPrefix, labelSuffix))
+	l.program.WriteString(fmt.Sprintf("intc %d\nbnz %s_end_%d\n", l.literals[trueConstValue].offset, ifExprPrefix, labelSuffix))
 }
 
 func (l *tealangListener) EnterIfStatementFalse(ctx *parser.IfStatementFalseContext) {
@@ -372,12 +391,11 @@ func (l *tealangListener) ExitBuiltinFunctionCall(ctx *parser.BuiltinFunctionCal
 
 /* Return and Error */
 
-func (l *tealangListener) EnterTermReturn(ctx *parser.TermReturnContext) {
-	retCode := ctx.NUMBER().GetSymbol().GetText()
-	l.program.WriteString(fmt.Sprintf("int %s\n", retCode))
+func (l *tealangListener) ExitTermReturn(ctx *parser.TermReturnContext) {
+	l.program.WriteString(fmt.Sprintf("intc %d\nbnz %s\n", l.literals[trueConstValue].offset, endProgramLabel))
 }
 
-func (l *tealangListener) EnterTermError(ctx *parser.TermErrorContext) {
+func (l *tealangListener) ExitTermError(ctx *parser.TermErrorContext) {
 	l.program.WriteString(fmt.Sprintf("err\n"))
 }
 

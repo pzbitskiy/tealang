@@ -16,7 +16,7 @@ if txn.GroupIndex == 0 {
 }
 
 if sender != feeReceiver || fee != reimburseAmount {
-    error
+    return 0
 }
 
 return 1
