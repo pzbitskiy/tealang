@@ -2,20 +2,23 @@ if global.GroupSize != 2 {
     error
 }
 
-let fee = txn.Fee
-let sender = txn.Sender
+let myFee = txn.Fee
+let mySender = txn.Sender
+let reimburseTxIndex = if txn.GroupIndex == 0 { 1 } else { 0 }
 
-// as a default assume the reimbursement transaction has index 0 in the group
-let feeReceiver = gtxn[0].Receiver
-let reimburseAmount = gtxn[0].Amount
+let reimburseTo = ""
+let reimburseAmount = 0
 
-// if current index is zero, then assume the reimbursement transaction has index 1
-if txn.GroupIndex == 0 {
-    feeReceiver = gtxn[1].Receiver
+// depending on reimbursement transaction index (0 or 1) determine values to check
+if reimburseTxIndex == 1 {
+    reimburseTo = gtxn[1].Receiver
     reimburseAmount = gtxn[1].Amount
+} else {
+    reimburseTo = gtxn[0].Receiver
+    reimburseAmount = gtxn[0].Amount
 }
 
-if sender != feeReceiver || fee != reimburseAmount {
+if mySender != reimburseTo || myFee != reimburseAmount {
     return 0
 }
 
