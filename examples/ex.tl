@@ -1,5 +1,7 @@
-let a = 456; const b = 123; const c = "1234567890123"; let d = 1 + 2 ;
+let a = 456; const b = 123; const c = "1234567890123";
+let d = 1 + 2 ;
 let e = if a > 0 {1} else {2}
+
 if e == 1 {
 	let x = a + b;
 	error
