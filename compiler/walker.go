@@ -432,6 +432,7 @@ func Compile(source string) string {
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := parser.NewTealangParser(stream)
 	p.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
+	p.SetErrorHandler(antlr.NewBailErrorStrategy())
 	p.BuildParseTrees = true
 	tree := p.Prog()
 
