@@ -434,7 +434,7 @@ func Compile(source string) string {
 	p.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
 	p.SetErrorHandler(antlr.NewBailErrorStrategy())
 	p.BuildParseTrees = true
-	tree := p.Prog()
+	tree := p.Program()
 
 	listener := newTealangListener()
 	antlr.ParseTreeWalkerDefault.Walk(&listener, tree)

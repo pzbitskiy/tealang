@@ -1,14 +1,13 @@
 grammar Tealang;
 
-prog
-    :   statement* EOF                              # Program
+program
+    :   declaration* logic EOF
     ;
 
 statement
-    :   declaration
-    |   block
+    :   decl (NEWLINE|SEMICOLON)
     |   condition
-    |   expression
+    |   expr (NEWLINE|SEMICOLON)
     |   termination
     |   assignment
     |   NEWLINE|SEMICOLON
@@ -18,8 +17,18 @@ block
     :   '{' statement* '}'
     ;
 
+logic
+    : FUNC 'logic' '(' TXN ',' GTXN ',' ACCOUNT ')' block NEWLINE
+    ;
+
 declaration
     :   decl (NEWLINE|SEMICOLON)
+    |   FUNC funcName '(' IDENT (',' IDENT)? ')' block NEWLINE
+    |   NEWLINE|SEMICOLON
+    ;
+
+funcName
+    :   IDENT
     ;
 
 expression
@@ -174,6 +183,7 @@ ERR         : 'error' ;
 RET         : 'return' ;
 IF          : 'if' ;
 ELSE        : 'else' ;
+FUNC        : 'function' ;
 
 GLOBAL      : 'global';
 TXN         : 'txn';
