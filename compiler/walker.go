@@ -178,7 +178,7 @@ func (l *tealangListener) EnterStringLiteral(ctx *parser.StringLiteralContext) {
 
 /* Binary operators */
 
-func (l *tealangListener) ExitSumSub(ctx *parser.SumSubContext) {
+func (l *tealangListener) ExitAddSub(ctx *parser.AddSubContext) {
 	op := ctx.GetOp().GetText()
 	if op != "+" && op != "-" {
 		panic("Unknown op")

@@ -14,6 +14,10 @@ const (
 	ambiguityError parserErrorType = 2
 )
 
+type TypeError struct {
+	msg string
+}
+
 // ParserError provides generic info about the error
 type ParserError struct {
 	errorType parserErrorType

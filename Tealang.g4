@@ -60,14 +60,14 @@ expr
     |   NUMBER                                      # NumberLiteral
     |   STRING                                      # StringLiteral
     |	'(' expr ')'                                # Group
-    // |   funcCall                                    # FunctionCall
+    |   funcCall                                    # FunctionCall
     |   builtinFuncCall                             # BuiltinFunction
     |   builtinVarExpr                              # BuiltinObject
     // |   compoundElem                                # ObjElement
     |   op='!' expr                                 # Not
     |   op='~' expr                                 # BitNot
     |	expr op=('*'|'/'|'%') expr                  # MulDivMod
-    |	expr op=('+'|'-') expr                      # SumSub
+    |	expr op=('+'|'-') expr                      # AddSub
     |   expr op=('<'|'<='|'>'|'>='|'=='|'!=') expr  # Relation
     |   expr op=('|'|'^'|'&') expr                  # BitOp
     |   expr op=('&&'|'||') expr                    # AndOr
@@ -99,7 +99,7 @@ arrayElem
     ;
 
 funcCall
-    :   IDENT '(' expr ')'
+    :   IDENT '(' argList ')'
     ;
 
 // named rules for tree-walking only

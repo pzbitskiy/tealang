@@ -12,7 +12,7 @@ import (
 	gen "../gen/go"
 )
 
-//go:generate ./bundle_langspec_json.sh
+//go:generate sh ./bundle_langspec_json.sh
 
 type context struct {
 	literals map[string]literal // literal value -> index in intc / bytec
@@ -27,17 +27,29 @@ type context struct {
 type exprType int
 
 const (
-	intType   exprType = 1
-	bytesType exprType = 2
+	intType     exprType = 1
+	bytesType   exprType = 2
+	invalidType exprType = 99
 )
+
+func (n exprType) String() string {
+	switch n {
+	case intType:
+		return "uint64"
+	case bytesType:
+		return "byte[]"
+	}
+	return "unknown"
+}
 
 // TreeNodeIf represents a node in AST
 type TreeNodeIf interface {
 	append(ch TreeNodeIf)
 	empty() bool
-	name() string
 	children() []TreeNodeIf
+	String() string
 	Print()
+	TypeCheck() []TypeError
 }
 
 // TreeNode contains base info about an AST node
@@ -55,46 +67,120 @@ type programNode struct {
 	*TreeNode
 }
 
-type declarationNode struct {
+type funDeclNode struct {
 	*TreeNode
-	impl TreeNodeIf
-}
-
-type logicNode struct {
-	*TreeNode
-	funArgs []string
-	block   blockNode
-}
-
-type funDeclarationNode struct {
-	*TreeNode
-	funName string
-	funArgs []string
-	block   blockNode
+	name  string
+	args  []string
+	block blockNode
 }
 
 type blockNode struct {
 	*TreeNode
 }
 
-type varDeclarationNode struct {
+type varDeclNode struct {
 	*TreeNode
-	varName  string
-	varType  exprType
-	varValue *exprNode
+	name     string
+	exprType exprType
+	value    ExprNodeIf
 }
 
 type constNode struct {
 	*TreeNode
-	varName  string
-	varType  exprType
-	varValue string
+	name     string
+	exprType exprType
+	value    string
 }
 
-type exprNode struct {
+type exprIdentNode struct {
 	*TreeNode
 	exprType exprType
+	name     string
 }
+
+type exprLiteralNode struct {
+	*TreeNode
+	exprType exprType
+	value    string
+}
+
+type exprBinOpNode struct {
+	*TreeNode
+	exprType exprType
+	op       string
+	lhs      ExprNodeIf
+	rhs      ExprNodeIf
+}
+
+type exprGroupNode struct {
+	*TreeNode
+	value ExprNodeIf
+}
+
+type ExprNodeIf interface {
+	TreeNodeIf
+	getType() exprType
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+// listeners
+//
+//--------------------------------------------------------------------------------------------------
+
+type genericListener struct {
+	*gen.BaseTealangListener
+	ctx  *context
+	node TreeNodeIf
+}
+
+func (l *genericListener) getNode() TreeNodeIf {
+	return l.node
+}
+
+func newGenericListener(ctx *context) *genericListener {
+	l := new(genericListener)
+	l.ctx = ctx
+	return l
+}
+
+type declListener struct {
+	*gen.BaseTealangListener
+	ctx  *context
+	decl TreeNodeIf
+}
+
+func newDeclListener(ctx *context) *declListener {
+	l := new(declListener)
+	l.ctx = ctx
+	return l
+}
+
+func (l *declListener) getDecl() TreeNodeIf {
+	return l.decl
+}
+
+type exprListener struct {
+	*gen.BaseTealangListener
+	ctx  *context
+	expr ExprNodeIf
+}
+
+func newExprListener(ctx *context) *exprListener {
+	l := new(exprListener)
+	l.ctx = ctx
+	return l
+}
+
+func (l *exprListener) getExpr() ExprNodeIf {
+	return l.expr
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+// AST nodes constructors
+//
+//--------------------------------------------------------------------------------------------------
 
 func newNode(ctx *context) (node *TreeNode) {
 	node = new(TreeNode)
@@ -110,30 +196,15 @@ func newProgramNode(ctx *context) (node *programNode) {
 	return
 }
 
-func newDeclarationNode(ctx *context) (node *declarationNode) {
-	node = new(declarationNode)
-	node.TreeNode = newNode(ctx)
-	node.nodeName = "declaration"
-	return
-}
-
-func newLogicNode(ctx *context) (node *logicNode) {
-	node = new(logicNode)
-	node.TreeNode = newNode(ctx)
-	node.nodeName = "logic"
-	node.funArgs = make([]string, 3)
-	return
-}
-
-func newFunDeclarationNode(ctx *context) (node *funDeclarationNode) {
-	node = new(funDeclarationNode)
+func newFunDeclNode(ctx *context) (node *funDeclNode) {
+	node = new(funDeclNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "func"
 	return
 }
 
-func newVarDeclarationNode(ctx *context) (node *varDeclarationNode) {
-	node = new(varDeclarationNode)
+func newvarDeclNode(ctx *context) (node *varDeclNode) {
+	node = new(varDeclNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "var"
 	return
@@ -146,11 +217,57 @@ func newConstNode(ctx *context) (node *constNode) {
 	return
 }
 
-func newExprNode(ctx *context) (node *exprNode) {
-	node = new(exprNode)
+func newExprIdentNode(ctx *context, name string) (node *exprIdentNode) {
+	node = new(exprIdentNode)
 	node.TreeNode = newNode(ctx)
-	node.nodeName = "expr"
+	node.nodeName = "expr ident"
+	node.name = name
 	return
+}
+
+func newExprLiteralNode(ctx *context, valType exprType, value string) (node *exprLiteralNode) {
+	node = new(exprLiteralNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "expr ident"
+	node.value = value
+	node.exprType = valType
+	return
+}
+
+func newExprBinOpNode(ctx *context, op string) (node *exprBinOpNode) {
+	node = new(exprBinOpNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "expr OP expr"
+	node.exprType = intType
+	node.op = op
+	return
+}
+
+func newExprGroupNode(ctx *context, value ExprNodeIf) (node *exprGroupNode) {
+	node = new(exprGroupNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "(expr)"
+	node.value = value
+	return
+}
+
+func (n *exprLiteralNode) getType() exprType {
+	return n.exprType
+}
+
+func (n *exprIdentNode) getType() exprType {
+	return n.exprType
+}
+
+func (n *exprBinOpNode) getType() exprType {
+	if tp, err := typeFromSpec(n.op); err != nil {
+		return tp
+	}
+	return invalidType
+}
+
+func (n *exprGroupNode) getType() exprType {
+	return n.value.getType()
 }
 
 func (n *TreeNode) append(ch TreeNodeIf) {
@@ -161,7 +278,7 @@ func (n *TreeNode) empty() bool {
 	return n.nodeName == "empty"
 }
 
-func (n *TreeNode) name() string {
+func (n *TreeNode) String() string {
 	return n.nodeName
 }
 
@@ -171,41 +288,52 @@ func (n *TreeNode) children() []TreeNodeIf {
 
 // Print AST
 func (n *TreeNode) Print() {
-	dumpImpl(n, 0)
+	printImpl(n, 0)
 }
 
-func dumpImpl(n TreeNodeIf, offset int) {
-	fmt.Printf("%s%s\n", strings.Repeat(" ", offset), n.name())
+func printImpl(n TreeNodeIf, offset int) {
+	fmt.Printf("%s%s\n", strings.Repeat(" ", offset), n.String())
 	for _, ch := range n.children() {
-		dumpImpl(ch, offset+4)
+		printImpl(ch, offset+4)
 	}
+}
+
+func (n *TreeNode) TypeCheck() (errors []TypeError) {
+	for _, ch := range n.children() {
+		errors = append(errors, ch.TypeCheck()...)
+	}
+	return
 }
 
 // EnterProgram is an entry point to AST
-func (n *programNode) EnterProgram(ctx *gen.ProgramContext) {
+func (l *genericListener) EnterProgram(ctx *gen.ProgramContext) {
+	root := newProgramNode(l.ctx)
+
 	declarations := ctx.AllDeclaration()
 	for _, declaration := range declarations {
-		node := newDeclarationNode(n.ctx)
-		declaration.EnterRule(node)
-		// cast to actual type - variable/constant/function
-		upgraded := node.upgrade()
-		if upgraded != nil {
-			n.append(upgraded)
+		l := newDeclListener(l.ctx)
+		declaration.EnterRule(l)
+		node := l.getDecl()
+		if node != nil {
+			root.append(node)
 		}
 	}
 
-	node := newLogicNode(n.ctx)
-	ctx.Logic().EnterRule(node)
-	n.append(node)
+	logicListener := newDeclListener(l.ctx)
+	ctx.Logic().EnterRule(logicListener)
+	logic := logicListener.getDecl()
+	if logic == nil {
+		// TODO: report error
+		panic("no logic")
+	}
+	root.append(logic)
+
+	l.node = root
 }
 
-func (n *declarationNode) upgrade() (node TreeNodeIf) {
-	return n.impl
-}
-
-func (n *declarationNode) EnterDeclaration(ctx *gen.DeclarationContext) {
+func (l *declListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 	if decl := ctx.Decl(); decl != nil {
-		decl.EnterRule(n)
+		decl.EnterRule(l)
 	} else if fun := ctx.FUNC(); fun != nil {
 		count := len(ctx.AllIDENT())
 		name := ctx.IDENT(0).GetText()
@@ -213,67 +341,163 @@ func (n *declarationNode) EnterDeclaration(ctx *gen.DeclarationContext) {
 		for i := 0; i < count-1; i++ {
 			args[i] = ctx.IDENT(i + 1).GetText()
 		}
-
-		actual := newFunDeclarationNode(n.ctx)
-		actual.funName = name
-		actual.funArgs = args
-		n.impl = actual
-		fmt.Printf("impl %v actual %v", n.impl, actual)
-	} else {
-		n.nodeName = "empty"
+		node := newFunDeclNode(l.ctx)
+		node.name = name
+		node.args = args
+		l.decl = node
 	}
 }
 
-func (n *logicNode) EnterLogic(ctx *gen.LogicContext) {
-	n.funArgs = append(n.funArgs, ctx.TXN().GetText())
-	n.funArgs = append(n.funArgs, ctx.GTXN().GetText())
-	n.funArgs = append(n.funArgs, ctx.ACCOUNT().GetText())
+func (l *declListener) EnterLogic(ctx *gen.LogicContext) {
+	node := newFunDeclNode(l.ctx)
+	node.name = "logic"
+	node.args = []string{ctx.TXN().GetText(), ctx.GTXN().GetText(), ctx.ACCOUNT().GetText()}
+	l.decl = node
 }
 
-func (n *declarationNode) EnterDeclareVar(ctx *gen.DeclareVarContext) {
+func (l *declListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 	varName := ctx.IDENT().GetText()
-	expr := ctx.Expr()
-	node := newExprNode(n.ctx)
-	expr.EnterRule(node)
+	listener := newExprListener(l.ctx)
+	ctx.Expr().EnterRule(listener)
+	exprNode := listener.getExpr()
 
-	actual := newVarDeclarationNode(n.ctx)
-	actual.varName = varName
-	actual.varValue = node
-	n.impl = actual
+	node := newvarDeclNode(l.ctx)
+	node.name = varName
+	node.value = exprNode
+	l.decl = node
 }
 
-func (n *declarationNode) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {
+func (l *declListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {
 	varName := ctx.IDENT().GetText()
 	varValue := ctx.NUMBER().GetText()
 
-	actual := newConstNode(n.ctx)
-	actual.varName = varName
-	actual.varValue = varValue
-	actual.varType = intType
-	n.impl = actual
+	node := newConstNode(l.ctx)
+	node.name = varName
+	node.value = varValue
+	node.exprType = intType
+	l.decl = node
 }
 
-func (n *declarationNode) EnterDeclareStringConst(ctx *gen.DeclareStringConstContext) {
+func (l *declListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstContext) {
 	varName := ctx.IDENT().GetText()
 	varValue := ctx.STRING().GetText()
 
-	actual := newConstNode(n.ctx)
-	actual.varName = varName
-	actual.varValue = varValue
-	actual.varType = bytesType
-	n.impl = actual
+	node := newConstNode(l.ctx)
+	node.name = varName
+	node.value = varValue
+	node.exprType = bytesType
+	l.decl = node
 }
 
-func (n *varDeclarationNode) name() string {
-	return fmt.Sprintf("var %s", n.varName)
+func (n *varDeclNode) String() string {
+	return fmt.Sprintf("var %s = %s", n.name, n.value.String())
 }
 
-func (n *constNode) name() string {
-	return fmt.Sprintf("const (%d) %s = %s", n.varType, n.varName, n.varValue)
+func (n *constNode) String() string {
+	return fmt.Sprintf("const (%s) %s = %s", n.exprType, n.name, n.value)
 }
 
-func (n *funDeclarationNode) name() string {
-	return fmt.Sprintf("function %s", n.funName)
+func (n *funDeclNode) String() string {
+	return fmt.Sprintf("function %s", n.name)
+}
+
+func (n *exprIdentNode) String() string {
+	return fmt.Sprintf("var %s", n.name)
+}
+
+func (n *exprLiteralNode) String() string {
+	return fmt.Sprintf("%s", n.value)
+}
+
+func (n *exprBinOpNode) String() string {
+	return fmt.Sprintf("%s %s %s", n.lhs, n.op, n.rhs)
+}
+
+func (n *exprGroupNode) String() string {
+	return fmt.Sprintf("(%s)", n.value)
+}
+
+func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
+	errors = append(errors, n.lhs.TypeCheck()...)
+	errors = append(errors, n.lhs.TypeCheck()...)
+
+	lhs := n.lhs.getType()
+	rhs := n.rhs.getType()
+	if lhs != rhs {
+		err := TypeError{fmt.Sprintf("mismatching types at '%s' expr", n)}
+		errors = append(errors, err)
+	}
+	return
+}
+
+func (n *varDeclNode) TypeCheck() (errors []TypeError) {
+	errors = n.value.TypeCheck()
+	return
+}
+
+func (l *exprListener) EnterIdentifier(ctx *gen.IdentifierContext) {
+	varName := ctx.IDENT().GetSymbol().GetText()
+	node := newExprIdentNode(l.ctx, varName)
+	l.expr = node
+}
+
+func (l *exprListener) EnterNumberLiteral(ctx *gen.NumberLiteralContext) {
+	value := ctx.NUMBER().GetText()
+	node := newExprLiteralNode(l.ctx, intType, value)
+	l.expr = node
+}
+
+func (l *exprListener) EnterStringLiteral(ctx *gen.StringLiteralContext) {
+	value := ctx.STRING().GetText()
+	node := newExprLiteralNode(l.ctx, bytesType, value)
+	l.expr = node
+}
+
+func (l *exprListener) binOp(op string, lhs gen.IExprContext, rhs gen.IExprContext) {
+
+	node := newExprBinOpNode(l.ctx, op)
+
+	subExprListener := newExprListener(l.ctx)
+	lhs.EnterRule(subExprListener)
+	node.lhs = subExprListener.getExpr()
+
+	subExprListener = newExprListener(l.ctx)
+	rhs.EnterRule(subExprListener)
+	node.rhs = subExprListener.getExpr()
+
+	l.expr = node
+}
+
+func (l *exprListener) EnterAddSub(ctx *gen.AddSubContext) {
+	op := ctx.GetOp().GetText()
+	l.binOp(op, ctx.Expr(0), ctx.Expr(1))
+}
+
+func (l *exprListener) EnterMulDivMod(ctx *gen.MulDivModContext) {
+	op := ctx.GetOp().GetText()
+	l.binOp(op, ctx.Expr(0), ctx.Expr(1))
+}
+
+func (l *exprListener) EnterRelation(ctx *gen.RelationContext) {
+	op := ctx.GetOp().GetText()
+	l.binOp(op, ctx.Expr(0), ctx.Expr(1))
+}
+
+func (l *exprListener) EnterBitOp(ctx *gen.BitOpContext) {
+	op := ctx.GetOp().GetText()
+	l.binOp(op, ctx.Expr(0), ctx.Expr(1))
+}
+
+func (l *exprListener) EnterAndOr(ctx *gen.AndOrContext) {
+	op := ctx.GetOp().GetText()
+	l.binOp(op, ctx.Expr(0), ctx.Expr(1))
+}
+
+func (l *exprListener) EnterGroup(ctx *gen.GroupContext) {
+	listener := newExprListener(l.ctx)
+	ctx.Expr().EnterRule(listener)
+	node := newExprGroupNode(l.ctx, listener.getExpr())
+	l.expr = node
 }
 
 // Parse creates AST
@@ -297,8 +521,10 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	}
 
 	ctx := new(context)
-	prog := newProgramNode(ctx)
-	tree.EnterRule(prog)
+	l := newGenericListener(ctx)
+	tree.EnterRule(l)
+
+	prog := l.getNode()
 
 	return prog, nil
 }
