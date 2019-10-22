@@ -23,16 +23,8 @@ logic
 
 declaration
     :   decl (NEWLINE|SEMICOLON)
-    |   FUNC funcName '(' IDENT (',' IDENT)? ')' block NEWLINE
+    |   FUNC IDENT '(' IDENT (',' IDENT)? ')' block NEWLINE
     |   NEWLINE|SEMICOLON
-    ;
-
-funcName
-    :   IDENT
-    ;
-
-expression
-    :   expr (NEWLINE|SEMICOLON)
     ;
 
 // named rules for tree-walking only
