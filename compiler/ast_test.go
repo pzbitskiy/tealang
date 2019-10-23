@@ -18,6 +18,7 @@ let e = if c == 1 {1} else {2}
 let e = if c == 1 {1} else {"1"}
 
 function logic(txn, gtxn, account) {
+	let x = 1 + 1;
 	return 1
 }
 `

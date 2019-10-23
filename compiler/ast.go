@@ -14,31 +14,52 @@ import (
 
 //go:generate sh ./bundle_langspec_json.sh
 
-type context struct {
-	literals map[string]literal // literal value -> index in intc / bytec
-	intc     []string
-	bytec    [][]byte
+type literalInfo struct {
+	intc  []string
+	bytec [][]byte
+}
 
-	vars          map[string]varInfo
-	variableIndex uint
+type context struct {
+	literals     *literalInfo
+	parent       *context
+	vars         map[string]varInfo
+	addressEntry uint
+	addressNext  uint
 }
 
 type varInfo struct {
-	name    string
-	theType exprType
-	index   uint
-
+	name     string
+	theType  exprType
 	constant bool
-	value    *string
+
+	// for variables specifies allocated memory space
+	// for constants sets index in intc/bytec arrays
+	address uint
+
+	// constants have value
+	value *string
 }
 
-func newContext() (ctx *context) {
+func newLiteralInfo() (literals *literalInfo) {
+	literals = new(literalInfo)
+	literals.intc = make([]string, 0, 128)
+	literals.bytec = make([][]byte, 0, 128)
+	return
+}
+
+func newContext(parent *context) (ctx *context) {
 	ctx = new(context)
-	ctx.literals = make(map[string]literal)
-	ctx.intc = make([]string, 0, 128)
-	ctx.bytec = make([][]byte, 0, 128)
+	ctx.parent = parent
 	ctx.vars = make(map[string]varInfo)
-	ctx.variableIndex = 0
+	if parent != nil {
+		ctx.literals = parent.literals
+		ctx.addressEntry = parent.addressNext
+		ctx.addressNext = parent.addressNext
+	} else {
+		ctx.literals = newLiteralInfo()
+		ctx.addressEntry = 0
+		ctx.addressNext = 0
+	}
 	return
 }
 
@@ -51,13 +72,14 @@ func (ctx *context) lookup(name string) (varable varInfo, err error) {
 }
 
 func (ctx *context) newVar(name string, theType exprType) {
-	ctx.vars[name] = varInfo{name, theType, ctx.variableIndex, false, nil}
-	ctx.variableIndex++
+	ctx.vars[name] = varInfo{name, theType, false, ctx.addressNext, nil}
+	ctx.addressNext++
 }
 
 type exprType int
 
 const (
+	unknownType exprType = 0
 	intType     exprType = 1
 	bytesType   exprType = 2
 	invalidType exprType = 99
@@ -108,6 +130,22 @@ type funDeclNode struct {
 
 type blockNode struct {
 	*TreeNode
+}
+
+type returnNode struct {
+	*TreeNode
+	value ExprNodeIf
+}
+
+type errorNode struct {
+	*TreeNode
+}
+
+type assignNode struct {
+	*TreeNode
+	name     string
+	exprType exprType
+	value    ExprNodeIf
 }
 
 type varDeclNode struct {
@@ -173,36 +211,20 @@ type ExprNodeIf interface {
 //
 //--------------------------------------------------------------------------------------------------
 
-type genericListener struct {
+type treeNodeListener struct {
 	*gen.BaseTealangListener
 	ctx  *context
 	node TreeNodeIf
 }
 
-func (l *genericListener) getNode() TreeNodeIf {
+func (l *treeNodeListener) getNode() TreeNodeIf {
 	return l.node
 }
 
-func newGenericListener(ctx *context) *genericListener {
-	l := new(genericListener)
+func newTreeNodeListener(ctx *context) *treeNodeListener {
+	l := new(treeNodeListener)
 	l.ctx = ctx
 	return l
-}
-
-type declListener struct {
-	*gen.BaseTealangListener
-	ctx  *context
-	decl TreeNodeIf
-}
-
-func newDeclListener(ctx *context) *declListener {
-	l := new(declListener)
-	l.ctx = ctx
-	return l
-}
-
-func (l *declListener) getDecl() TreeNodeIf {
-	return l.decl
 }
 
 type exprListener struct {
@@ -241,6 +263,37 @@ func newProgramNode(ctx *context) (node *programNode) {
 	return
 }
 
+func newBlockNode(ctx *context) (node *programNode) {
+	node = new(programNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "block"
+	return
+}
+
+func newReturnNode(ctx *context, value ExprNodeIf) (node *returnNode) {
+	node = new(returnNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "ret"
+	node.value = value
+	return
+}
+
+func newErorrNode(ctx *context) (node *errorNode) {
+	node = new(errorNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "error"
+	return
+}
+
+func newAssignNode(ctx *context, ident string, value ExprNodeIf) (node *assignNode) {
+	node = new(assignNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "assign"
+	node.name = ident
+	node.value = value
+	return
+}
+
 func newFunDeclNode(ctx *context) (node *funDeclNode) {
 	node = new(funDeclNode)
 	node.TreeNode = newNode(ctx)
@@ -248,10 +301,12 @@ func newFunDeclNode(ctx *context) (node *funDeclNode) {
 	return
 }
 
-func newvarDeclNode(ctx *context) (node *varDeclNode) {
+func newVarDeclNode(ctx *context, ident string, value ExprNodeIf) (node *varDeclNode) {
 	node = new(varDeclNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "var"
+	node.name = ident
+	node.value = value
 	return
 }
 
@@ -380,22 +435,22 @@ func (n *TreeNode) TypeCheck() (errors []TypeError) {
 }
 
 // EnterProgram is an entry point to AST
-func (l *genericListener) EnterProgram(ctx *gen.ProgramContext) {
+func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	root := newProgramNode(l.ctx)
 
 	declarations := ctx.AllDeclaration()
 	for _, declaration := range declarations {
-		l := newDeclListener(l.ctx)
+		l := newTreeNodeListener(l.ctx)
 		declaration.EnterRule(l)
-		node := l.getDecl()
+		node := l.getNode()
 		if node != nil {
 			root.append(node)
 		}
 	}
 
-	logicListener := newDeclListener(l.ctx)
+	logicListener := newTreeNodeListener(l.ctx)
 	ctx.Logic().EnterRule(logicListener)
-	logic := logicListener.getDecl()
+	logic := logicListener.getNode()
 	if logic == nil {
 		// TODO: report error
 		panic("no logic")
@@ -405,31 +460,55 @@ func (l *genericListener) EnterProgram(ctx *gen.ProgramContext) {
 	l.node = root
 }
 
-func (l *declListener) EnterDeclaration(ctx *gen.DeclarationContext) {
+func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 	if decl := ctx.Decl(); decl != nil {
 		decl.EnterRule(l)
 	} else if fun := ctx.FUNC(); fun != nil {
-		count := len(ctx.AllIDENT())
+		// start new scoped context
+		scopedContext := newContext(l.ctx)
 		name := ctx.IDENT(0).GetText()
-		args := make([]string, count-1)
-		for i := 0; i < count-1; i++ {
-			args[i] = ctx.IDENT(i + 1).GetText()
+
+		// get arguments vars
+		argCount := len(ctx.AllIDENT())
+		args := make([]string, argCount-1)
+		for i := 0; i < argCount-1; i++ {
+			ident := ctx.IDENT(i + 1).GetText()
+			scopedContext.newVar(ident, unknownType)
+			args[i] = ident
 		}
-		node := newFunDeclNode(l.ctx)
+		node := newFunDeclNode(scopedContext)
 		node.name = name
 		node.args = args
-		l.decl = node
+
+		// parse function body and add statements as children
+		listener := newTreeNodeListener(scopedContext)
+		ctx.Block().EnterRule(listener)
+		blockNode := listener.getNode()
+		for _, stmt := range blockNode.children() {
+			node.append(stmt)
+		}
+
+		l.node = node
 	}
 }
 
-func (l *declListener) EnterLogic(ctx *gen.LogicContext) {
+func (l *treeNodeListener) EnterLogic(ctx *gen.LogicContext) {
 	node := newFunDeclNode(l.ctx)
 	node.name = "logic"
 	node.args = []string{ctx.TXN().GetText(), ctx.GTXN().GetText(), ctx.ACCOUNT().GetText()}
-	l.decl = node
+
+	scopedContext := newContext(l.ctx)
+	listener := newTreeNodeListener(scopedContext)
+	ctx.Block().EnterRule(listener)
+	blockNode := listener.getNode()
+	for _, stmt := range blockNode.children() {
+		node.append(stmt)
+	}
+
+	l.node = node
 }
 
-func (l *declListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
+func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 	ident := ctx.IDENT().GetText()
 	listener := newExprListener(l.ctx)
 	ctx.Expr().EnterRule(listener)
@@ -437,13 +516,11 @@ func (l *declListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 
 	l.ctx.newVar(ident, exprNode.getType())
 
-	node := newvarDeclNode(l.ctx)
-	node.name = ident
-	node.value = exprNode
-	l.decl = node
+	node := newVarDeclNode(l.ctx, ident, exprNode)
+	l.node = node
 }
 
-func (l *declListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {
+func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {
 	varName := ctx.IDENT().GetText()
 	varValue := ctx.NUMBER().GetText()
 
@@ -451,10 +528,10 @@ func (l *declListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContex
 	node.name = varName
 	node.value = varValue
 	node.exprType = intType
-	l.decl = node
+	l.node = node
 }
 
-func (l *declListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstContext) {
+func (l *treeNodeListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstContext) {
 	varName := ctx.IDENT().GetText()
 	varValue := ctx.STRING().GetText()
 
@@ -462,7 +539,62 @@ func (l *declListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstContex
 	node.name = varName
 	node.value = varValue
 	node.exprType = bytesType
-	l.decl = node
+	l.node = node
+}
+
+func (l *treeNodeListener) EnterBlock(ctx *gen.BlockContext) {
+	block := newBlockNode(l.ctx)
+	statements := ctx.AllStatement()
+	for _, declaration := range statements {
+		l := newTreeNodeListener(l.ctx)
+		declaration.EnterRule(l)
+		node := l.getNode()
+		if node != nil {
+			block.append(node)
+		}
+	}
+	l.node = block
+}
+
+func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
+	if ctx.Decl() != nil {
+		ctx.Decl().EnterRule(l)
+	} else if ctx.Condition() != nil {
+		ctx.Condition().EnterRule(l)
+	} else if ctx.Termination() != nil {
+		ctx.Termination().EnterRule(l)
+	} else if ctx.Assignment() != nil {
+		ctx.Assignment().EnterRule(l)
+	} else if ctx.Expr() != nil {
+		listener := newExprListener(l.ctx)
+		ctx.Expr().EnterRule(listener)
+		l.node = listener.getExpr()
+	}
+}
+
+func (l *treeNodeListener) EnterTermReturn(ctx *gen.TermReturnContext) {
+	listener := newExprListener(l.ctx)
+	ctx.Expr().EnterRule(listener)
+	node := newReturnNode(l.ctx, listener.getExpr())
+	l.node = node
+}
+
+func (l *treeNodeListener) EnterTermError(ctx *gen.TermErrorContext) {
+	l.node = newErorrNode(l.ctx)
+}
+
+func (l *treeNodeListener) EnterIfStatement(ctx *gen.IfStatementContext) {
+	fmt.Println("EnterIfStatement")
+}
+
+func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
+	ident := ctx.IDENT().GetSymbol().GetText()
+	// TODO: check declared
+
+	listener := newExprListener(l.ctx)
+	ctx.Expr().EnterRule(listener)
+	node := newAssignNode(l.ctx, ident, listener.getExpr())
+	l.node = node
 }
 
 func (n *varDeclNode) String() string {
@@ -699,8 +831,8 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 		return nil, collector.errors
 	}
 
-	ctx := newContext()
-	l := newGenericListener(ctx)
+	ctx := newContext(nil)
+	l := newTreeNodeListener(ctx)
 	tree.EnterRule(l)
 
 	prog := l.getNode()

@@ -384,7 +384,7 @@ func (l *tealangListener) ExitGroupTxnFieldExpr(ctx *parser.GroupTxnFieldExprCon
 	l.program.WriteString(fmt.Sprintf("gtxn %s %s\n", index, field))
 }
 
-func (l *tealangListener) ExitBuiltinFunctionCall(ctx *parser.BuiltinFunctionCallContext) {
+func (l *tealangListener) ExitBuiltinFunCall(ctx *parser.BuiltinFunCallContext) {
 	funcName := ctx.BUILTINFUNC().GetSymbol().GetText()
 	l.program.WriteString(fmt.Sprintf("%s\n", funcName))
 }
