@@ -60,8 +60,7 @@ expr
     |   NUMBER                                      # NumberLiteral
     |   STRING                                      # StringLiteral
     |	'(' expr ')'                                # Group
-    |   funcCall                                    # FunctionCall
-    |   builtinFuncCall                             # BuiltinFunction
+    |   functionCall                                # FuncCall
     |   builtinVarExpr                              # BuiltinObject
     // |   compoundElem                                # ObjElement
     |   op='!' expr                                 # Not
@@ -74,8 +73,9 @@ expr
     |   condExpr                                    # IfExpr
     ;
 
-builtinFuncCall
-    :   BUILTINFUNC '(' argList ')'                 # BuiltinFunctionCall
+functionCall
+    :   BUILTINFUNC '(' argList ')'                 # BuiltinFunCall
+    |   IDENT '(' argList ')'                       # FunCall
     ;
 
 argList
@@ -96,10 +96,6 @@ compoundElem
 
 arrayElem
     :   IDENT '[' NUMBER ']'
-    ;
-
-funcCall
-    :   IDENT '(' argList ')'
     ;
 
 // named rules for tree-walking only

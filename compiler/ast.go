@@ -19,9 +19,40 @@ type context struct {
 	intc     []string
 	bytec    [][]byte
 
-	constants     map[string]string // constant name -> value
-	variables     map[string]uint
+	vars          map[string]varInfo
 	variableIndex uint
+}
+
+type varInfo struct {
+	name    string
+	theType exprType
+	index   uint
+
+	constant bool
+	value    *string
+}
+
+func newContext() (ctx *context) {
+	ctx = new(context)
+	ctx.literals = make(map[string]literal)
+	ctx.intc = make([]string, 0, 128)
+	ctx.bytec = make([][]byte, 0, 128)
+	ctx.vars = make(map[string]varInfo)
+	ctx.variableIndex = 0
+	return
+}
+
+func (ctx *context) lookup(name string) (varable varInfo, err error) {
+	variable, ok := ctx.vars[name]
+	if !ok {
+		return varInfo{}, fmt.Errorf("ident %s not defined", name)
+	}
+	return variable, nil
+}
+
+func (ctx *context) newVar(name string, theType exprType) {
+	ctx.vars[name] = varInfo{name, theType, ctx.variableIndex, false, nil}
+	ctx.variableIndex++
 }
 
 type exprType int
@@ -38,6 +69,8 @@ func (n exprType) String() string {
 		return "uint64"
 	case bytesType:
 		return "byte[]"
+	case invalidType:
+		return "invalid"
 	}
 	return "unknown"
 }
@@ -45,7 +78,6 @@ func (n exprType) String() string {
 // TreeNodeIf represents a node in AST
 type TreeNodeIf interface {
 	append(ch TreeNodeIf)
-	empty() bool
 	children() []TreeNodeIf
 	String() string
 	Print()
@@ -115,6 +147,19 @@ type exprBinOpNode struct {
 type exprGroupNode struct {
 	*TreeNode
 	value ExprNodeIf
+}
+
+type exprUnOpNode struct {
+	*TreeNode
+	op    string
+	value ExprNodeIf
+}
+
+type ifExprNode struct {
+	*TreeNode
+	condExpr      ExprNodeIf
+	condTrueExpr  ExprNodeIf
+	condFalseExpr ExprNodeIf
 }
 
 type ExprNodeIf interface {
@@ -217,11 +262,12 @@ func newConstNode(ctx *context) (node *constNode) {
 	return
 }
 
-func newExprIdentNode(ctx *context, name string) (node *exprIdentNode) {
+func newExprIdentNode(ctx *context, name string, exprType exprType) (node *exprIdentNode) {
 	node = new(exprIdentNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "expr ident"
 	node.name = name
+	node.exprType = exprType
 	return
 }
 
@@ -251,6 +297,21 @@ func newExprGroupNode(ctx *context, value ExprNodeIf) (node *exprGroupNode) {
 	return
 }
 
+func newExprUnOpNode(ctx *context, op string) (node *exprUnOpNode) {
+	node = new(exprUnOpNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "OP expr"
+	node.op = op
+	return
+}
+
+func newIfExprNode(ctx *context) (node *ifExprNode) {
+	node = new(ifExprNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "if expr"
+	return
+}
+
 func (n *exprLiteralNode) getType() exprType {
 	return n.exprType
 }
@@ -260,10 +321,27 @@ func (n *exprIdentNode) getType() exprType {
 }
 
 func (n *exprBinOpNode) getType() exprType {
-	if tp, err := typeFromSpec(n.op); err != nil {
-		return tp
+	tp, err := typeFromSpec(n.op)
+	if err != nil {
+		fmt.Println(err)
+		return invalidType
 	}
-	return invalidType
+
+	return tp
+}
+
+func (n *exprUnOpNode) getType() exprType {
+	tp, err := typeFromSpec(n.op)
+	if err != nil {
+		fmt.Println(err)
+		return invalidType
+	}
+
+	return tp
+}
+
+func (n *ifExprNode) getType() exprType {
+	return n.condTrueExpr.getType()
 }
 
 func (n *exprGroupNode) getType() exprType {
@@ -272,10 +350,6 @@ func (n *exprGroupNode) getType() exprType {
 
 func (n *TreeNode) append(ch TreeNodeIf) {
 	n.childrenNodes = append(n.childrenNodes, ch)
-}
-
-func (n *TreeNode) empty() bool {
-	return n.nodeName == "empty"
 }
 
 func (n *TreeNode) String() string {
@@ -356,13 +430,15 @@ func (l *declListener) EnterLogic(ctx *gen.LogicContext) {
 }
 
 func (l *declListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
-	varName := ctx.IDENT().GetText()
+	ident := ctx.IDENT().GetText()
 	listener := newExprListener(l.ctx)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
+	l.ctx.newVar(ident, exprNode.getType())
+
 	node := newvarDeclNode(l.ctx)
-	node.name = varName
+	node.name = ident
 	node.value = exprNode
 	l.decl = node
 }
@@ -402,7 +478,7 @@ func (n *funDeclNode) String() string {
 }
 
 func (n *exprIdentNode) String() string {
-	return fmt.Sprintf("var %s", n.name)
+	return fmt.Sprintf("ident %s", n.name)
 }
 
 func (n *exprLiteralNode) String() string {
@@ -413,8 +489,16 @@ func (n *exprBinOpNode) String() string {
 	return fmt.Sprintf("%s %s %s", n.lhs, n.op, n.rhs)
 }
 
+func (n *exprUnOpNode) String() string {
+	return fmt.Sprintf("%s %s", n.op, n.value)
+}
+
 func (n *exprGroupNode) String() string {
 	return fmt.Sprintf("(%s)", n.value)
+}
+
+func (n *ifExprNode) String() string {
+	return fmt.Sprintf("if %s { %s } else { %s }", n.condExpr, n.condTrueExpr, n.condFalseExpr)
 }
 
 func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
@@ -424,7 +508,7 @@ func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
 	lhs := n.lhs.getType()
 	rhs := n.rhs.getType()
 	if lhs != rhs {
-		err := TypeError{fmt.Sprintf("mismatching types at '%s' expr", n)}
+		err := TypeError{fmt.Sprintf("types mismatch: %s %s %s in expr '%s'", lhs, n.op, rhs, n)}
 		errors = append(errors, err)
 	}
 	return
@@ -435,9 +519,35 @@ func (n *varDeclNode) TypeCheck() (errors []TypeError) {
 	return
 }
 
+func (n *ifExprNode) TypeCheck() (errors []TypeError) {
+	errors = append(errors, n.condExpr.TypeCheck()...)
+	errors = append(errors, n.condTrueExpr.TypeCheck()...)
+	errors = append(errors, n.condFalseExpr.TypeCheck()...)
+
+	condType := n.condExpr.getType()
+	if condType != intType {
+		err := TypeError{fmt.Sprintf("if cond: expected uint64, got %s", condType)}
+		errors = append(errors, err)
+	}
+
+	condTrueExprType := n.condTrueExpr.getType()
+	condFalseExprType := n.condFalseExpr.getType()
+	if condTrueExprType != condFalseExprType {
+		err := TypeError{fmt.Sprintf("if cond: different types: %s and %s", condTrueExprType, condFalseExprType)}
+		errors = append(errors, err)
+	}
+	return
+}
+
 func (l *exprListener) EnterIdentifier(ctx *gen.IdentifierContext) {
-	varName := ctx.IDENT().GetSymbol().GetText()
-	node := newExprIdentNode(l.ctx, varName)
+	ident := ctx.IDENT().GetSymbol().GetText()
+	variable, err := l.ctx.lookup(ident)
+	if err != nil {
+		// TODO: report error
+		return
+	}
+
+	node := newExprIdentNode(l.ctx, ident, variable.theType)
 	l.expr = node
 }
 
@@ -468,6 +578,17 @@ func (l *exprListener) binOp(op string, lhs gen.IExprContext, rhs gen.IExprConte
 	l.expr = node
 }
 
+func (l *exprListener) unOp(op string, expr gen.IExprContext) {
+
+	node := newExprUnOpNode(l.ctx, op)
+
+	subExprListener := newExprListener(l.ctx)
+	expr.EnterRule(subExprListener)
+	node.value = subExprListener.getExpr()
+
+	l.expr = node
+}
+
 func (l *exprListener) EnterAddSub(ctx *gen.AddSubContext) {
 	op := ctx.GetOp().GetText()
 	l.binOp(op, ctx.Expr(0), ctx.Expr(1))
@@ -493,12 +614,70 @@ func (l *exprListener) EnterAndOr(ctx *gen.AndOrContext) {
 	l.binOp(op, ctx.Expr(0), ctx.Expr(1))
 }
 
+func (l *exprListener) EnterBitNot(ctx *gen.BitNotContext) {
+	op := ctx.GetOp().GetText()
+	l.unOp(op, ctx.Expr())
+}
+
+func (l *exprListener) EnterNot(ctx *gen.NotContext) {
+	op := ctx.GetOp().GetText()
+	l.unOp(op, ctx.Expr())
+}
+
 func (l *exprListener) EnterGroup(ctx *gen.GroupContext) {
 	listener := newExprListener(l.ctx)
 	ctx.Expr().EnterRule(listener)
 	node := newExprGroupNode(l.ctx, listener.getExpr())
 	l.expr = node
 }
+
+func (l *exprListener) EnterIfExpr(ctx *gen.IfExprContext) {
+	listener := newExprListener(l.ctx)
+	ctx.CondExpr().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterCondExpr(ctx *gen.CondExprContext) {
+	node := newIfExprNode(l.ctx)
+
+	listener := newExprListener(l.ctx)
+	ctx.CondIfExpr().EnterRule(listener)
+	node.condExpr = listener.getExpr()
+
+	listener = newExprListener(l.ctx)
+	ctx.CondTrueExpr().EnterRule(listener)
+	node.condTrueExpr = listener.getExpr()
+
+	listener = newExprListener(l.ctx)
+	ctx.CondFalseExpr().EnterRule(listener)
+	node.condFalseExpr = listener.getExpr()
+
+	l.expr = node
+}
+
+func (l *exprListener) EnterIfExprCond(ctx *gen.IfExprCondContext) {
+	listener := newExprListener(l.ctx)
+	ctx.Expr().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterIfExprTrue(ctx *gen.IfExprTrueContext) {
+	listener := newExprListener(l.ctx)
+	ctx.Expr().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterIfExprFalse(ctx *gen.IfExprFalseContext) {
+	listener := newExprListener(l.ctx)
+	ctx.Expr().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+// module API functions
+//
+//--------------------------------------------------------------------------------------------------
 
 // Parse creates AST
 func Parse(source string) (TreeNodeIf, []ParserError) {
@@ -520,7 +699,7 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 		return nil, collector.errors
 	}
 
-	ctx := new(context)
+	ctx := newContext()
 	l := newGenericListener(ctx)
 	tree.EnterRule(l)
 
