@@ -17,8 +17,16 @@ let d = 1 + "a"
 let e = if c == 1 {1} else {2}
 let e = if c == 1 {1} else {"1"}
 
+function test(x, y) {
+	return x + y
+}
+
 function logic(txn, gtxn, account) {
 	let x = 1 + 1;
+	if x == 2 {
+		x = 0
+		return 0
+	}
 	return 1
 }
 `

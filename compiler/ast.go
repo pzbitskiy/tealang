@@ -123,9 +123,8 @@ type programNode struct {
 
 type funDeclNode struct {
 	*TreeNode
-	name  string
-	args  []string
-	block blockNode
+	name string
+	args []string
 }
 
 type blockNode struct {
@@ -200,6 +199,11 @@ type ifExprNode struct {
 	condFalseExpr ExprNodeIf
 }
 
+type ifStatementNode struct {
+	*TreeNode
+	condExpr ExprNodeIf
+}
+
 type ExprNodeIf interface {
 	TreeNodeIf
 	getType() exprType
@@ -263,8 +267,8 @@ func newProgramNode(ctx *context) (node *programNode) {
 	return
 }
 
-func newBlockNode(ctx *context) (node *programNode) {
-	node = new(programNode)
+func newBlockNode(ctx *context) (node *blockNode) {
+	node = new(blockNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "block"
 	return
@@ -364,6 +368,13 @@ func newIfExprNode(ctx *context) (node *ifExprNode) {
 	node = new(ifExprNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "if expr"
+	return
+}
+
+func newIfStatementNode(ctx *context) (node *ifStatementNode) {
+	node = new(ifStatementNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "if stmt"
 	return
 }
 
@@ -584,7 +595,36 @@ func (l *treeNodeListener) EnterTermError(ctx *gen.TermErrorContext) {
 }
 
 func (l *treeNodeListener) EnterIfStatement(ctx *gen.IfStatementContext) {
-	fmt.Println("EnterIfStatement")
+	node := newIfStatementNode(l.ctx)
+
+	exprlistener := newExprListener(l.ctx)
+	ctx.CondIfExpr().EnterRule(exprlistener)
+	node.condExpr = exprlistener.getExpr()
+
+	scopedContext := newContext(l.ctx)
+
+	listener := newTreeNodeListener(scopedContext)
+	ctx.CondTrueBlock().EnterRule(listener)
+	node.append(listener.getNode())
+
+	listener = newTreeNodeListener(scopedContext)
+	if ctx.CondFalseBlock() != nil {
+		ctx.CondFalseBlock().EnterRule(listener)
+		node.append(listener.getNode())
+	}
+	l.node = node
+}
+
+func (l *treeNodeListener) EnterIfStatementTrue(ctx *gen.IfStatementTrueContext) {
+	ctx.Block().EnterRule(l)
+	blockNode := l.getNode()
+	l.node = blockNode
+}
+
+func (l *treeNodeListener) EnterIfStatementFalse(ctx *gen.IfStatementFalseContext) {
+	ctx.Block().EnterRule(l)
+	blockNode := l.getNode()
+	l.node = blockNode
 }
 
 func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
@@ -598,7 +638,7 @@ func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 }
 
 func (n *varDeclNode) String() string {
-	return fmt.Sprintf("var %s = %s", n.name, n.value.String())
+	return fmt.Sprintf("var %s = %s", n.name, n.value)
 }
 
 func (n *constNode) String() string {
@@ -631,6 +671,18 @@ func (n *exprGroupNode) String() string {
 
 func (n *ifExprNode) String() string {
 	return fmt.Sprintf("if %s { %s } else { %s }", n.condExpr, n.condTrueExpr, n.condFalseExpr)
+}
+
+func (n *returnNode) String() string {
+	return fmt.Sprintf("return %s", n.value)
+}
+
+func (n *assignNode) String() string {
+	return fmt.Sprintf("%s = %s", n.name, n.value)
+}
+
+func (n *ifStatementNode) String() string {
+	return fmt.Sprintf("if %s", n.condExpr)
 }
 
 func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
