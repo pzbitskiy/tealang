@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParser(t *testing.T) {
+func TestParserAllFeatures(t *testing.T) {
 	source := `
 let a = 456;
 const b = "123";
@@ -40,6 +40,28 @@ function logic(txn, gtxn, account) {
 	require.Equal(t, 2, len(errors), errors)
 	require.Contains(t, errors, TypeError{`types mismatch: uint64 + byte[] in expr '1 + "a"'`})
 	require.Contains(t, errors, TypeError{`if cond: different types: uint64 and byte[]`})
+}
+
+func TestOneLinerLogic(t *testing.T) {
+	a := require.New(t)
+	source := "function logic(txn, gtxn, account) {return 1;}"
+	result, errors := Parse(source)
+	a.NotEmpty(result)
+	a.Empty(errors)
+
+	source = "let a=1; function logic(txn, gtxn, account) {return 1;}"
+	result, errors = Parse(source)
+	a.NotEmpty(result)
+	a.Empty(errors)
+}
+
+func TestMissedLogicFunc(t *testing.T) {
+	a := require.New(t)
+	source := "let a = 1;"
+	result, errors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "Missing logic function")
 }
 
 func T1estParser(t *testing.T) {

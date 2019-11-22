@@ -18,7 +18,7 @@ block
     ;
 
 logic
-    : FUNC 'logic' '(' TXN ',' GTXN ',' ACCOUNT ')' block NEWLINE
+    : FUNC 'logic' '(' TXN ',' GTXN ',' ACCOUNT ')' block NEWLINE*
     ;
 
 declaration

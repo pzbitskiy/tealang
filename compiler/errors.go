@@ -73,8 +73,23 @@ func (er *errorCollector) formatExcerpt(start, end int) string {
 }
 
 func (er *errorCollector) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	start := e.GetOffendingToken().GetStart()
-	end := e.GetOffendingToken().GetStop()
+	var start, end int
+	var token string
+
+	cast := false
+	if offendingSymbol != nil {
+		if symbol, ok := offendingSymbol.(*antlr.CommonToken); ok {
+			start = symbol.GetStart()
+			end = symbol.GetStop()
+			token = symbol.GetText()
+			cast = true
+		}
+	}
+	if e != nil && cast {
+		start = e.GetOffendingToken().GetStart()
+		end = e.GetOffendingToken().GetStop()
+		token = e.GetOffendingToken().GetText()
+	}
 
 	info := ParserError{
 		syntaxError,
@@ -83,7 +98,7 @@ func (er *errorCollector) SyntaxError(recognizer antlr.Recognizer, offendingSymb
 		line,
 		column,
 		msg,
-		e.GetOffendingToken().GetText(),
+		token,
 		er.formatExcerpt(start, end),
 	}
 	er.errors = append(er.errors, info)
@@ -135,6 +150,9 @@ func (err *ParserError) String() (msg string) {
 	switch err.errorType {
 	case syntaxError:
 		msg = fmt.Sprintf("syntax error at token \"%s\" at line %d, col %d: %s", err.token, err.line, err.column, err.excerpt)
+		if err.token == "<EOF>" {
+			msg = fmt.Sprintf("%s\nMissing logic function?", msg)
+		}
 	case ambiguityError:
 		msg = fmt.Sprintf("ambiguity error at offset %d: %s", err.start, err.excerpt)
 	default:
