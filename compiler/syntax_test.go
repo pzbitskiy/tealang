@@ -13,7 +13,7 @@ let a = 456; const b = 123; const c = "1234567890123";
 let d = 1 + 2 ;
 let e = if a > 0 {1} else {2}
 
-function logic(txn, gtxn, account) {
+function logic(txn, gtxn, args) {
 	if e == 1 {
 		let x = a + b;
 		error
@@ -32,6 +32,7 @@ function logic(txn, gtxn, account) {
 	x = 2;
 	x = global.GroupSize
 	x = gtxn[1].Sender
+	let y = args[0]
 	sha256(x)
 	ed25519verify("\x01\x02", c, x)
 	return 1
@@ -87,7 +88,7 @@ func TestParserValidProgram(t *testing.T) {
 	source := `
 let e = if a > 0 {1} else {2}
 
-function logic(txn, gtxn, account) {
+function logic(txn, gtxn, args) {
 	if e == 1 {
 		let x = 2;
 		error
@@ -104,7 +105,7 @@ func TestParserErrorReporting(t *testing.T) {
 	source := `
 let e = if a > 0 {1} else {}
 
-function logic(txn, gtxn, account) {
+function logic(txn, gtxn, args) {
 	if e == 1 {
 		let x = 2;
 		error

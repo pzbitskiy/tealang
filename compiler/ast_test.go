@@ -21,12 +21,15 @@ function test(x, y) {
 	return x + y
 }
 
-function logic(txn, gtxn, account) {
+function logic(txn, gtxn, args) {
 	let x = 1 + 1;
 	if x == 2 {
 		x = 0
 		return 0
 	}
+	let t = txn.Note
+	let g = gtxn[0].Sender
+	let r = args[0]
 	return 1
 }
 `
@@ -44,12 +47,12 @@ function logic(txn, gtxn, account) {
 
 func TestOneLinerLogic(t *testing.T) {
 	a := require.New(t)
-	source := "function logic(txn, gtxn, account) {return 1;}"
+	source := "function logic(txn, gtxn, args) {return 1;}"
 	result, errors := Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
 
-	source = "let a=1; function logic(txn, gtxn, account) {return 1;}"
+	source = "let a=1; function logic(txn, gtxn, args) {return 1;}"
 	result, errors = Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
@@ -58,10 +61,20 @@ func TestOneLinerLogic(t *testing.T) {
 func TestMissedLogicFunc(t *testing.T) {
 	a := require.New(t)
 	source := "let a = 1;"
+	a.NotPanics(func() { Parse(source) })
 	result, errors := Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "Missing logic function")
+}
+
+func TestInvalidLogicFunc(t *testing.T) {
+	a := require.New(t)
+	source := "function logic(txn, gtxn, account) {}"
+	a.NotPanics(func() { Parse(source) })
+	result, errors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
 }
 
 func T1estParser(t *testing.T) {
@@ -71,7 +84,7 @@ const b = "123";
 let c = 1 + 2;
 let d = 1 + "a"
 
-function logic(txn, gtxn, account) {
+function logic(txn, gtxn, args) {
 	if e == 1 {
 		let x = a + b;
 		error

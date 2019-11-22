@@ -18,7 +18,7 @@ block
     ;
 
 logic
-    : FUNC 'logic' '(' TXN ',' GTXN ',' ACCOUNT ')' block NEWLINE*
+    : FUNC 'logic' '(' TXN ',' GTXN ',' ARGS ')' block NEWLINE*
     ;
 
 declaration
@@ -86,7 +86,7 @@ builtinVarExpr
     :   GLOBAL '.' GLOBALFIELD                      # GlobalFieldExpr
     |   TXN '.' TXNFIELD                            # TxnFieldExpr
     |   GTXN '[' NUMBER ']' '.' TXNFIELD            # GroupTxnFieldExpr
-    |   ACCOUNT '.' ACCOUNTFIELD                    # AccountFieldExpr
+    |   ARGS '[' NUMBER ']'                         # ArgsExpr
     ;
 
 compoundElem
@@ -116,11 +116,9 @@ condIfExpr
     ;
 
 GLOBALFIELD
-    :   ROUND
-    |   MINTXNFEE
+    :   MINTXNFEE
     |   MINBALANCE
     |   MAXTXNLIFE
-    |   BLOCKTIME
     |   ZEROADDRESS
     |   GROUPSIZE
     ;
@@ -131,6 +129,7 @@ TXNFIELD
     |   FIRSTVALID
     |   LASTVALID
     |   NOTE
+    |   LEASE
     |   RECEIVER
     |   AMOUNT
     |   CLOSEREMINDERTO
@@ -148,13 +147,6 @@ TXNFIELD
     |   ACLOSETO
     |   GROUPINDEX
     |   TXID
-    |   SENDERBALANCE
-    ;
-
-ACCOUNTFIELD
-    :   BALANCE
-    |   FROZEN
-    |   EXISTS
     ;
 
 BUILTINFUNC
@@ -162,7 +154,7 @@ BUILTINFUNC
     |   KECCAK256
     |   SHA512
     |   ED25519
-    |   RAND
+    |   MULW
     ;
 
 LET         : 'let' ;
@@ -176,13 +168,12 @@ FUNC        : 'function' ;
 GLOBAL      : 'global';
 TXN         : 'txn';
 GTXN        : 'gtxn';
-ACCOUNT     : 'account';
+ARGS        : 'args';
 
-ROUND       : 'Round' ;
+
 MINTXNFEE   : 'MinTxnFee' ;
 MINBALANCE  : 'MinBalance' ;
 MAXTXNLIFE  : 'MaxTxnLife' ;
-BLOCKTIME   : 'BlockTime' ;
 ZEROADDRESS : 'ZeroAddress' ;
 GROUPSIZE   : 'GroupSize' ;
 
@@ -191,6 +182,7 @@ FEE         : 'Fee' ;
 FIRSTVALID  : 'FirstValid' ;
 LASTVALID   : 'LastValid' ;
 NOTE        : 'Note' ;
+LEASE       : 'Lease';
 RECEIVER    : 'Receiver' ;
 AMOUNT      : 'Amount' ;
 CLOSEREMINDERTO : 'CloseRemainderTo' ;
@@ -208,18 +200,12 @@ ARECEIVER   : 'AssetReceiver' ;
 ACLOSETO    : 'AssetCloseTo' ;
 GROUPINDEX  : 'GroupIndex' ;
 TXID        : 'TxId' ;
-SENDERBALANCE : 'SenderBalance' ;
-
-BALANCE     : 'Balance' ;
-FROZEN      : 'Frozen' ;
-EXISTS      : 'Exists' ;
 
 SHA256      : 'sha256' ;
 KECCAK256   : 'keccak256' ;
 SHA512      : 'sha512_256' ;
 ED25519     : 'ed25519verify' ;
-RAND        : 'rand' ;
-
+MULW        : 'mulw';
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
 NUMBER      : [0-9]+ ;

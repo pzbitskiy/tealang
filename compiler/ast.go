@@ -506,7 +506,7 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 func (l *treeNodeListener) EnterLogic(ctx *gen.LogicContext) {
 	node := newFunDeclNode(l.ctx)
 	node.name = "logic"
-	node.args = []string{ctx.TXN().GetText(), ctx.GTXN().GetText(), ctx.ACCOUNT().GetText()}
+	node.args = []string{ctx.TXN().GetText(), ctx.GTXN().GetText(), ctx.ARGS().GetText()}
 
 	scopedContext := newContext(l.ctx)
 	listener := newTreeNodeListener(scopedContext)

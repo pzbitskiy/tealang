@@ -373,9 +373,9 @@ func (l *tealangListener) ExitTxnFieldExpr(ctx *parser.TxnFieldExprContext) {
 	l.program.WriteString(fmt.Sprintf("txn %s\n", field))
 }
 
-func (l *tealangListener) ExitAccountFieldExpr(ctx *parser.AccountFieldExprContext) {
-	field := ctx.ACCOUNTFIELD().GetSymbol().GetText()
-	l.program.WriteString(fmt.Sprintf("account %s\n", field))
+func (l *tealangListener) ExitArgsExpr(ctx *parser.ArgsExprContext) {
+	index := ctx.NUMBER().GetSymbol().GetText()
+	l.program.WriteString(fmt.Sprintf("arg %s\n", index))
 }
 
 func (l *tealangListener) ExitGroupTxnFieldExpr(ctx *parser.GroupTxnFieldExprContext) {
