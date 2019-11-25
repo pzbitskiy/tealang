@@ -106,6 +106,12 @@ type TreeNodeIf interface {
 	TypeCheck() []TypeError
 }
 
+// ExprNodeIf extends TreeNode and can be evaluated and typed
+type ExprNodeIf interface {
+	TreeNodeIf
+	getType() exprType
+}
+
 // TreeNode contains base info about an AST node
 type TreeNode struct {
 	*gen.BaseTealangListener
@@ -204,9 +210,9 @@ type ifStatementNode struct {
 	condExpr ExprNodeIf
 }
 
-type ExprNodeIf interface {
-	TreeNodeIf
-	getType() exprType
+type funCallNode struct {
+	*TreeNode
+	name string
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -378,6 +384,14 @@ func newIfStatementNode(ctx *context) (node *ifStatementNode) {
 	return
 }
 
+func newFunCallNode(ctx *context, name string) (node *funCallNode) {
+	node = new(funCallNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "fun call"
+	node.name = name
+	return
+}
+
 func (n *exprLiteralNode) getType() exprType {
 	return n.exprType
 }
@@ -426,6 +440,14 @@ func (n *TreeNode) children() []TreeNodeIf {
 	return n.childrenNodes
 }
 
+func (n *funCallNode) getType() exprType {
+	// TODO
+	// 1. Access func definition
+	// 2. Get return statement
+	// 3. Eval its type
+	return unknownType
+}
+
 // Print AST
 func (n *TreeNode) Print() {
 	printImpl(n, 0)
@@ -438,12 +460,109 @@ func printImpl(n TreeNodeIf, offset int) {
 	}
 }
 
+func (n *varDeclNode) String() string {
+	return fmt.Sprintf("var %s = %s", n.name, n.value)
+}
+
+func (n *constNode) String() string {
+	return fmt.Sprintf("const (%s) %s = %s", n.exprType, n.name, n.value)
+}
+
+func (n *funDeclNode) String() string {
+	return fmt.Sprintf("function %s", n.name)
+}
+
+func (n *exprIdentNode) String() string {
+	return fmt.Sprintf("ident %s", n.name)
+}
+
+func (n *exprLiteralNode) String() string {
+	return fmt.Sprintf("%s", n.value)
+}
+
+func (n *exprBinOpNode) String() string {
+	return fmt.Sprintf("%s %s %s", n.lhs, n.op, n.rhs)
+}
+
+func (n *exprUnOpNode) String() string {
+	return fmt.Sprintf("%s %s", n.op, n.value)
+}
+
+func (n *exprGroupNode) String() string {
+	return fmt.Sprintf("(%s)", n.value)
+}
+
+func (n *ifExprNode) String() string {
+	return fmt.Sprintf("if %s { %s } else { %s }", n.condExpr, n.condTrueExpr, n.condFalseExpr)
+}
+
+func (n *returnNode) String() string {
+	return fmt.Sprintf("return %s", n.value)
+}
+
+func (n *assignNode) String() string {
+	return fmt.Sprintf("%s = %s", n.name, n.value)
+}
+
+func (n *ifStatementNode) String() string {
+	return fmt.Sprintf("if %s", n.condExpr)
+}
+
+func (n *funCallNode) String() string {
+	return fmt.Sprintf("%s (%v)", n.name, n.children())
+}
+
+func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
+	errors = append(errors, n.lhs.TypeCheck()...)
+	errors = append(errors, n.lhs.TypeCheck()...)
+
+	lhs := n.lhs.getType()
+	rhs := n.rhs.getType()
+	if lhs != rhs {
+		err := TypeError{fmt.Sprintf("types mismatch: %s %s %s in expr '%s'", lhs, n.op, rhs, n)}
+		errors = append(errors, err)
+	}
+	return
+}
+
+func (n *varDeclNode) TypeCheck() (errors []TypeError) {
+	errors = n.value.TypeCheck()
+	return
+}
+
+func (n *ifExprNode) TypeCheck() (errors []TypeError) {
+	errors = append(errors, n.condExpr.TypeCheck()...)
+	errors = append(errors, n.condTrueExpr.TypeCheck()...)
+	errors = append(errors, n.condFalseExpr.TypeCheck()...)
+
+	condType := n.condExpr.getType()
+	if condType != intType {
+		err := TypeError{fmt.Sprintf("if cond: expected uint64, got %s", condType)}
+		errors = append(errors, err)
+	}
+
+	condTrueExprType := n.condTrueExpr.getType()
+	condFalseExprType := n.condFalseExpr.getType()
+	if condTrueExprType != condFalseExprType {
+		err := TypeError{fmt.Sprintf("if cond: different types: %s and %s", condTrueExprType, condFalseExprType)}
+		errors = append(errors, err)
+	}
+	return
+}
+
+// TypeCheck runs typechecking on the result
 func (n *TreeNode) TypeCheck() (errors []TypeError) {
 	for _, ch := range n.children() {
 		errors = append(errors, ch.TypeCheck()...)
 	}
 	return
 }
+
+//--------------------------------------------------------------------------------------------------
+//
+// ANTLR callbacks
+//
+//--------------------------------------------------------------------------------------------------
 
 // EnterProgram is an entry point to AST
 func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
@@ -637,92 +756,6 @@ func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 	l.node = node
 }
 
-func (n *varDeclNode) String() string {
-	return fmt.Sprintf("var %s = %s", n.name, n.value)
-}
-
-func (n *constNode) String() string {
-	return fmt.Sprintf("const (%s) %s = %s", n.exprType, n.name, n.value)
-}
-
-func (n *funDeclNode) String() string {
-	return fmt.Sprintf("function %s", n.name)
-}
-
-func (n *exprIdentNode) String() string {
-	return fmt.Sprintf("ident %s", n.name)
-}
-
-func (n *exprLiteralNode) String() string {
-	return fmt.Sprintf("%s", n.value)
-}
-
-func (n *exprBinOpNode) String() string {
-	return fmt.Sprintf("%s %s %s", n.lhs, n.op, n.rhs)
-}
-
-func (n *exprUnOpNode) String() string {
-	return fmt.Sprintf("%s %s", n.op, n.value)
-}
-
-func (n *exprGroupNode) String() string {
-	return fmt.Sprintf("(%s)", n.value)
-}
-
-func (n *ifExprNode) String() string {
-	return fmt.Sprintf("if %s { %s } else { %s }", n.condExpr, n.condTrueExpr, n.condFalseExpr)
-}
-
-func (n *returnNode) String() string {
-	return fmt.Sprintf("return %s", n.value)
-}
-
-func (n *assignNode) String() string {
-	return fmt.Sprintf("%s = %s", n.name, n.value)
-}
-
-func (n *ifStatementNode) String() string {
-	return fmt.Sprintf("if %s", n.condExpr)
-}
-
-func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
-	errors = append(errors, n.lhs.TypeCheck()...)
-	errors = append(errors, n.lhs.TypeCheck()...)
-
-	lhs := n.lhs.getType()
-	rhs := n.rhs.getType()
-	if lhs != rhs {
-		err := TypeError{fmt.Sprintf("types mismatch: %s %s %s in expr '%s'", lhs, n.op, rhs, n)}
-		errors = append(errors, err)
-	}
-	return
-}
-
-func (n *varDeclNode) TypeCheck() (errors []TypeError) {
-	errors = n.value.TypeCheck()
-	return
-}
-
-func (n *ifExprNode) TypeCheck() (errors []TypeError) {
-	errors = append(errors, n.condExpr.TypeCheck()...)
-	errors = append(errors, n.condTrueExpr.TypeCheck()...)
-	errors = append(errors, n.condFalseExpr.TypeCheck()...)
-
-	condType := n.condExpr.getType()
-	if condType != intType {
-		err := TypeError{fmt.Sprintf("if cond: expected uint64, got %s", condType)}
-		errors = append(errors, err)
-	}
-
-	condTrueExprType := n.condTrueExpr.getType()
-	condFalseExprType := n.condFalseExpr.getType()
-	if condTrueExprType != condFalseExprType {
-		err := TypeError{fmt.Sprintf("if cond: different types: %s and %s", condTrueExprType, condFalseExprType)}
-		errors = append(errors, err)
-	}
-	return
-}
-
 func (l *exprListener) EnterIdentifier(ctx *gen.IdentifierContext) {
 	ident := ctx.IDENT().GetSymbol().GetText()
 	variable, err := l.ctx.lookup(ident)
@@ -855,6 +888,31 @@ func (l *exprListener) EnterIfExprFalse(ctx *gen.IfExprFalseContext) {
 	listener := newExprListener(l.ctx)
 	ctx.Expr().EnterRule(listener)
 	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
+	listener := newExprListener(l.ctx)
+	ctx.FunctionCall().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
+	l.expr = l.funCallEnterImpl(ctx.BUILTINFUNC().GetText(), ctx.AllExpr())
+}
+
+func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
+	l.expr = l.funCallEnterImpl(ctx.IDENT().GetText(), ctx.AllExpr())
+}
+
+func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext) (node *funCallNode) {
+	node = newFunCallNode(l.ctx, name)
+	for _, expr := range allExpr {
+		listener := newExprListener(l.ctx)
+		expr.EnterRule(listener)
+		arg := listener.getExpr()
+		node.append(arg)
+	}
+	return node
 }
 
 //--------------------------------------------------------------------------------------------------

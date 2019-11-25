@@ -60,7 +60,7 @@ expr
     |   NUMBER                                      # NumberLiteral
     |   STRING                                      # StringLiteral
     |	'(' expr ')'                                # Group
-    |   functionCall                                # FuncCall
+    |   functionCall                                # FunctionCallExpr
     |   builtinVarExpr                              # BuiltinObject
     // |   compoundElem                                # ObjElement
     |   op='!' expr                                 # Not
@@ -74,12 +74,8 @@ expr
     ;
 
 functionCall
-    :   BUILTINFUNC '(' argList ')'                 # BuiltinFunCall
-    |   IDENT '(' argList ')'                       # FunCall
-    ;
-
-argList
-    :   expr (',' expr)*
+    :   BUILTINFUNC '(' expr? (',' expr)* ')'       # BuiltinFunCall
+    |   IDENT '(' expr? (',' expr)* ')'             # FunCall
     ;
 
 builtinVarExpr

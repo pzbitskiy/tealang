@@ -27,9 +27,11 @@ function logic(txn, gtxn, args) {
 		x = 0
 		return 0
 	}
-	let t = txn.Note
-	let g = gtxn[0].Sender
-	let r = args[0]
+	// let t = txn.Note
+	// let g = gtxn[0].Sender
+	// let r = args[0]
+
+	let f = test(20+2, 30)
 	return 1
 }
 `
