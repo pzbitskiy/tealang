@@ -93,6 +93,21 @@ func TestAssignment(t *testing.T) {
 	a.Empty(result)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "assign to a constant")
+
+	source = "const a=1; function logic(txn, gtxn, args) {a=2; return 1;}"
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "assign to a constant")
+}
+
+func TestLookup(t *testing.T) {
+	a := require.New(t)
+
+	source := "let a=1; function logic(txn, gtxn, args) {a=2; return 1;}"
+	result, errors := Parse(source)
+	a.NotEmpty(result)
+	a.Empty(errors)
 }
 
 func T1estParser(t *testing.T) {

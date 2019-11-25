@@ -68,11 +68,15 @@ func newContext(parent *context) (ctx *context) {
 }
 
 func (ctx *context) lookup(name string) (varable varInfo, err error) {
-	variable, ok := ctx.vars[name]
-	if !ok {
-		return varInfo{}, fmt.Errorf("ident %s not defined", name)
+	current := ctx
+	for current != nil {
+		variable, ok := current.vars[name]
+		if ok {
+			return variable, nil
+		}
+		current = current.parent
 	}
-	return variable, nil
+	return varInfo{}, fmt.Errorf("ident %s not defined", name)
 }
 
 func (ctx *context) newVar(name string, theType exprType) {
