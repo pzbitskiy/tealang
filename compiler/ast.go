@@ -79,6 +79,19 @@ func (ctx *context) lookup(name string) (varable varInfo, err error) {
 	return varInfo{}, fmt.Errorf("ident %s not defined", name)
 }
 
+func (ctx *context) update(name string, info varInfo) (err error) {
+	current := ctx
+	for current != nil {
+		_, ok := current.vars[name]
+		if ok {
+			current.vars[name] = info
+			return nil
+		}
+		current = current.parent
+	}
+	return fmt.Errorf("Failed to update ident %s", name)
+}
+
 func (ctx *context) newVar(name string, theType exprType) {
 	ctx.vars[name] = varInfo{name, theType, false, false, ctx.addressNext, nil, nil}
 	ctx.addressNext++
@@ -90,6 +103,12 @@ func (ctx *context) newConst(name string, theType exprType, value *string) {
 
 func (ctx *context) newFunc(name string, theType exprType, def TreeNodeIf) {
 	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, def}
+}
+
+func (ctx *context) Print() {
+	for name, value := range ctx.vars {
+		fmt.Printf("%v %v\n", name, value)
+	}
 }
 
 type exprType int
@@ -143,7 +162,7 @@ type programNode struct {
 	*TreeNode
 }
 
-type funDeclNode struct {
+type funDefNode struct {
 	*TreeNode
 	name string
 	args []string
@@ -228,7 +247,8 @@ type ifStatementNode struct {
 
 type funCallNode struct {
 	*TreeNode
-	name string
+	name    string
+	funType exprType
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -320,8 +340,8 @@ func newAssignNode(ctx *context, ident string, value ExprNodeIf) (node *assignNo
 	return
 }
 
-func newFunDeclNode(ctx *context) (node *funDeclNode) {
-	node = new(funDeclNode)
+func newfunDefNode(ctx *context) (node *funDefNode) {
+	node = new(funDefNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "func"
 	return
@@ -333,13 +353,17 @@ func newVarDeclNode(ctx *context, ident string, value ExprNodeIf) (node *varDecl
 	node.nodeName = "var"
 	node.name = ident
 	node.value = value
+	node.exprType = value.getType()
 	return
 }
 
-func newConstNode(ctx *context) (node *constNode) {
+func newConstNode(ctx *context, ident string, value string, exprType exprType) (node *constNode) {
 	node = new(constNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "const"
+	node.name = ident
+	node.value = value
+	node.exprType = exprType
 	return
 }
 
@@ -405,6 +429,7 @@ func newFunCallNode(ctx *context, name string) (node *funCallNode) {
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "fun call"
 	node.name = name
+	node.funType = unknownType
 	return
 }
 
@@ -413,13 +438,28 @@ func (n *exprLiteralNode) getType() exprType {
 }
 
 func (n *exprIdentNode) getType() exprType {
+	if n.exprType == unknownType {
+		info, _ := n.ctx.lookup(n.name)
+		// if info.theType == invåalidType {
+		// 	return invalidType,
+		// }
+		n.exprType = info.theType
+	}
 	return n.exprType
 }
 
 func (n *exprBinOpNode) getType() exprType {
 	tp, err := typeFromSpec(n.op)
 	if err != nil {
+		// TODO: report error
 		fmt.Println(err)
+		return invalidType
+	}
+
+	lhs := n.lhs.getType()
+	rhs := n.rhs.getType()
+	if lhs != rhs || tp != lhs {
+		// TODO: report error
 		return invalidType
 	}
 
@@ -429,14 +469,33 @@ func (n *exprBinOpNode) getType() exprType {
 func (n *exprUnOpNode) getType() exprType {
 	tp, err := typeFromSpec(n.op)
 	if err != nil {
+		// TODO: report error
 		fmt.Println(err)
 		return invalidType
 	}
 
+	valType := n.value.getType()
+	if tp != valType {
+		// TODO: report error
+		return invalidType
+	}
 	return tp
 }
 
 func (n *ifExprNode) getType() exprType {
+	condType := n.condExpr.getType()
+	if condType != intType {
+		// TODO: report error
+		return invalidType
+	}
+
+	condTrueExprType := n.condTrueExpr.getType()
+	condFalseExprType := n.condFalseExpr.getType()
+	if condTrueExprType != condFalseExprType {
+		// TODO: report error
+		return invalidType
+	}
+
 	return n.condTrueExpr.getType()
 }
 
@@ -444,29 +503,70 @@ func (n *exprGroupNode) getType() exprType {
 	return n.value.getType()
 }
 
-func (n *TreeNode) append(ch TreeNodeIf) {
-	n.childrenNodes = append(n.childrenNodes, ch)
+// Scans node's children recursively and find return statements,
+// applies type resolution and track conflicts.
+// Return expr type or invalidType on error
+func determineBlockReturnType(node TreeNodeIf, retTypeSeen []exprType) exprType {
+	var statements []TreeNodeIf
+	if node != nil {
+		statements = node.children()
+	}
+
+	for _, stmt := range statements {
+		switch tt := stmt.(type) {
+		case *returnNode:
+			tp := tt.value.getType()
+			retTypeSeen = append(retTypeSeen, tp)
+		case *ifStatementNode, *blockNode:
+			blockType := determineBlockReturnType(stmt, retTypeSeen)
+			retTypeSeen = append(retTypeSeen, blockType)
+		}
+	}
+
+	if len(retTypeSeen) == 0 {
+		return invalidType
+	}
+	commonType := retTypeSeen[0]
+	for _, tp := range retTypeSeen {
+		if tp != commonType {
+			return invalidType
+		}
+	}
+	return commonType
 }
 
-func (n *TreeNode) String() string {
-	return n.nodeName
+func (n *funCallNode) getType() exprType {
+	if n.funType != unknownType {
+		return n.funType
+	}
+
+	info, err := n.ctx.lookup(n.name)
+	if err != nil {
+		// TODO: report error
+		return invalidType
+	}
+
+	tp := determineBlockReturnType(info.definition, []exprType{})
+	return tp
+}
+
+func (n *TreeNode) append(ch TreeNodeIf) {
+	n.childrenNodes = append(n.childrenNodes, ch)
 }
 
 func (n *TreeNode) children() []TreeNodeIf {
 	return n.childrenNodes
 }
 
-func (n *funCallNode) getType() exprType {
-	// TODO
-	// 1. Access func definition
-	// 2. Get return statement
-	// 3. Eval its type
-	return unknownType
+func (n *TreeNode) String() string {
+	return n.nodeName
 }
 
-// Print AST
+// Print AST and context
 func (n *TreeNode) Print() {
 	printImpl(n, 0)
+
+	n.ctx.Print()
 }
 
 func printImpl(n TreeNodeIf, offset int) {
@@ -477,14 +577,14 @@ func printImpl(n TreeNodeIf, offset int) {
 }
 
 func (n *varDeclNode) String() string {
-	return fmt.Sprintf("var %s = %s", n.name, n.value)
+	return fmt.Sprintf("var (%s) %s = %s", n.exprType, n.name, n.value)
 }
 
 func (n *constNode) String() string {
 	return fmt.Sprintf("const (%s) %s = %s", n.exprType, n.name, n.value)
 }
 
-func (n *funDeclNode) String() string {
+func (n *funDefNode) String() string {
 	return fmt.Sprintf("function %s", n.name)
 }
 
@@ -631,7 +731,7 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 			scopedContext.newVar(ident, unknownType)
 			args[i] = ident
 		}
-		node := newFunDeclNode(scopedContext)
+		node := newfunDefNode(scopedContext)
 		node.name = name
 		node.args = args
 
@@ -649,7 +749,7 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 }
 
 func (l *treeNodeListener) EnterLogic(ctx *gen.LogicContext) {
-	node := newFunDeclNode(l.ctx)
+	node := newfunDefNode(l.ctx)
 	node.name = "logic"
 	node.args = []string{ctx.TXN().GetText(), ctx.GTXN().GetText(), ctx.ARGS().GetText()}
 
@@ -680,11 +780,7 @@ func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstCo
 	varName := ctx.IDENT().GetText()
 	varValue := ctx.NUMBER().GetText()
 
-	node := newConstNode(l.ctx)
-	node.name = varName
-	node.value = varValue
-	node.exprType = intType
-
+	node := newConstNode(l.ctx, varName, varValue, intType)
 	l.ctx.newConst(varName, node.exprType, &varValue)
 	l.node = node
 }
@@ -693,11 +789,7 @@ func (l *treeNodeListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstCo
 	varName := ctx.IDENT().GetText()
 	varValue := ctx.STRING().GetText()
 
-	node := newConstNode(l.ctx)
-	node.name = varName
-	node.value = varValue
-	node.exprType = bytesType
-
+	node := newConstNode(l.ctx, varName, varValue, bytesType)
 	l.ctx.newConst(varName, node.exprType, &varValue)
 	l.node = node
 }
@@ -940,11 +1032,59 @@ func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
 }
 
 func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
-	l.expr = l.funCallEnterImpl(ctx.BUILTINFUNC().GetText(), ctx.AllExpr())
+	name := ctx.BUILTINFUNC().GetText()
+	l.expr = l.funCallEnterImpl(name, ctx.AllExpr())
 }
 
 func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
-	l.expr = l.funCallEnterImpl(ctx.IDENT().GetText(), ctx.AllExpr())
+	name := ctx.IDENT().GetText()
+	parser := ctx.GetParser()
+	token := ctx.IDENT().GetSymbol()
+	rule := ctx.GetRuleContext()
+	info, err := l.ctx.lookup(name)
+	if err != nil {
+		reportError(err.Error(), parser, token, rule)
+		return
+	}
+	if !info.function {
+		reportError("Not a function", parser, token, rule)
+		return
+	}
+
+	defNode, ok := info.definition.(*funDefNode)
+	if !ok {
+		reportError("Internal error: casting failed", parser, token, rule)
+		return
+	}
+
+	argExprNodes := ctx.AllExpr()
+	if len(defNode.args) != len(argExprNodes) {
+		reportError("Mismatching argument(s)", parser, token, rule)
+		return
+	}
+
+	exprNode := l.funCallEnterImpl(name, argExprNodes)
+	args := exprNode.children()
+	if len(defNode.args) != len(args) {
+		reportError("Mismatching parsed argument(s)", parser, token, rule)
+		return
+	}
+
+	for i := range args {
+		varName := defNode.args[i]
+		info, err := defNode.ctx.lookup(varName)
+		if err != nil {
+			reportError(err.Error(), parser, token, rule)
+			return
+		}
+		info.theType = args[i].(ExprNodeIf).getType()
+		err = defNode.ctx.update(varName, info)
+		if err != nil {
+			reportError(err.Error(), parser, token, rule)
+			return
+		}
+	}
+	l.expr = exprNode
 }
 
 func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext) (node *funCallNode) {
@@ -964,7 +1104,7 @@ func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext)
 //
 //--------------------------------------------------------------------------------------------------
 
-// Parse creates AST
+// Parse function creates AST
 func Parse(source string) (TreeNodeIf, []ParserError) {
 	is := antlr.NewInputStream(source)
 	lexer := gen.NewTealangLexer(is)

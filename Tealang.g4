@@ -74,8 +74,8 @@ expr
     ;
 
 functionCall
-    :   BUILTINFUNC '(' expr? (',' expr)* ')'       # BuiltinFunCall
-    |   IDENT '(' expr? (',' expr)* ')'             # FunCall
+    :   BUILTINFUNC '(' (expr (',' expr)* )? ')'    # BuiltinFunCall
+    |   IDENT '(' (expr (',' expr)* )? ')'          # FunCall
     ;
 
 builtinVarExpr

@@ -35,16 +35,17 @@ function logic(txn, gtxn, args) {
 	return 1
 }
 `
-	result, _ := Parse(source)
+	result, parserErrors := Parse(source)
 	require.NotEmpty(t, result)
+	require.Empty(t, parserErrors)
 
 	result.Print()
 
-	errors := result.TypeCheck()
-	require.NotEmpty(t, errors)
-	require.Equal(t, 2, len(errors), errors)
-	require.Contains(t, errors, TypeError{`types mismatch: uint64 + byte[] in expr '1 + "a"'`})
-	require.Contains(t, errors, TypeError{`if cond: different types: uint64 and byte[]`})
+	typeErrors := result.TypeCheck()
+	require.NotEmpty(t, typeErrors)
+	require.Equal(t, 2, len(typeErrors), typeErrors)
+	require.Contains(t, typeErrors, TypeError{`types mismatch: uint64 + byte[] in expr '1 + "a"'`})
+	require.Contains(t, typeErrors, TypeError{`if cond: different types: uint64 and byte[]`})
 }
 
 func TestOneLinerLogic(t *testing.T) {
@@ -108,6 +109,70 @@ func TestLookup(t *testing.T) {
 	result, errors := Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
+
+	source = "function logic(txn, gtxn, args) {test(); return 1;}"
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "ident test not defined")
+}
+
+func TestFunctionLookup(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function test(x, y) {return x + y;}
+function logic(txn, gtxn, args) {test(1, 2); return 1;}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result)
+	a.Empty(errors)
+
+	source = "function logic(txn, gtxn, args) {test(); return 1;}"
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "ident test not defined")
+
+	source = "let test = 1; function logic(txn, gtxn, args) {test(); return 1;}"
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "Not a function")
+
+	source = `
+function test(x) {return x;}
+function logic(txn, gtxn, args) {test(); return 1;}
+`
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "Mismatching argument")
+}
+
+func TestFunctionType(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function test(x, y) {return x + y;}
+function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
+`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result)
+	a.Empty(parserErrors)
+
+	// 	source = `
+	// function test(x, y) {return x + y;}
+	// function logic(txn, gtxn, args) {let x = "abc"; x = test(1, 2); return 1;}
+	// `
+	// 	result, parserErrors = Parse(source)
+	// 	a.NotEmpty(result)
+	// 	a.Empty(parserErrors)
+
+	// 	typeErrors := result.TypeCheck()
+	// 	require.NotEmpty(t, typeErrors)
+	// 	require.Equal(t, 2, len(typeErrors), typeErrors)
+	// 	require.Contains(t, typeErrors, TypeError{`types mismatch: uint64 + byte[] in expr '1 + "a"'`})
 }
 
 func T1estParser(t *testing.T) {
