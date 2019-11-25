@@ -79,6 +79,22 @@ func TestInvalidLogicFunc(t *testing.T) {
 	a.NotEmpty(errors)
 }
 
+func TestAssignment(t *testing.T) {
+	a := require.New(t)
+
+	source := "function logic(txn, gtxn, args) {a=2; return 1;}"
+	result, errors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "ident a not defined")
+
+	source = "function logic(txn, gtxn, args) {const a=1; a=2; return 1;}"
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "assign to a constant")
+}
+
 func T1estParser(t *testing.T) {
 	source := `
 let a = 456;

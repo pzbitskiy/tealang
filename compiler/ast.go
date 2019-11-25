@@ -31,6 +31,7 @@ type varInfo struct {
 	name     string
 	theType  exprType
 	constant bool
+	function bool
 
 	// for variables specifies allocated memory space
 	// for constants sets index in intc/bytec arrays
@@ -38,6 +39,9 @@ type varInfo struct {
 
 	// constants have value
 	value *string
+
+	// function has reference to the definition node
+	definition TreeNodeIf
 }
 
 func newLiteralInfo() (literals *literalInfo) {
@@ -72,8 +76,16 @@ func (ctx *context) lookup(name string) (varable varInfo, err error) {
 }
 
 func (ctx *context) newVar(name string, theType exprType) {
-	ctx.vars[name] = varInfo{name, theType, false, ctx.addressNext, nil}
+	ctx.vars[name] = varInfo{name, theType, false, false, ctx.addressNext, nil, nil}
 	ctx.addressNext++
+}
+
+func (ctx *context) newConst(name string, theType exprType, value *string) {
+	ctx.vars[name] = varInfo{name, theType, true, false, 0, value, nil}
+}
+
+func (ctx *context) newFunc(name string, theType exprType, def TreeNodeIf) {
+	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, def}
 }
 
 type exprType int
@@ -627,6 +639,7 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 			node.append(stmt)
 		}
 
+		l.ctx.newFunc(name, unknownType, node)
 		l.node = node
 	}
 }
@@ -667,6 +680,8 @@ func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstCo
 	node.name = varName
 	node.value = varValue
 	node.exprType = intType
+
+	l.ctx.newConst(varName, node.exprType, &varValue)
 	l.node = node
 }
 
@@ -678,6 +693,8 @@ func (l *treeNodeListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstCo
 	node.name = varName
 	node.value = varValue
 	node.exprType = bytesType
+
+	l.ctx.newConst(varName, node.exprType, &varValue)
 	l.node = node
 }
 
@@ -757,7 +774,20 @@ func (l *treeNodeListener) EnterIfStatementFalse(ctx *gen.IfStatementFalseContex
 
 func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 	ident := ctx.IDENT().GetSymbol().GetText()
-	// TODO: check declared
+	info, err := l.ctx.lookup(ident)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+	if info.constant {
+		reportError("Can't assign to a constant", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	if info.function {
+		reportError("Can't assign to a function", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
 
 	listener := newExprListener(l.ctx)
 	ctx.Expr().EnterRule(listener)
