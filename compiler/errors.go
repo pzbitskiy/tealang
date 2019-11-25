@@ -12,6 +12,7 @@ type parserErrorType int
 const (
 	syntaxError    parserErrorType = 1
 	ambiguityError parserErrorType = 2
+	semanticError  parserErrorType = 3
 )
 
 type TypeError struct {
@@ -33,6 +34,41 @@ type ParserError struct {
 type errorCollector struct {
 	errors []ParserError
 	source string
+}
+
+type tealBaseRecognitionException struct {
+	message        string
+	recognizer     antlr.Recognizer
+	offendingToken antlr.Token
+	offendingState int
+	ctx            antlr.RuleContext
+	input          antlr.IntStream
+}
+
+// copy of ANTLR's NewBaseRecognitionException
+func newTealBaseRecognitionException(message string, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) *tealBaseRecognitionException {
+	t := new(tealBaseRecognitionException)
+
+	t.message = message
+	t.recognizer = parser
+	t.input = parser.GetInputStream()
+	t.ctx = rule
+	t.offendingToken = token
+	t.offendingState = -1
+
+	return t
+}
+
+func (e *tealBaseRecognitionException) GetOffendingToken() antlr.Token {
+	return e.offendingToken
+}
+
+func (e *tealBaseRecognitionException) GetMessage() string {
+	return e.message
+}
+
+func (e *tealBaseRecognitionException) GetInputStream() antlr.IntStream {
+	return e.input
 }
 
 func newErrorCollector(source string) (er *errorCollector) {
@@ -76,6 +112,7 @@ func (er *errorCollector) SyntaxError(recognizer antlr.Recognizer, offendingSymb
 	var start, end int
 	var token string
 
+	errorType := syntaxError
 	cast := false
 	if offendingSymbol != nil {
 		if symbol, ok := offendingSymbol.(*antlr.CommonToken); ok {
@@ -85,14 +122,19 @@ func (er *errorCollector) SyntaxError(recognizer antlr.Recognizer, offendingSymb
 			cast = true
 		}
 	}
-	if e != nil && cast {
-		start = e.GetOffendingToken().GetStart()
-		end = e.GetOffendingToken().GetStop()
-		token = e.GetOffendingToken().GetText()
+	if e != nil {
+		if e.GetOffendingToken() != nil && !cast {
+			start = e.GetOffendingToken().GetStart()
+			end = e.GetOffendingToken().GetStop()
+			token = e.GetOffendingToken().GetText()
+		}
+		if e.GetMessage() != "" {
+			errorType = semanticError
+		}
 	}
 
 	info := ParserError{
-		syntaxError,
+		errorType,
 		start,
 		end,
 		line,
@@ -148,6 +190,9 @@ func (er *errorCollector) ReportContextSensitivity(recognizer antlr.Parser, dfa 
 
 func (err *ParserError) String() (msg string) {
 	switch err.errorType {
+	case semanticError:
+		msg = fmt.Sprintf("error at token \"%s\" at line %d, col %d: %s", err.token, err.line, err.column, err.excerpt)
+		msg = fmt.Sprintf("%s\n%s", msg, err.msg)
 	case syntaxError:
 		msg = fmt.Sprintf("syntax error at token \"%s\" at line %d, col %d: %s", err.token, err.line, err.column, err.excerpt)
 		if err.token == "<EOF>" {

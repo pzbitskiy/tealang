@@ -564,6 +564,11 @@ func (n *TreeNode) TypeCheck() (errors []TypeError) {
 //
 //--------------------------------------------------------------------------------------------------
 
+func reportError(msg string, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) {
+	e := newTealBaseRecognitionException(msg, parser, token, rule)
+	parser.NotifyErrorListeners(e.GetMessage(), e.GetOffendingToken(), e)
+}
+
 // EnterProgram is an entry point to AST
 func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	root := newProgramNode(l.ctx)
@@ -582,8 +587,12 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	ctx.Logic().EnterRule(logicListener)
 	logic := logicListener.getNode()
 	if logic == nil {
-		// TODO: report error
-		panic("no logic")
+		logicCtx := ctx.Logic().(*gen.LogicContext)
+		reportError(
+			"Missing logic function",
+			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+		)
+		return
 	}
 	root.append(logic)
 
@@ -760,7 +769,7 @@ func (l *exprListener) EnterIdentifier(ctx *gen.IdentifierContext) {
 	ident := ctx.IDENT().GetSymbol().GetText()
 	variable, err := l.ctx.lookup(ident)
 	if err != nil {
-		// TODO: report error
+		reportError("Ident not found", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 		return
 	}
 
@@ -944,6 +953,9 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	ctx := newContext(nil)
 	l := newTreeNodeListener(ctx)
 	tree.EnterRule(l)
+	if len(collector.errors) > 0 {
+		return nil, collector.errors
+	}
 
 	prog := l.getNode()
 

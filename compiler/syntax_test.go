@@ -86,6 +86,7 @@ function logic() {
 
 func TestParserValidProgram(t *testing.T) {
 	source := `
+let a = 1
 let e = if a > 0 {1} else {2}
 
 function logic(txn, gtxn, args) {
@@ -97,7 +98,7 @@ function logic(txn, gtxn, args) {
 }
 `
 	result, errors := Parse(source)
-	require.NotEmpty(t, result)
+	require.NotEmpty(t, result, errors)
 	require.Empty(t, errors)
 }
 
