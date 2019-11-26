@@ -9,6 +9,8 @@ import (
 )
 
 func TestParserAllFeatures(t *testing.T) {
+	a := require.New(t)
+
 	source := `
 let a = 456;
 const b = "123";
@@ -36,16 +38,17 @@ function logic(txn, gtxn, args) {
 }
 `
 	result, parserErrors := Parse(source)
-	require.NotEmpty(t, result)
-	require.Empty(t, parserErrors)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(2, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `incompatible types: uint64 vs byte[]`)
+	a.Contains(parserErrors[1].msg, `if blocks types mismatch uint64 vs byte[]`)
 
-	result.Print()
-
-	typeErrors := result.TypeCheck()
-	require.NotEmpty(t, typeErrors)
-	require.Equal(t, 2, len(typeErrors), typeErrors)
-	require.Contains(t, typeErrors, TypeError{`types mismatch: uint64 + byte[] in expr '1 + "a"'`})
-	require.Contains(t, typeErrors, TypeError{`if cond: different types: uint64 and byte[]`})
+	// typeErrors := result.TypeCheck()
+	// require.NotEmpty(t, typeErrors)
+	// require.Equal(t, 2, len(typeErrors), typeErrors)
+	// require.Contains(t, typeErrors, TypeError{`types mismatch: uint64 + byte[] in expr '1 + "a"'`})
+	// require.Contains(t, typeErrors, TypeError{`if cond: different types: uint64 and byte[]`})
 }
 
 func TestOneLinerLogic(t *testing.T) {
@@ -169,21 +172,24 @@ function test(x, y) {
 function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
 `
 	result, parserErrors = Parse(source)
-	a.NotEmpty(result)
-	a.Empty(parserErrors, parserErrors)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `block types mismatch: uint64 vs byte[]`)
+}
 
-	// 	source = `
-	// function test(x, y) {return x + y;}
-	// function logic(txn, gtxn, args) {let x = "abc"; x = test(1, 2); return 1;}
-	// `
-	// 	result, parserErrors = Parse(source)
-	// 	a.NotEmpty(result)
-	// 	a.Empty(parserErrors)
+func TestFunctionType2(t *testing.T) {
+	a := require.New(t)
+	source := `
+function test(x, y) {return x + y;}
+function logic(txn, gtxn, args) {let x = "abc"; x = test(1, 2); return 1;}
+`
 
-	// 	typeErrors := result.TypeCheck()
-	// 	require.NotEmpty(t, typeErrors)
-	// 	require.Equal(t, 2, len(typeErrors), typeErrors)
-	// 	require.Contains(t, typeErrors, TypeError{`types mismatch: uint64 + byte[] in expr '1 + "a"'`})
+	result, parserErrors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `Incompatible types: (var) byte[] vs uint64 (expr)`)
 }
 
 func T1estParser(t *testing.T) {

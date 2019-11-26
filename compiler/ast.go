@@ -144,7 +144,7 @@ type TreeNodeIf interface {
 // ExprNodeIf extends TreeNode and can be evaluated and typed
 type ExprNodeIf interface {
 	TreeNodeIf
-	getType() exprType
+	getType() (exprType, error)
 }
 
 // TreeNode contains base info about an AST node
@@ -353,7 +353,8 @@ func newVarDeclNode(ctx *context, ident string, value ExprNodeIf) (node *varDecl
 	node.nodeName = "var"
 	node.name = ident
 	node.value = value
-	node.exprType = value.getType()
+	tp, _ := value.getType()
+	node.exprType = tp
 	return
 }
 
@@ -433,80 +434,97 @@ func newFunCallNode(ctx *context, name string) (node *funCallNode) {
 	return
 }
 
-func (n *exprLiteralNode) getType() exprType {
-	return n.exprType
+func (n *exprLiteralNode) getType() (exprType, error) {
+	return n.exprType, nil
 }
 
-func (n *exprIdentNode) getType() exprType {
+func (n *exprIdentNode) getType() (exprType, error) {
 	if n.exprType == unknownType {
-		info, _ := n.ctx.lookup(n.name)
-		// if info.theType == invåalidType {
-		// 	return invalidType,
-		// }
+		info, err := n.ctx.lookup(n.name)
+		if err != nil || info.theType == invalidType {
+			return invalidType, fmt.Errorf("ident lookup for %s failed: %s", n.name, err.Error())
+		}
 		n.exprType = info.theType
 	}
-	return n.exprType
+	return n.exprType, nil
 }
 
-func (n *exprBinOpNode) getType() exprType {
+func (n *exprBinOpNode) getType() (exprType, error) {
 	tp, err := typeFromSpec(n.op)
 	if err != nil {
-		// TODO: report error
-		fmt.Println(err)
-		return invalidType
+		return invalidType, fmt.Errorf("bin op '%s' not it the language: %s", n.op, err.Error())
 	}
 
-	lhs := n.lhs.getType()
-	rhs := n.rhs.getType()
-	if lhs != rhs || tp != lhs {
-		// TODO: report error
-		return invalidType
+	lhs, err := n.lhs.getType()
+	if err != nil {
+		return invalidType, fmt.Errorf("left operand %s has invalid type %s", n.lhs.String(), err.Error())
+	}
+	rhs, err := n.rhs.getType()
+	if err != nil {
+		return invalidType, fmt.Errorf("right operand %s has invalid type %s", n.rhs.String(), err.Error())
 	}
 
-	return tp
+	if lhs != rhs {
+		return invalidType, fmt.Errorf("incompatible types: %s vs %s in expr '%s'", lhs, rhs, n)
+	}
+	if tp != lhs {
+		return invalidType, fmt.Errorf("bin op expects type %s but operands are %s", tp, lhs)
+	}
+
+	return tp, nil
 }
 
-func (n *exprUnOpNode) getType() exprType {
+func (n *exprUnOpNode) getType() (exprType, error) {
 	tp, err := typeFromSpec(n.op)
 	if err != nil {
-		// TODO: report error
-		fmt.Println(err)
-		return invalidType
+		return invalidType, fmt.Errorf("un op '%s' not it the language: %s", n.op, err.Error())
 	}
 
-	valType := n.value.getType()
+	valType, err := n.value.getType()
+	if err != nil {
+		return invalidType, fmt.Errorf("operand %s has invalid type %s", n.String(), err.Error())
+	}
 	if tp != valType {
 		// TODO: report error
-		return invalidType
+		return invalidType, fmt.Errorf("up op expects type %s but operand is %s", tp, valType)
 	}
-	return tp
+	return tp, nil
 }
 
-func (n *ifExprNode) getType() exprType {
-	condType := n.condExpr.getType()
+func (n *ifExprNode) getType() (exprType, error) {
+	tp, err := n.condExpr.getType()
+	if err != nil {
+		return invalidType, fmt.Errorf("cond type evaluation failed: %s", err.Error())
+	}
+
+	condType := tp
 	if condType != intType {
-		// TODO: report error
-		return invalidType
+		return invalidType, fmt.Errorf("cond type is %s, expected %s", condType, tp)
 	}
 
-	condTrueExprType := n.condTrueExpr.getType()
-	condFalseExprType := n.condFalseExpr.getType()
+	condTrueExprType, err := n.condTrueExpr.getType()
+	if err != nil {
+		return invalidType, fmt.Errorf("first block has invalid type %s", err.Error())
+	}
+	condFalseExprType, err := n.condFalseExpr.getType()
+	if err != nil {
+		return invalidType, fmt.Errorf("second block has invalid type %s", err.Error())
+	}
 	if condTrueExprType != condFalseExprType {
-		// TODO: report error
-		return invalidType
+		return invalidType, fmt.Errorf("if blocks types mismatch %s vs %s", condTrueExprType, condFalseExprType)
 	}
 
-	return n.condTrueExpr.getType()
+	return condTrueExprType, nil
 }
 
-func (n *exprGroupNode) getType() exprType {
+func (n *exprGroupNode) getType() (exprType, error) {
 	return n.value.getType()
 }
 
 // Scans node's children recursively and find return statements,
 // applies type resolution and track conflicts.
 // Return expr type or invalidType on error
-func determineBlockReturnType(node TreeNodeIf, retTypeSeen []exprType) exprType {
+func determineBlockReturnType(node TreeNodeIf, retTypeSeen []exprType) (exprType, error) {
 	var statements []TreeNodeIf
 	if node != nil {
 		statements = node.children()
@@ -515,39 +533,49 @@ func determineBlockReturnType(node TreeNodeIf, retTypeSeen []exprType) exprType 
 	for _, stmt := range statements {
 		switch tt := stmt.(type) {
 		case *returnNode:
-			tp := tt.value.getType()
+			tp, err := tt.value.getType()
+			if err != nil {
+				return invalidType, err
+			}
 			retTypeSeen = append(retTypeSeen, tp)
 		case *ifStatementNode, *blockNode:
-			blockType := determineBlockReturnType(stmt, retTypeSeen)
+			blockType, err := determineBlockReturnType(stmt, retTypeSeen)
+			if err != nil {
+				return invalidType, err
+			}
 			retTypeSeen = append(retTypeSeen, blockType)
 		}
 	}
 
 	if len(retTypeSeen) == 0 {
-		return invalidType
+		return unknownType, nil
 	}
 	commonType := retTypeSeen[0]
 	for _, tp := range retTypeSeen {
-		if tp != commonType {
-			return invalidType
+		if commonType == unknownType && tp != unknownType {
+			commonType = tp
+			continue
+		}
+
+		if commonType != unknownType && tp != commonType {
+			return invalidType, fmt.Errorf("block types mismatch: %s vs %s", commonType, tp)
 		}
 	}
-	return commonType
+	return commonType, nil
 }
 
-func (n *funCallNode) getType() exprType {
+func (n *funCallNode) getType() (exprType, error) {
 	if n.funType != unknownType {
-		return n.funType
+		return n.funType, nil
 	}
 
 	info, err := n.ctx.lookup(n.name)
 	if err != nil {
-		// TODO: report error
-		return invalidType
+		return invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
 	}
 
-	tp := determineBlockReturnType(info.definition, []exprType{})
-	return tp
+	tp, err := determineBlockReturnType(info.definition, []exprType{})
+	return tp, err
 }
 
 func (n *TreeNode) append(ch TreeNodeIf) {
@@ -632,8 +660,8 @@ func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
 	errors = append(errors, n.lhs.TypeCheck()...)
 	errors = append(errors, n.lhs.TypeCheck()...)
 
-	lhs := n.lhs.getType()
-	rhs := n.rhs.getType()
+	lhs, _ := n.lhs.getType()
+	rhs, _ := n.rhs.getType()
 	if lhs != rhs {
 		err := TypeError{fmt.Sprintf("types mismatch: %s %s %s in expr '%s'", lhs, n.op, rhs, n)}
 		errors = append(errors, err)
@@ -651,14 +679,14 @@ func (n *ifExprNode) TypeCheck() (errors []TypeError) {
 	errors = append(errors, n.condTrueExpr.TypeCheck()...)
 	errors = append(errors, n.condFalseExpr.TypeCheck()...)
 
-	condType := n.condExpr.getType()
+	condType, _ := n.condExpr.getType()
 	if condType != intType {
 		err := TypeError{fmt.Sprintf("if cond: expected uint64, got %s", condType)}
 		errors = append(errors, err)
 	}
 
-	condTrueExprType := n.condTrueExpr.getType()
-	condFalseExprType := n.condFalseExpr.getType()
+	condTrueExprType, _ := n.condTrueExpr.getType()
+	condFalseExprType, _ := n.condFalseExpr.getType()
 	if condTrueExprType != condFalseExprType {
 		err := TypeError{fmt.Sprintf("if cond: different types: %s and %s", condTrueExprType, condFalseExprType)}
 		errors = append(errors, err)
@@ -770,7 +798,13 @@ func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
-	l.ctx.newVar(ident, exprNode.getType())
+	varType, err := exprNode.getType()
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	l.ctx.newVar(ident, varType)
 
 	node := newVarDeclNode(l.ctx, ident, exprNode)
 	l.node = node
@@ -887,7 +921,23 @@ func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 
 	listener := newExprListener(l.ctx)
 	ctx.Expr().EnterRule(listener)
-	node := newAssignNode(l.ctx, ident, listener.getExpr())
+	rhs := listener.getExpr()
+	rhsType, err := rhs.getType()
+	if err != nil {
+		reportError(
+			fmt.Sprintf("Failed type resolution type: %s", err.Error()),
+			ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	if info.theType != rhsType {
+		reportError(
+			fmt.Sprintf("Incompatible types: (var) %s vs %s (expr)", info.theType, rhsType),
+			ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	node := newAssignNode(l.ctx, ident, rhs)
 	l.node = node
 }
 
@@ -1077,7 +1127,10 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 			reportError(err.Error(), parser, token, rule)
 			return
 		}
-		info.theType = args[i].(ExprNodeIf).getType()
+		info.theType, err = args[i].(ExprNodeIf).getType()
+		if err != nil {
+			reportError(err.Error(), parser, token, rule)
+		}
 		err = defNode.ctx.update(varName, info)
 		if err != nil {
 			reportError(err.Error(), parser, token, rule)
