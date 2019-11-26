@@ -251,6 +251,21 @@ type funCallNode struct {
 	funType exprType
 }
 
+type runtimeFieldNode struct {
+	*TreeNode
+	op       string
+	field    string
+	index    string
+	exprType exprType
+}
+
+type runtimeArgNode struct {
+	*TreeNode
+	op       string
+	number   string
+	exprType exprType
+}
+
 //--------------------------------------------------------------------------------------------------
 //
 // listeners
@@ -434,6 +449,33 @@ func newFunCallNode(ctx *context, name string) (node *funCallNode) {
 	return
 }
 
+func newRuntimeFieldNode(ctx *context, op string, field string, aux string) (node *runtimeFieldNode) {
+	node = new(runtimeFieldNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "runtime field"
+	node.op = op
+	node.field = field
+	node.index = aux
+	node.exprType = unknownType
+	return
+}
+
+func newRuntimeArgNode(ctx *context, op string, number string) (node *runtimeArgNode) {
+	node = new(runtimeArgNode)
+	node.TreeNode = newNode(ctx)
+	node.nodeName = "runtime arg"
+	node.op = op
+	node.number = number
+	node.exprType = unknownType
+	return
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+// Type checks
+//
+//--------------------------------------------------------------------------------------------------
+
 func (n *exprLiteralNode) getType() (exprType, error) {
 	return n.exprType, nil
 }
@@ -450,7 +492,7 @@ func (n *exprIdentNode) getType() (exprType, error) {
 }
 
 func (n *exprBinOpNode) getType() (exprType, error) {
-	tp, err := typeFromSpec(n.op)
+	tp, err := opTypeFromSpec(n.op)
 	if err != nil {
 		return invalidType, fmt.Errorf("bin op '%s' not it the language: %s", n.op, err.Error())
 	}
@@ -475,7 +517,7 @@ func (n *exprBinOpNode) getType() (exprType, error) {
 }
 
 func (n *exprUnOpNode) getType() (exprType, error) {
-	tp, err := typeFromSpec(n.op)
+	tp, err := opTypeFromSpec(n.op)
 	if err != nil {
 		return invalidType, fmt.Errorf("un op '%s' not it the language: %s", n.op, err.Error())
 	}
@@ -577,6 +619,40 @@ func (n *funCallNode) getType() (exprType, error) {
 	tp, err := determineBlockReturnType(info.definition, []exprType{})
 	return tp, err
 }
+
+func (n *runtimeFieldNode) getType() (exprType, error) {
+	if n.exprType != unknownType {
+		return n.exprType, nil
+	}
+
+	tp, err := runtimeFieldTypeFromSpec(n.op, n.field)
+	if err != nil {
+		return invalidType, fmt.Errorf("lookup failed: %s", err.Error())
+	}
+
+	n.exprType = tp
+	return tp, err
+}
+
+func (n *runtimeArgNode) getType() (exprType, error) {
+	if n.exprType != unknownType {
+		return n.exprType, nil
+	}
+
+	tp, err := opTypeFromSpec(n.op)
+	if err != nil {
+		return invalidType, fmt.Errorf("lookup failed: %s", err.Error())
+	}
+
+	n.exprType = tp
+	return tp, err
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+// Common node methods
+//
+//--------------------------------------------------------------------------------------------------
 
 func (n *TreeNode) append(ch TreeNodeIf) {
 	n.childrenNodes = append(n.childrenNodes, ch)
@@ -1149,6 +1225,37 @@ func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext)
 		node.append(arg)
 	}
 	return node
+}
+
+func (l *exprListener) EnterBuiltinObject(ctx *gen.BuiltinObjectContext) {
+	listener := newExprListener(l.ctx)
+	ctx.BuiltinVarExpr().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterGlobalFieldExpr(ctx *gen.GlobalFieldExprContext) {
+	field := ctx.GLOBALFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, "global", field, "")
+	l.expr = node
+}
+
+func (l *exprListener) EnterTxnFieldExpr(ctx *gen.TxnFieldExprContext) {
+	field := ctx.TXNFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, "txn", field, "")
+	l.expr = node
+}
+
+func (l *exprListener) EnterGroupTxnFieldExpr(ctx *gen.GroupTxnFieldExprContext) {
+	field := ctx.TXNFIELD().GetText()
+	groupIndex := ctx.NUMBER().GetText()
+	node := newRuntimeFieldNode(l.ctx, "gtxn", field, groupIndex)
+	l.expr = node
+}
+
+func (l *exprListener) EnterArgsExpr(ctx *gen.ArgsExprContext) {
+	number := ctx.NUMBER().GetText()
+	node := newRuntimeArgNode(l.ctx, "arg", number)
+	l.expr = node
 }
 
 //--------------------------------------------------------------------------------------------------
