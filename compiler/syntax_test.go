@@ -103,6 +103,8 @@ function logic(txn, gtxn, args) {
 }
 
 func TestParserErrorReporting(t *testing.T) {
+	a := require.New(t)
+
 	source := `
 let e = if a > 0 {1} else {}
 
@@ -115,27 +117,102 @@ function logic(txn, gtxn, args) {
 }
 `
 	result, errors := Parse(source)
-	require.Empty(t, result)
-	require.NotEmpty(t, errors)
-	require.Equal(t, 1, len(errors))
-	require.Contains(t, errors[0].excerpt, "if a > 0 {1} else { ==> } <==")
-	require.Contains(t, errors[0].String(), "syntax error at token \"}\" at line 2, col 27:  if a > 0 {1} else { ==> } <==")
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("let e = if a > 0 {1} else {}", errors[0].excerpt[0])
+	a.Equal("                      -----^-----", errors[0].excerpt[1])
+	msg := `syntax error at line 2, col 27 near token "}"
+let e = if a > 0 {1} else {}
+                      -----^-----`
+	a.Equal(msg, errors[0].String())
 
 	source = "a = 33"
 	result, errors = Parse(source)
-	require.Empty(t, result)
-	require.NotEmpty(t, errors)
-	require.Equal(t, 1, len(errors))
-	require.Contains(t, errors[0].excerpt, "==> a <==  = 33")
-	require.Contains(t, errors[0].String(), "syntax error at token \"a\" at line 1, col 0:")
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("a = 33", errors[0].excerpt[0])
+	a.Equal("^-----", errors[0].excerpt[1])
+	msg = `syntax error at line 1, col 0 near token "a"
+a = 33
+^-----`
+	a.Equal(msg, errors[0].String())
 
 	source = "let a = 33bbb"
 	result, errors = Parse(source)
-	require.Empty(t, result)
-	require.NotEmpty(t, errors)
-	require.Equal(t, 1, len(errors))
-	require.Contains(t, errors[0].excerpt, "let a = 33 ==> bbb <==")
-	require.Contains(t, errors[0].String(), "syntax error at token \"bbb\" at line 1, col 10: let a = 33 ==> bbb <==")
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("let a = 33bbb", errors[0].excerpt[0])
+	a.Equal("     -----^-----", errors[0].excerpt[1])
+	msg = `syntax error at line 1, col 10 near token "bbb"
+let a = 33bbb
+     -----^-----`
+	a.Equal(msg, errors[0].String())
+
+	source = `
+function logic(txn, gtxn, args) {
+	if e == 1 {
+		let x = 2;
+		error
+	}
+	return 1
+}
+`
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("    if e == 1 {", errors[0].excerpt[0])
+	a.Equal("  -----^-----", errors[0].excerpt[1])
+	msg = `error at line 3, col 4 near token "e"
+    if e == 1 {
+  -----^-----
+ident not found`
+	a.Equal(msg, errors[0].String())
+
+	source = `
+function logic(txn, gtxn, args) {
+	let x = "123"
+	let e = 1
+	if e == 1 {
+		x = 2
+		error
+	}
+	return 1
+}
+`
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("        x = 2", errors[0].excerpt[0])
+	a.Equal("   -----^-----", errors[0].excerpt[1])
+	msg = `error at line 6, col 2 near token "x"
+        x = 2
+   -----^-----
+incompatible types: (var) byte[] vs uint64 (expr)`
+	a.Equal(msg, errors[0].String())
+
+	source = `
+function logic(txn, gtxn, args) {
+	let e = 2
+	e = "123"
+	return 1
+}
+`
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal(`    e = "123"`, errors[0].excerpt[0])
+	a.Equal("----^-----", errors[0].excerpt[1])
+	msg = `error at line 4, col 1 near token "e"
+    e = "123"
+----^-----
+incompatible types: (var) uint64 vs byte[] (expr)`
+	a.Equal(msg, errors[0].String())
 }
 
 func TestIfElseProgram(t *testing.T) {

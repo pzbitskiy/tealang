@@ -28,7 +28,7 @@ type ParserError struct {
 	column    int
 	msg       string
 	token     string
-	excerpt   string
+	excerpt   []string
 }
 
 type errorCollector struct {
@@ -78,8 +78,8 @@ func newErrorCollector(source string) (er *errorCollector) {
 	return
 }
 
-func (er *errorCollector) formatExcerpt(start, end int) string {
-	maxExcerptOffset := 20
+func (er *errorCollector) formatExcerpt(start, end int) []string {
+	maxExcerptOffset := 50
 	src := er.source
 	excerptStart := strings.LastIndexByte(er.source[0:start], '\n') + 1
 	if excerptStart == -1 {
@@ -100,11 +100,47 @@ func (er *errorCollector) formatExcerpt(start, end int) string {
 		excerptEnd = end + excerptEnd
 	}
 
-	excerpt := fmt.Sprintf("%s ==> %s <== ", er.source[excerptStart:start], er.source[start:end+1])
-	if excerptEnd > end+1 {
-		excerpt = fmt.Sprintf("%s%s", excerpt, er.source[end+1:excerptEnd])
+	trueEnd := end + 1
+	if excerptEnd > trueEnd {
+		trueEnd = excerptEnd
 	}
 
+	excerptStartFixed := excerptStart
+	excerptEndFixed := excerptEnd
+	trueEndFixed := trueEnd
+	startFixed := start
+
+	src = ""
+	const tabSize = 4
+	for _, ch := range er.source[excerptStart:trueEnd] {
+		if ch == '\t' {
+			src += strings.Repeat(" ", tabSize)
+			// excerptStartFixed += tabSize
+			excerptEndFixed += tabSize - 1 // tab symbol length + 3 rest replacing symbols
+			trueEndFixed += tabSize - 1
+			startFixed += tabSize - 1
+		} else {
+			src += string(ch)
+		}
+	}
+
+	excerpt := make([]string, 2)
+	excerpt[0] = src
+
+	emphasizeLeftLength := 5
+	emphasizeRightLength := 5
+	spaces := startFixed - excerptStartFixed - emphasizeLeftLength
+	if spaces < 0 {
+		emphasizeLeftLength += spaces
+		spaces = 0
+	}
+
+	excerpt[1] = fmt.Sprintf(
+		"%s%s^%s",
+		strings.Repeat(" ", spaces),
+		strings.Repeat("-", emphasizeLeftLength),
+		strings.Repeat("-", emphasizeRightLength),
+	)
 	return excerpt
 }
 
@@ -191,13 +227,17 @@ func (er *errorCollector) ReportContextSensitivity(recognizer antlr.Parser, dfa 
 func (err *ParserError) String() (msg string) {
 	switch err.errorType {
 	case semanticError:
-		msg = fmt.Sprintf("error at token \"%s\" at line %d, col %d: %s", err.token, err.line, err.column, err.excerpt)
-		msg = fmt.Sprintf("%s\n%s", msg, err.msg)
+		msg = fmt.Sprintf("error at line %d, col %d near token \"%s\"", err.line, err.column, err.token)
+		lines := append([]string{msg}, err.excerpt...)
+		lines = append(lines, err.msg)
+		msg = strings.Join(lines, "\n")
 	case syntaxError:
-		msg = fmt.Sprintf("syntax error at token \"%s\" at line %d, col %d: %s", err.token, err.line, err.column, err.excerpt)
+		msg = fmt.Sprintf("syntax error at line %d, col %d near token \"%s\"", err.line, err.column, err.token)
+		lines := append([]string{msg}, err.excerpt...)
 		if err.token == "<EOF>" {
-			msg = fmt.Sprintf("%s\nMissing logic function?", msg)
+			lines = append(lines, "Missing logic function?")
 		}
+		msg = strings.Join(lines, "\n")
 	case ambiguityError:
 		msg = fmt.Sprintf("ambiguity error at offset %d: %s", err.start, err.excerpt)
 	default:
