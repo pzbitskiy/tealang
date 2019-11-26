@@ -161,6 +161,17 @@ function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
 	a.NotEmpty(result)
 	a.Empty(parserErrors)
 
+	source = `
+function test(x, y) {
+	if (x) {return x + y;}
+	else {return "a";}
+}
+function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
+`
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result)
+	a.Empty(parserErrors, parserErrors)
+
 	// 	source = `
 	// function test(x, y) {return x + y;}
 	// function logic(txn, gtxn, args) {let x = "abc"; x = test(1, 2); return 1;}

@@ -29,7 +29,7 @@ declaration
 
 // named rules for tree-walking only
 condition
-    :   IF condIfExpr condTrueBlock (ELSE condFalseBlock)?   # IfStatement
+    :   IF condIfExpr condTrueBlock (NEWLINE? ELSE condFalseBlock)?   # IfStatement
     ;
 
 condTrueBlock

@@ -136,5 +136,96 @@ function logic(txn, gtxn, args) {
 	require.Equal(t, 1, len(errors))
 	require.Contains(t, errors[0].excerpt, "let a = 33 ==> bbb <==")
 	require.Contains(t, errors[0].String(), "syntax error at token \"bbb\" at line 1, col 10: let a = 33 ==> bbb <==")
+}
+
+func TestIfElseProgram(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic(txn, gtxn, args) {
+	let e = 2
+	if e == 1 {return 1;}
+	else {return 0;}
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let e = 2
+	if e == 1 { return 1; }
+	else { return 0; }
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let e = 2
+	if e == 1 {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let e = 2
+	if e == 1 {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let e = 2
+	if e == 1
+	{
+		return 1;
+	}
+}
+`
+	result, errors = Parse(source)
+	a.Empty(result, errors)
+	a.NotEmpty(errors)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let e = 2
+	if e == 1 {
+		return 1;
+	}
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let e = 2
+	if e == 1 { return 1; }
+	return 0
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
 
 }
