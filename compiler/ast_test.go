@@ -29,12 +29,14 @@ function logic(txn, gtxn, args) {
 		x = 0
 		return 0
 	}
-	let f = global.GroupSize
+	let s = global.GroupSize
 	let t = txn.Note
 	let g = gtxn[0].Sender
 	let r = args[0]
 	r = t
-	t = f
+	t = s
+
+	let z = sha256("test")
 
 	let f = test(20+2, 30)
 	return 1
@@ -46,7 +48,7 @@ function logic(txn, gtxn, args) {
 	a.Equal(3, len(parserErrors), parserErrors)
 	a.Contains(parserErrors[0].msg, `incompatible types: uint64 vs byte[]`)
 	a.Contains(parserErrors[1].msg, `if blocks types mismatch uint64 vs byte[]`)
-	a.Contains(parserErrors[2].msg, `Incompatible types: (var) byte[] vs uint64 (expr)`)
+	a.Contains(parserErrors[2].msg, `incompatible types: (var) byte[] vs uint64 (expr)`)
 }
 
 func TestOneLinerLogic(t *testing.T) {
@@ -174,20 +176,39 @@ function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
 	a.Contains(parserErrors[0].msg, `block types mismatch: uint64 vs byte[]`)
-}
 
-func TestFunctionType2(t *testing.T) {
-	a := require.New(t)
-	source := `
+	source = `
 function test(x, y) {return x + y;}
 function logic(txn, gtxn, args) {let x = "abc"; x = test(1, 2); return 1;}
 `
 
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `incompatible types: (var) byte[] vs uint64 (expr)`)
+}
+
+func TestBuiltinFunction(t *testing.T) {
+	a := require.New(t)
+	source := `
+function logic(txn, gtxn, args) {let x = sha256(1) ; return 1;}
+`
 	result, parserErrors := Parse(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `Incompatible types: (var) byte[] vs uint64 (expr)`)
+	a.Contains(parserErrors[0].msg, `incompatible types: (exp) byte[] vs uint64 (actual) in expr 'sha256 ([1])'`)
+
+	source = `
+function logic(txn, gtxn, args) {let x = 1; x = sha256("abc") ; return 1;}
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `incompatible types: (var) uint64 vs byte[] (expr)`)
+
 }
 
 func T1estParser(t *testing.T) {

@@ -21,6 +21,7 @@ type operation struct {
 	Name          string
 	Cost          int
 	Size          int
+	Args		  string
 	Returns       string
 	ArgEnum       []string
 	ArgEnumTypes  string

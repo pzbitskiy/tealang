@@ -132,6 +132,16 @@ func (n exprType) String() string {
 	return "unknown"
 }
 
+var builtinFun = map[string]bool{
+	"sha256":        true,
+	"keccak256":     true,
+	"sha512_256":    true,
+	"ed25519verify": true,
+	"len":           true,
+	"itob":          true,
+	"btoi":          true,
+}
+
 // TreeNodeIf represents a node in AST
 type TreeNodeIf interface {
 	append(ch TreeNodeIf)
@@ -611,13 +621,67 @@ func (n *funCallNode) getType() (exprType, error) {
 		return n.funType, nil
 	}
 
+	var err error
+	builtin := false
 	info, err := n.ctx.lookup(n.name)
 	if err != nil {
-		return invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
+		_, builtin = builtinFun[n.name]
+		if !builtin {
+			return invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
+		}
 	}
 
-	tp, err := determineBlockReturnType(info.definition, []exprType{})
+	var tp exprType
+	if builtin {
+		tp, err = opTypeFromSpec(n.name)
+	} else {
+		tp, err = determineBlockReturnType(info.definition, []exprType{})
+	}
 	return tp, err
+}
+
+func (n *funCallNode) resolveArgs(definitionNode *funDefNode) error {
+	args := n.children()
+
+	if len(definitionNode.args) != len(args) {
+		return fmt.Errorf("Mismatching parsed argument(s)")
+	}
+
+	for i := range args {
+		varName := definitionNode.args[i]
+		info, err := definitionNode.ctx.lookup(varName)
+		if err != nil {
+			return err
+		}
+		info.theType, err = args[i].(ExprNodeIf).getType()
+		if err != nil {
+			return err
+		}
+		err = definitionNode.ctx.update(varName, info)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (n *funCallNode) checkBuiltinArgs() (err error) {
+	args := n.children()
+	for i, arg := range args {
+		tp, err := argOpTypeFromSpec(n.name, i)
+		if err != nil {
+			return err
+		}
+		argExpr := arg.(ExprNodeIf)
+		actualType, err := argExpr.getType()
+		if err != nil {
+			return err
+		}
+		if actualType != tp {
+			return fmt.Errorf("incompatible types: (exp) %s vs %s (actual) in expr '%s'", tp, actualType, n)
+		}
+	}
+	return
 }
 
 func (n *runtimeFieldNode) getType() (exprType, error) {
@@ -809,7 +873,7 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	if logic == nil {
 		logicCtx := ctx.Logic().(*gen.LogicContext)
 		reportError(
-			"Missing logic function",
+			"missing logic function",
 			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
 		)
 		return
@@ -986,12 +1050,12 @@ func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 		return
 	}
 	if info.constant {
-		reportError("Can't assign to a constant", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		reportError("cannot assign to a constant", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 		return
 	}
 
 	if info.function {
-		reportError("Can't assign to a function", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		reportError("cannot assign to a function", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 		return
 	}
 
@@ -1001,14 +1065,14 @@ func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 	rhsType, err := rhs.getType()
 	if err != nil {
 		reportError(
-			fmt.Sprintf("Failed type resolution type: %s", err.Error()),
+			fmt.Sprintf("failed type resolution type: %s", err.Error()),
 			ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext(),
 		)
 		return
 	}
 	if info.theType != rhsType {
 		reportError(
-			fmt.Sprintf("Incompatible types: (var) %s vs %s (expr)", info.theType, rhsType),
+			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", info.theType, rhsType),
 			ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext(),
 		)
 		return
@@ -1021,7 +1085,7 @@ func (l *exprListener) EnterIdentifier(ctx *gen.IdentifierContext) {
 	ident := ctx.IDENT().GetSymbol().GetText()
 	variable, err := l.ctx.lookup(ident)
 	if err != nil {
-		reportError("Ident not found", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		reportError("ident not found", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 		return
 	}
 
@@ -1159,7 +1223,18 @@ func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
 
 func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
 	name := ctx.BUILTINFUNC().GetText()
-	l.expr = l.funCallEnterImpl(name, ctx.AllExpr())
+	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		parser := ctx.GetParser()
+		token := ctx.BUILTINFUNC().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError(err.Error(), parser, token, rule)
+		return
+	}
+
+	l.expr = exprNode
 }
 
 func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
@@ -1190,29 +1265,12 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	}
 
 	exprNode := l.funCallEnterImpl(name, argExprNodes)
-	args := exprNode.children()
-	if len(defNode.args) != len(args) {
-		reportError("Mismatching parsed argument(s)", parser, token, rule)
+	err = exprNode.resolveArgs(defNode)
+	if err != nil {
+		reportError(err.Error(), parser, token, rule)
 		return
 	}
 
-	for i := range args {
-		varName := defNode.args[i]
-		info, err := defNode.ctx.lookup(varName)
-		if err != nil {
-			reportError(err.Error(), parser, token, rule)
-			return
-		}
-		info.theType, err = args[i].(ExprNodeIf).getType()
-		if err != nil {
-			reportError(err.Error(), parser, token, rule)
-		}
-		err = defNode.ctx.update(varName, info)
-		if err != nil {
-			reportError(err.Error(), parser, token, rule)
-			return
-		}
-	}
 	l.expr = exprNode
 }
 
@@ -1286,7 +1344,15 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 
 	ctx := newContext(nil)
 	l := newTreeNodeListener(ctx)
-	tree.EnterRule(l)
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+			}
+		}()
+		tree.EnterRule(l)
+	}()
+
 	if len(collector.errors) > 0 {
 		return nil, collector.errors
 	}
