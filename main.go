@@ -45,7 +45,7 @@ var rootCmd = &cobra.Command{
 			}
 			ioutil.WriteFile(outFile, []byte(result), 0644)
 		} else {
-			fmt.Println("assembling to tealc not implemented yet")
+			fmt.Println("assembling to tealc not implemented yet\n Use -c to see TEAL output")
 		}
 	},
 }
