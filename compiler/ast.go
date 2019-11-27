@@ -633,7 +633,7 @@ func (n *funCallNode) resolveArgs(definitionNode *funDefNode) error {
 	args := n.children()
 
 	if len(definitionNode.args) != len(args) {
-		return fmt.Errorf("Mismatching parsed argument(s)")
+		return fmt.Errorf("mismatching parsed argument(s)")
 	}
 
 	for i := range args {

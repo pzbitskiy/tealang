@@ -137,11 +137,19 @@ function logic(txn, gtxn, args) {test(1, 2); return 1;}
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "ident test not defined")
 
+	source = `
+function logic(txn, gtxn, args) {test(1); return 1;}
+`
+	result, errors = Parse(source)
+	a.Empty(result, errors)
+	a.NotEmpty(errors)
+	a.Contains(errors[0].String(), "ident test not defined")
+
 	source = "let test = 1; function logic(txn, gtxn, args) {test(); return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
-	a.Contains(errors[0].String(), "Not a function")
+	a.Contains(errors[0].String(), "not a function")
 
 	source = `
 function test(x) {return x;}
@@ -150,7 +158,7 @@ function logic(txn, gtxn, args) {test(); return 1;}
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
-	a.Contains(errors[0].String(), "Mismatching argument")
+	a.Contains(errors[0].String(), "mismatching argument")
 }
 
 func TestFunctionType(t *testing.T) {
@@ -209,30 +217,4 @@ function logic(txn, gtxn, args) {let x = 1; x = sha256("abc") ; return 1;}
 	a.Equal(1, len(parserErrors), parserErrors)
 	a.Contains(parserErrors[0].msg, `incompatible types: (var) uint64 vs byte[] (expr)`)
 
-}
-
-func T1estParser(t *testing.T) {
-	source := `
-let a = 456;
-const b = "123";
-let c = 1 + 2;
-let d = 1 + "a"
-
-function logic(txn, gtxn, args) {
-	if e == 1 {
-		let x = a + b;
-		error
-	}
-
-	if a == 1 {
-		return 0
-	}
-
-	return 1
-}
-`
-	result, _ := Parse(source)
-	require.NotEmpty(t, result)
-
-	result.Print()
 }

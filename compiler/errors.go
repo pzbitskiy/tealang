@@ -15,10 +15,6 @@ const (
 	semanticError  parserErrorType = 3
 )
 
-type TypeError struct {
-	msg string
-}
-
 // ParserError provides generic info about the error
 type ParserError struct {
 	errorType parserErrorType
@@ -45,7 +41,7 @@ type tealBaseRecognitionException struct {
 	input          antlr.IntStream
 }
 
-// copy of ANTLR's NewBaseRecognitionException
+// copy of Antlr's NewBaseRecognitionException
 func newTealBaseRecognitionException(message string, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) *tealBaseRecognitionException {
 	t := new(tealBaseRecognitionException)
 

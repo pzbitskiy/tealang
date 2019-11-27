@@ -464,19 +464,19 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 		return
 	}
 	if !info.function {
-		reportError("Not a function", parser, token, rule)
+		reportError("not a function", parser, token, rule)
 		return
 	}
 
 	defNode, ok := info.definition.(*funDefNode)
 	if !ok {
-		reportError("Internal error: casting failed", parser, token, rule)
+		reportError("internal error: casting failed", parser, token, rule)
 		return
 	}
 
 	argExprNodes := ctx.AllExpr()
 	if len(defNode.args) != len(argExprNodes) {
-		reportError("Mismatching argument(s)", parser, token, rule)
+		reportError("mismatching argument(s)", parser, token, rule)
 		return
 	}
 
@@ -554,8 +554,8 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	parser.BuildParseTrees = true
 
 	tree := parser.Program()
+	collector.filterAmbiguity()
 	if len(collector.errors) > 0 {
-		collector.filterAmbiguity()
 		return nil, collector.errors
 	}
 
