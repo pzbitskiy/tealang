@@ -63,6 +63,65 @@ func TestCodegenBinOp(t *testing.T) {
 	a.Equal("store 1", lines[8])
 }
 
+func TestCodegenIfExpr(t *testing.T) {
+	a := require.New(t)
+
+	source := `let x = if 1 { 2 } else { 3 }; function logic(txn, gtxn, args) {}`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2 3", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("!", lines[2])
+	a.Equal("bnz if_expr_false_", lines[3][:len("bnz if_expr_false_")])
+	a.Equal("intc 2", lines[4])
+	a.Equal("intc 1", lines[5])
+	a.Equal("bnz if_expr_end_", lines[6][:len("bnz if_expr_end_")])
+	a.Equal("if_expr_false_", lines[7][:len("if_expr_false_")])
+	a.Equal("intc 3", lines[8])
+	a.Equal("if_expr_end_", lines[9][:len("if_expr_end_")])
+	a.Equal("store 0", lines[10])
+}
+
+func TestCodegenIfStmt(t *testing.T) {
+	a := require.New(t)
+
+	source := `function logic(txn, gtxn, args) { if 1 {let x=10;}}`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 10", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("!", lines[2])
+	a.Equal("bnz if_stmt_end_", lines[3][:len("bnz if_stmt_end_")])
+	a.Equal("intc 2", lines[4])
+	a.Equal("store 0", lines[5])
+	a.Equal("if_stmt_end_", lines[6][:len("if_stmt_end_")])
+
+	source = `function logic(txn, gtxn, args) { if 1 {let x=10;} else {let y=11;}}`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog = Codegen(result)
+	lines = strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 10 11", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("!", lines[2])
+	a.Equal("bnz if_stmt_false_", lines[3][:len("bnz if_stmt_false_")])
+	a.Equal("intc 2", lines[4])
+	a.Equal("store 0", lines[5])
+	a.Equal("intc 1", lines[6])
+	a.Equal("bnz if_stmt_end_", lines[7][:len("bnz if_stmt_end_")])
+	a.Equal("if_stmt_false_", lines[8][:len("if_stmt_false_")])
+	a.Equal("intc 3", lines[9])
+	a.Equal("store 1", lines[10])
+	a.Equal("if_stmt_end_", lines[11][:len("if_stmt_end_")])
+}
+
 func TestCodegenGlobals(t *testing.T) {
 	a := require.New(t)
 

@@ -141,6 +141,47 @@ func (n *runtimeArgNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "%s %s\n", n.op, n.number)
 }
 
+func (n *ifExprNode) Codegen(ostream io.Writer) {
+	n.condExpr.Codegen(ostream)
+	fmt.Fprintf(ostream, "!\nbnz if_expr_false_%d\n", &n)
+	n.condTrueExpr.Codegen(ostream)
+	fmt.Fprintf(ostream, "intc %d\nbnz if_expr_end_%d\n", n.ctx.literals.literals[trueConstValue].offset, &n)
+	fmt.Fprintf(ostream, "if_expr_false_%d:\n", &n)
+	n.condFalseExpr.Codegen(ostream)
+	fmt.Fprintf(ostream, "if_expr_end_%d:\n", &n)
+}
+
+func (n *ifStatementNode) Codegen(ostream io.Writer) {
+	n.condExpr.Codegen(ostream)
+	ch := n.children()
+	hasFalse := false
+	if len(ch) == 2 {
+		hasFalse = true
+	}
+
+	if hasFalse {
+		fmt.Fprintf(ostream, "!\nbnz if_stmt_false_%d\n", &n)
+	} else {
+		fmt.Fprintf(ostream, "!\nbnz if_stmt_end_%d\n", &n)
+	}
+
+	ch[0].Codegen(ostream)
+
+	if hasFalse {
+		fmt.Fprintf(ostream, "intc %d\nbnz if_stmt_end_%d\n", n.ctx.literals.literals[trueConstValue].offset, &n)
+		fmt.Fprintf(ostream, "if_stmt_false_%d:\n", &n)
+		ch[1].Codegen(ostream)
+	}
+
+	fmt.Fprintf(ostream, "if_stmt_end_%d:\n", &n)
+}
+
+func (n *blockNode) Codegen(ostream io.Writer) {
+	for _, ch := range n.children() {
+		ch.Codegen(ostream)
+	}
+}
+
 // Codegen runs code generation for a node and returns the program as a string
 func Codegen(prog TreeNodeIf) string {
 	buf := new(gobytes.Buffer)
