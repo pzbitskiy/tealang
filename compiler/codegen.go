@@ -129,6 +129,18 @@ func (n *varDeclNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 }
 
+func (n *runtimeFieldNode) Codegen(ostream io.Writer) {
+	if n.op == "gtxn" {
+		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.index, n.field)
+	} else {
+		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
+	}
+}
+
+func (n *runtimeArgNode) Codegen(ostream io.Writer) {
+	fmt.Fprintf(ostream, "%s %s\n", n.op, n.number)
+}
+
 // Codegen runs code generation for a node and returns the program as a string
 func Codegen(prog TreeNodeIf) string {
 	buf := new(gobytes.Buffer)

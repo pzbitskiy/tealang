@@ -63,6 +63,23 @@ func TestCodegenBinOp(t *testing.T) {
 	a.Equal("store 1", lines[8])
 }
 
+func TestCodegenGlobals(t *testing.T) {
+	a := require.New(t)
+
+	source := `function logic(txn, gtxn, args) {let glob = global.MinTxnFee; let g = gtxn[1].Sender; let a = args[0];}`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("global MinTxnFee", lines[1])
+	a.Equal("store 0", lines[2])
+	a.Equal("gtxn 1 Sender", lines[3])
+	a.Equal("store 1", lines[4])
+	a.Equal("arg 0", lines[5])
+	a.Equal("store 2", lines[6])
+}
+
 func TestCodegenGeneric(t *testing.T) {
 	a := require.New(t)
 
