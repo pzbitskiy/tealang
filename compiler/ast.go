@@ -14,7 +14,14 @@ import (
 
 //go:generate sh ./bundle_langspec_json.sh
 
+type literalDesc struct {
+	offset  int
+	theType exprType
+}
+
 type literalInfo struct {
+	literals map[string]literalDesc
+
 	intc  []string
 	bytec [][]byte
 }
@@ -46,6 +53,7 @@ type varInfo struct {
 
 func newLiteralInfo() (literals *literalInfo) {
 	literals = new(literalInfo)
+	literals.literals = make(map[string]literalDesc)
 	literals.intc = make([]string, 0, 128)
 	literals.bytec = make([][]byte, 0, 128)
 	return
@@ -103,6 +111,30 @@ func (ctx *context) newConst(name string, theType exprType, value *string) {
 
 func (ctx *context) newFunc(name string, theType exprType, def TreeNodeIf) {
 	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, def}
+}
+
+func (ctx *context) addIntLiteral(value string) {
+	_, exists := ctx.literals.literals[value]
+	if !exists {
+		offset := len(ctx.literals.intc)
+		ctx.literals.intc = append(ctx.literals.intc, value)
+		ctx.literals.literals[value] = literalDesc{offset, intType}
+	}
+}
+
+func (ctx *context) addBytesLiteral(value string) error {
+	_, exists := ctx.literals.literals[value]
+	if !exists {
+		offset := len(ctx.literals.bytec)
+		parsed, err := parseStringLiteral(value)
+		if err != nil {
+			return err
+		}
+
+		ctx.literals.bytec = append(ctx.literals.bytec, parsed)
+		ctx.literals.literals[value] = literalDesc{offset, bytesType}
+	}
+	return nil
 }
 
 func (ctx *context) Print() {
@@ -405,7 +437,7 @@ func newExprIdentNode(ctx *context, name string, exprType exprType) (node *exprI
 func newExprLiteralNode(ctx *context, valType exprType, value string) (node *exprLiteralNode) {
 	node = new(exprLiteralNode)
 	node.TreeNode = newNode(ctx)
-	node.nodeName = "expr ident"
+	node.nodeName = "expr liter"
 	node.value = value
 	node.exprType = valType
 	return
@@ -956,6 +988,7 @@ func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstCo
 
 	node := newConstNode(l.ctx, varName, varValue, intType)
 	l.ctx.newConst(varName, node.exprType, &varValue)
+	l.ctx.addIntLiteral(varValue)
 	l.node = node
 }
 
@@ -965,6 +998,7 @@ func (l *treeNodeListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstCo
 
 	node := newConstNode(l.ctx, varName, varValue, bytesType)
 	l.ctx.newConst(varName, node.exprType, &varValue)
+	l.ctx.addBytesLiteral(varValue)
 	l.node = node
 }
 
@@ -1096,12 +1130,14 @@ func (l *exprListener) EnterIdentifier(ctx *gen.IdentifierContext) {
 func (l *exprListener) EnterNumberLiteral(ctx *gen.NumberLiteralContext) {
 	value := ctx.NUMBER().GetText()
 	node := newExprLiteralNode(l.ctx, intType, value)
+	l.ctx.addIntLiteral(value)
 	l.expr = node
 }
 
 func (l *exprListener) EnterStringLiteral(ctx *gen.StringLiteralContext) {
 	value := ctx.STRING().GetText()
 	node := newExprLiteralNode(l.ctx, bytesType, value)
+	l.ctx.addBytesLiteral(value)
 	l.expr = node
 }
 
@@ -1349,6 +1385,9 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
+				if len(collector.errors) == 0 {
+					fmt.Printf("unexpected error: %s", r)
+				}
 			}
 		}()
 		tree.EnterRule(l)
