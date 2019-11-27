@@ -144,6 +144,16 @@ func (er *errorCollector) formatExcerpt(start, end int) []string {
 	return excerpt
 }
 
+func (er *errorCollector) filterAmbiguity() {
+	var filtered []ParserError
+	for _, err := range er.errors {
+		if err.errorType != ambiguityError {
+			filtered = append(filtered, err)
+		}
+	}
+	er.errors = filtered
+}
+
 func (er *errorCollector) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
 	var start, end int
 	var token string
@@ -197,12 +207,13 @@ func (er *errorCollector) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DF
 }
 
 func (er *errorCollector) ReportAttemptingFullContext(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+	recognizer.GetCurrentToken().GetLine()
 	info := ParserError{
 		ambiguityError,
 		startIndex,
 		stopIndex,
-		0,
-		0,
+		recognizer.GetCurrentToken().GetLine(),
+		recognizer.GetCurrentToken().GetColumn(),
 		"",
 		"",
 		er.formatExcerpt(startIndex, stopIndex),
@@ -215,8 +226,8 @@ func (er *errorCollector) ReportContextSensitivity(recognizer antlr.Parser, dfa 
 		ambiguityError,
 		startIndex,
 		stopIndex,
-		0,
-		0,
+		recognizer.GetCurrentToken().GetLine(),
+		recognizer.GetCurrentToken().GetColumn(),
 		"",
 		"",
 		er.formatExcerpt(startIndex, stopIndex),
@@ -239,9 +250,13 @@ func (err *ParserError) String() (msg string) {
 		}
 		msg = strings.Join(lines, "\n")
 	case ambiguityError:
-		msg = fmt.Sprintf("ambiguity error at offset %d: %s", err.start, err.excerpt)
+		msg = fmt.Sprintf("ambiguity error at offset %d", err.start)
+		lines := append([]string{msg}, err.excerpt...)
+		msg = strings.Join(lines, "\n")
 	default:
-		msg = fmt.Sprintf("unknown error at offset %d: %s", err.start, err.excerpt)
+		msg = fmt.Sprintf("unknown error at offset %d", err.start)
+		lines := append([]string{msg}, err.excerpt...)
+		msg = strings.Join(lines, "\n")
 	}
 	return msg
 }

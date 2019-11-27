@@ -16,7 +16,7 @@ function logic(txn, gtxn, args) {
 		return 0
 	}
 
-	x = 2;
+	let x = 2;
 	x = global.GroupSize
 	x = gtxn[1].Sender
 

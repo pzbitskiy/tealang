@@ -1339,6 +1339,7 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 
 	tree := parser.Program()
 	if len(collector.errors) > 0 {
+		collector.filterAmbiguity()
 		return nil, collector.errors
 	}
 
