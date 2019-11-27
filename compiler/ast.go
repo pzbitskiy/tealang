@@ -176,7 +176,6 @@ type TreeNodeIf interface {
 	children() []TreeNodeIf
 	String() string
 	Print()
-	// TypeCheck() []TypeError
 	Codegen(ostream io.Writer)
 }
 
@@ -785,49 +784,3 @@ func (n *ifStatementNode) String() string {
 func (n *funCallNode) String() string {
 	return fmt.Sprintf("%s (%v)", n.name, n.children())
 }
-
-// func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
-// 	errors = append(errors, n.lhs.TypeCheck()...)
-// 	errors = append(errors, n.lhs.TypeCheck()...)
-
-// 	lhs, _ := n.lhs.getType()
-// 	rhs, _ := n.rhs.getType()
-// 	if lhs != rhs {
-// 		err := TypeError{fmt.Sprintf("types mismatch: %s %s %s in expr '%s'", lhs, n.op, rhs, n)}
-// 		errors = append(errors, err)
-// 	}
-// 	return
-// }
-
-// func (n *varDeclNode) TypeCheck() (errors []TypeError) {
-// 	errors = n.value.TypeCheck()
-// 	return
-// }
-
-// func (n *ifExprNode) TypeCheck() (errors []TypeError) {
-// 	errors = append(errors, n.condExpr.TypeCheck()...)
-// 	errors = append(errors, n.condTrueExpr.TypeCheck()...)
-// 	errors = append(errors, n.condFalseExpr.TypeCheck()...)
-
-// 	condType, _ := n.condExpr.getType()
-// 	if condType != intType {
-// 		err := TypeError{fmt.Sprintf("if cond: expected uint64, got %s", condType)}
-// 		errors = append(errors, err)
-// 	}
-
-// 	condTrueExprType, _ := n.condTrueExpr.getType()
-// 	condFalseExprType, _ := n.condFalseExpr.getType()
-// 	if condTrueExprType != condFalseExprType {
-// 		err := TypeError{fmt.Sprintf("if cond: different types: %s and %s", condTrueExprType, condFalseExprType)}
-// 		errors = append(errors, err)
-// 	}
-// 	return
-// }
-
-// // TypeCheck runs typechecking on the result
-// func (n *TreeNode) TypeCheck() (errors []TypeError) {
-// 	for _, ch := range n.children() {
-// 		errors = append(errors, ch.TypeCheck()...)
-// 	}
-// 	return
-// }
