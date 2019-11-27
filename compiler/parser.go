@@ -167,8 +167,11 @@ func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstCo
 	varValue := ctx.NUMBER().GetText()
 
 	node := newConstNode(l.ctx, varName, varValue, intType)
-	l.ctx.newConst(varName, node.exprType, &varValue)
-	l.ctx.addIntLiteral(varValue)
+	err := l.ctx.newConst(varName, intType, &varValue)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
 	l.node = node
 }
 
@@ -177,8 +180,11 @@ func (l *treeNodeListener) EnterDeclareStringConst(ctx *gen.DeclareStringConstCo
 	varValue := ctx.STRING().GetText()
 
 	node := newConstNode(l.ctx, varName, varValue, bytesType)
-	l.ctx.newConst(varName, node.exprType, &varValue)
-	l.ctx.addBytesLiteral(varValue)
+	err := l.ctx.newConst(varName, bytesType, &varValue)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
 	l.node = node
 }
 
@@ -310,14 +316,22 @@ func (l *exprListener) EnterIdentifier(ctx *gen.IdentifierContext) {
 func (l *exprListener) EnterNumberLiteral(ctx *gen.NumberLiteralContext) {
 	value := ctx.NUMBER().GetText()
 	node := newExprLiteralNode(l.ctx, intType, value)
-	l.ctx.addIntLiteral(value)
+	_, err := l.ctx.addLiteral(value, intType)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.NUMBER().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
 	l.expr = node
 }
 
 func (l *exprListener) EnterStringLiteral(ctx *gen.StringLiteralContext) {
 	value := ctx.STRING().GetText()
 	node := newExprLiteralNode(l.ctx, bytesType, value)
-	l.ctx.addBytesLiteral(value)
+	_, err := l.ctx.addLiteral(value, bytesType)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.STRING().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
 	l.expr = node
 }
 

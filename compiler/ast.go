@@ -7,7 +7,7 @@ import (
 )
 
 type literalDesc struct {
-	offset  int
+	offset  uint
 	theType exprType
 }
 
@@ -65,8 +65,8 @@ func newContext(parent *context) (ctx *context) {
 		ctx.addressNext = 0
 
 		// global context, add internal literals
-		ctx.addIntLiteral(falseConstValue)
-		ctx.addIntLiteral(trueConstValue)
+		ctx.addLiteral(falseConstValue, intType)
+		ctx.addLiteral(trueConstValue, intType)
 	}
 	return
 }
@@ -101,36 +101,42 @@ func (ctx *context) newVar(name string, theType exprType) {
 	ctx.addressNext++
 }
 
-func (ctx *context) newConst(name string, theType exprType, value *string) {
-	ctx.vars[name] = varInfo{name, theType, true, false, 0, value, nil}
+func (ctx *context) newConst(name string, theType exprType, value *string) error {
+	offset, err := ctx.addLiteral(*value, theType)
+	if err != nil {
+		return err
+	}
+	ctx.vars[name] = varInfo{name, theType, true, false, offset, value, nil}
+	return nil
 }
 
 func (ctx *context) newFunc(name string, theType exprType, def TreeNodeIf) {
 	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, def}
 }
 
-func (ctx *context) addIntLiteral(value string) {
-	_, exists := ctx.literals.literals[value]
+func (ctx *context) addLiteral(value string, theType exprType) (offset uint, err error) {
+	info, exists := ctx.literals.literals[value]
 	if !exists {
-		offset := len(ctx.literals.intc)
-		ctx.literals.intc = append(ctx.literals.intc, value)
-		ctx.literals.literals[value] = literalDesc{offset, intType}
-	}
-}
-
-func (ctx *context) addBytesLiteral(value string) error {
-	_, exists := ctx.literals.literals[value]
-	if !exists {
-		offset := len(ctx.literals.bytec)
-		parsed, err := parseStringLiteral(value)
-		if err != nil {
-			return err
+		if theType == intType {
+			offset = uint(len(ctx.literals.intc))
+			ctx.literals.intc = append(ctx.literals.intc, value)
+			ctx.literals.literals[value] = literalDesc{offset, intType}
+		} else if theType == bytesType {
+			offset = uint(len(ctx.literals.bytec))
+			parsed, err := parseStringLiteral(value)
+			if err != nil {
+				return 0, err
+			}
+			ctx.literals.bytec = append(ctx.literals.bytec, parsed)
+			ctx.literals.literals[value] = literalDesc{offset, bytesType}
+		} else {
+			return 0, fmt.Errorf("unknown literal type %s (%s)", theType, value)
 		}
-
-		ctx.literals.bytec = append(ctx.literals.bytec, parsed)
-		ctx.literals.literals[value] = literalDesc{offset, bytesType}
+	} else {
+		offset = info.offset
 	}
-	return nil
+
+	return offset, err
 }
 
 func (ctx *context) Print() {

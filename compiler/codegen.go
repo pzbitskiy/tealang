@@ -67,9 +67,42 @@ func (n *funDefNode) Codegen(ostream io.Writer) {
 	}
 }
 
+func literalTypeToOpcode(theType exprType) string {
+	op := "intc"
+	if theType == bytesType {
+		op = "bytec"
+	}
+	return op
+}
+
+func (n *exprLiteralNode) Codegen(ostream io.Writer) {
+	op := literalTypeToOpcode(n.exprType)
+	fmt.Fprintf(ostream, "%s %d\n", op, n.ctx.literals.literals[n.value].offset)
+}
+
+func (n *exprIdentNode) Codegen(ostream io.Writer) {
+	info, _ := n.ctx.lookup(n.name)
+	op := "load"
+	if info.constant {
+		op = literalTypeToOpcode(info.theType)
+	}
+	fmt.Fprintf(ostream, "%s %d\n", op, info.address)
+}
+
+func (n *assignNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	info, _ := n.ctx.lookup(n.name)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+}
+
 func (n *returnNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
 	fmt.Fprintf(ostream, "intc %d\nbnz %s\n", n.ctx.literals.literals[trueConstValue].offset, endProgramLabel)
+}
+
+func (n *errorNode) Codegen(ostream io.Writer) {
+	fmt.Fprintf(ostream, "err\n")
 }
 
 // Codegen runs code generation for a node and returns the program as a string
