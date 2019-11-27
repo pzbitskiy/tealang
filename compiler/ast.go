@@ -1,10 +1,10 @@
 package compiler
 
 import (
-	// "bytes"
-	// "encoding/hex"
+	gobytes "bytes"
+	"encoding/hex"
 	"fmt"
-	// "io"
+	"io"
 	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
@@ -180,7 +180,8 @@ type TreeNodeIf interface {
 	children() []TreeNodeIf
 	String() string
 	Print()
-	TypeCheck() []TypeError
+	// TypeCheck() []TypeError
+	Codegen(ostream io.Writer)
 }
 
 // ExprNodeIf extends TreeNode and can be evaluated and typed
@@ -828,51 +829,104 @@ func (n *funCallNode) String() string {
 	return fmt.Sprintf("%s (%v)", n.name, n.children())
 }
 
-func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
-	errors = append(errors, n.lhs.TypeCheck()...)
-	errors = append(errors, n.lhs.TypeCheck()...)
+//--------------------------------------------------------------------------------------------------
+//
+// Code generation
+//
+//--------------------------------------------------------------------------------------------------
 
-	lhs, _ := n.lhs.getType()
-	rhs, _ := n.rhs.getType()
-	if lhs != rhs {
-		err := TypeError{fmt.Sprintf("types mismatch: %s %s %s in expr '%s'", lhs, n.op, rhs, n)}
-		errors = append(errors, err)
-	}
-	return
+// Codegen by default emits AST node as a comment
+func (n *TreeNode) Codegen(ostream io.Writer) {
+	fmt.Fprintf(ostream, "// %s\n", n.String())
 }
 
-func (n *varDeclNode) TypeCheck() (errors []TypeError) {
-	errors = n.value.TypeCheck()
-	return
-}
+// Codegen of program node generates literals and runs code generation for children nodes
+func (n *programNode) Codegen(ostream io.Writer) {
+	ctx := n.ctx
 
-func (n *ifExprNode) TypeCheck() (errors []TypeError) {
-	errors = append(errors, n.condExpr.TypeCheck()...)
-	errors = append(errors, n.condTrueExpr.TypeCheck()...)
-	errors = append(errors, n.condFalseExpr.TypeCheck()...)
-
-	condType, _ := n.condExpr.getType()
-	if condType != intType {
-		err := TypeError{fmt.Sprintf("if cond: expected uint64, got %s", condType)}
-		errors = append(errors, err)
+	// emit literals
+	if len(ctx.literals.intc) > 0 {
+		fmt.Fprintf(ostream, "intcblock ")
+		sep := " "
+		for idx, value := range ctx.literals.intc {
+			if idx == len(ctx.literals.intc)-1 {
+				sep = ""
+			}
+			fmt.Fprintf(ostream, "%s%s", value, sep)
+		}
+		fmt.Fprintf(ostream, "\n")
 	}
 
-	condTrueExprType, _ := n.condTrueExpr.getType()
-	condFalseExprType, _ := n.condFalseExpr.getType()
-	if condTrueExprType != condFalseExprType {
-		err := TypeError{fmt.Sprintf("if cond: different types: %s and %s", condTrueExprType, condFalseExprType)}
-		errors = append(errors, err)
+	if len(ctx.literals.bytec) > 0 {
+		fmt.Fprintf(ostream, "bytecblock ")
+		sep := " "
+		for idx, value := range ctx.literals.bytec {
+			if idx == len(ctx.literals.bytec)-1 {
+				sep = ""
+			}
+			fmt.Fprintf(ostream, "0x%s%s", hex.EncodeToString(value), sep)
+		}
+		fmt.Fprintf(ostream, "\n")
 	}
-	return
-}
 
-// TypeCheck runs typechecking on the result
-func (n *TreeNode) TypeCheck() (errors []TypeError) {
 	for _, ch := range n.children() {
-		errors = append(errors, ch.TypeCheck()...)
+		ch.Codegen(ostream)
 	}
-	return
 }
+
+func (n *funDefNode) Codegen(ostream io.Writer) {
+	if n.name == "logic" {
+		for _, ch := range n.children() {
+			ch.Codegen(ostream)
+		}
+	}
+}
+
+// func (n *exprBinOpNode) TypeCheck() (errors []TypeError) {
+// 	errors = append(errors, n.lhs.TypeCheck()...)
+// 	errors = append(errors, n.lhs.TypeCheck()...)
+
+// 	lhs, _ := n.lhs.getType()
+// 	rhs, _ := n.rhs.getType()
+// 	if lhs != rhs {
+// 		err := TypeError{fmt.Sprintf("types mismatch: %s %s %s in expr '%s'", lhs, n.op, rhs, n)}
+// 		errors = append(errors, err)
+// 	}
+// 	return
+// }
+
+// func (n *varDeclNode) TypeCheck() (errors []TypeError) {
+// 	errors = n.value.TypeCheck()
+// 	return
+// }
+
+// func (n *ifExprNode) TypeCheck() (errors []TypeError) {
+// 	errors = append(errors, n.condExpr.TypeCheck()...)
+// 	errors = append(errors, n.condTrueExpr.TypeCheck()...)
+// 	errors = append(errors, n.condFalseExpr.TypeCheck()...)
+
+// 	condType, _ := n.condExpr.getType()
+// 	if condType != intType {
+// 		err := TypeError{fmt.Sprintf("if cond: expected uint64, got %s", condType)}
+// 		errors = append(errors, err)
+// 	}
+
+// 	condTrueExprType, _ := n.condTrueExpr.getType()
+// 	condFalseExprType, _ := n.condFalseExpr.getType()
+// 	if condTrueExprType != condFalseExprType {
+// 		err := TypeError{fmt.Sprintf("if cond: different types: %s and %s", condTrueExprType, condFalseExprType)}
+// 		errors = append(errors, err)
+// 	}
+// 	return
+// }
+
+// // TypeCheck runs typechecking on the result
+// func (n *TreeNode) TypeCheck() (errors []TypeError) {
+// 	for _, ch := range n.children() {
+// 		errors = append(errors, ch.TypeCheck()...)
+// 	}
+// 	return
+// }
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -1400,4 +1454,10 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	prog := l.getNode()
 
 	return prog, nil
+}
+
+func Codegen(prog TreeNodeIf) string {
+	buf := new(gobytes.Buffer)
+	prog.Codegen(buf)
+	return buf.String()
 }
