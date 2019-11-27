@@ -1,10 +1,9 @@
 package compiler
 
 import (
-	// "fmt"
+	"fmt"
 	"testing"
 
-	// "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,6 +39,8 @@ function logic(txn, gtxn, args) {
 
 	let f = test(20+2, 30)
 	return 1
+
+	error
 }
 `
 	result, parserErrors := Parse(source)
@@ -215,6 +216,61 @@ function logic(txn, gtxn, args) {let x = 1; x = sha256("abc") ; return 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `incompatible types: (var) uint64 vs byte[] (expr)`)
+	a.Contains(parserErrors[0].msg, fmt.Sprintf(`incompatible types: (var) uint64 vs byte[] (expr)`))
 
+}
+
+func TestDoubleVariable(t *testing.T) {
+	a := require.New(t)
+
+	source := "function logic(txn, gtxn, args) {let x = 1; let x = 2;}"
+	result, errors := Parse(source)
+	a.Empty(result, errors)
+	a.NotEmpty(errors)
+
+	source = "let x = 1; function logic(txn, gtxn, args) {let x = 2;}"
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+}
+
+func TestDoubleScopeVariable(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic(txn, gtxn, args) {
+	let x = 2;
+	if 1 {
+		let x = 3;
+	} else {
+		let x = 4;
+	}
+	let y = 5;
+}`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	pgNode := result.(*programNode)
+	a.Equal(0, len(pgNode.ctx.vars))
+	pgNode.ctx.Print()
+
+	logicNode := pgNode.children()[0].(*funDefNode)
+	a.Equal(2, len(logicNode.ctx.vars))
+	info, _ := logicNode.ctx.vars["x"]
+	a.Equal(uint(0), info.address)
+	info, _ = logicNode.ctx.vars["y"]
+	a.Equal(uint(1), info.address)
+
+	ifStmtNode := logicNode.children()[1].(*ifStatementNode)
+
+	ifStmtTrueNode := ifStmtNode.children()[0].(*blockNode)
+	a.Equal(1, len(ifStmtTrueNode.ctx.vars))
+	info, _ = ifStmtTrueNode.ctx.vars["x"]
+	a.Equal(uint(1), info.address)
+
+	ifStmtFalseNode := ifStmtNode.children()[1].(*blockNode)
+	a.Equal(1, len(ifStmtFalseNode.ctx.vars))
+	info, _ = ifStmtFalseNode.ctx.vars["x"]
+	a.Equal(uint(1), info.address)
 }

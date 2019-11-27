@@ -108,10 +108,15 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 		args := make([]string, argCount-1)
 		for i := 0; i < argCount-1; i++ {
 			ident := ctx.IDENT(i + 1).GetText()
-			scopedContext.newVar(ident, unknownType)
+			err := scopedContext.newVar(ident, unknownType)
+			if err != nil {
+				reportError(err.Error(), ctx.GetParser(), ctx.IDENT(i+1).GetSymbol(), ctx.GetRuleContext())
+				return
+			}
+
 			args[i] = ident
 		}
-		node := newfunDefNode(scopedContext)
+		node := newFunDefNode(scopedContext)
 		node.name = name
 		node.args = args
 
@@ -123,17 +128,22 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 			node.append(stmt)
 		}
 
-		l.ctx.newFunc(name, unknownType, node)
+		err := l.ctx.newFunc(name, unknownType, node)
+		if err != nil {
+			reportError(err.Error(), ctx.GetParser(), ctx.FUNC().GetSymbol(), ctx.GetRuleContext())
+			return
+		}
 		l.node = node
 	}
 }
 
 func (l *treeNodeListener) EnterLogic(ctx *gen.LogicContext) {
-	node := newfunDefNode(l.ctx)
+	scopedContext := newContext(l.ctx)
+
+	node := newFunDefNode(scopedContext)
 	node.name = "logic"
 	node.args = []string{ctx.TXN().GetText(), ctx.GTXN().GetText(), ctx.ARGS().GetText()}
 
-	scopedContext := newContext(l.ctx)
 	listener := newTreeNodeListener(scopedContext)
 	ctx.Block().EnterRule(listener)
 	blockNode := listener.getNode()
@@ -156,7 +166,11 @@ func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 		return
 	}
 
-	l.ctx.newVar(ident, varType)
+	err = l.ctx.newVar(ident, varType)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
 
 	node := newVarDeclNode(l.ctx, ident, exprNode)
 	l.node = node
@@ -236,13 +250,14 @@ func (l *treeNodeListener) EnterIfStatement(ctx *gen.IfStatementContext) {
 	ctx.CondIfExpr().EnterRule(exprlistener)
 	node.condExpr = exprlistener.getExpr()
 
-	scopedContext := newContext(l.ctx)
+	scopedContextTrue := newContext(l.ctx)
 
-	listener := newTreeNodeListener(scopedContext)
+	listener := newTreeNodeListener(scopedContextTrue)
 	ctx.CondTrueBlock().EnterRule(listener)
 	node.append(listener.getNode())
 
-	listener = newTreeNodeListener(scopedContext)
+	scopedContextFalse := newContext(l.ctx)
+	listener = newTreeNodeListener(scopedContextFalse)
 	if ctx.CondFalseBlock() != nil {
 		ctx.CondFalseBlock().EnterRule(listener)
 		node.append(listener.getNode())

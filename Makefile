@@ -1,6 +1,7 @@
 default: all
 
-all: go java-trace
+all: go grammar-java
+test: go
 
 ANTLR4_JAR := /usr/local/lib/antlr-4.7.2-complete.jar
 

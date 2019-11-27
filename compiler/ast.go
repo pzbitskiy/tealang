@@ -96,12 +96,19 @@ func (ctx *context) update(name string, info varInfo) (err error) {
 	return fmt.Errorf("Failed to update ident %s", name)
 }
 
-func (ctx *context) newVar(name string, theType exprType) {
+func (ctx *context) newVar(name string, theType exprType) error {
+	if _, ok := ctx.vars[name]; ok {
+		return fmt.Errorf("variable %s already declared", name)
+	}
 	ctx.vars[name] = varInfo{name, theType, false, false, ctx.addressNext, nil, nil}
 	ctx.addressNext++
+	return nil
 }
 
 func (ctx *context) newConst(name string, theType exprType, value *string) error {
+	if _, ok := ctx.vars[name]; ok {
+		return fmt.Errorf("const %s already declared", name)
+	}
 	offset, err := ctx.addLiteral(*value, theType)
 	if err != nil {
 		return err
@@ -110,8 +117,13 @@ func (ctx *context) newConst(name string, theType exprType, value *string) error
 	return nil
 }
 
-func (ctx *context) newFunc(name string, theType exprType, def TreeNodeIf) {
+func (ctx *context) newFunc(name string, theType exprType, def TreeNodeIf) error {
+	if _, ok := ctx.vars[name]; ok {
+		return fmt.Errorf("function %s already defined", name)
+	}
+
 	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, def}
+	return nil
 }
 
 func (ctx *context) addLiteral(value string, theType exprType) (offset uint, err error) {
@@ -193,8 +205,7 @@ type ExprNodeIf interface {
 
 // TreeNode contains base info about an AST node
 type TreeNode struct {
-	parentCtx *context
-	ctx       *context
+	ctx *context
 
 	nodeName      string
 	parent        TreeNodeIf
@@ -360,7 +371,7 @@ func newAssignNode(ctx *context, ident string, value ExprNodeIf) (node *assignNo
 	return
 }
 
-func newfunDefNode(ctx *context) (node *funDefNode) {
+func newFunDefNode(ctx *context) (node *funDefNode) {
 	node = new(funDefNode)
 	node.TreeNode = newNode(ctx)
 	node.nodeName = "func"

@@ -118,7 +118,7 @@ func TestCodegenIfStmt(t *testing.T) {
 	a.Equal("bnz if_stmt_end_", lines[7][:len("bnz if_stmt_end_")])
 	a.Equal("if_stmt_false_", lines[8][:len("if_stmt_false_")])
 	a.Equal("intc 3", lines[9])
-	a.Equal("store 1", lines[10])
+	a.Equal("store 0", lines[10])
 	a.Equal("if_stmt_end_", lines[11][:len("if_stmt_end_")])
 }
 
