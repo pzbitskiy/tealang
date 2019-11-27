@@ -105,6 +105,30 @@ func (n *errorNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "err\n")
 }
 
+func (n *exprGroupNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+}
+
+func (n *exprBinOpNode) Codegen(ostream io.Writer) {
+	n.lhs.Codegen(ostream)
+	n.rhs.Codegen(ostream)
+
+	fmt.Fprintf(ostream, "%s\n", n.op)
+}
+
+func (n *exprUnOpNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	fmt.Fprintf(ostream, "%s\n", n.op)
+}
+
+func (n *varDeclNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	info, _ := n.ctx.lookup(n.name)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+}
+
 // Codegen runs code generation for a node and returns the program as a string
 func Codegen(prog TreeNodeIf) string {
 	buf := new(gobytes.Buffer)

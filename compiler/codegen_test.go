@@ -43,6 +43,26 @@ func TestCodegenErr(t *testing.T) {
 	a.Equal("err", lines[1])
 }
 
+func TestCodegenBinOp(t *testing.T) {
+	a := require.New(t)
+
+	source := `const c = 10; function logic(txn, gtxn, args) {let a = 1 + c; let b = !a;}`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 10", lines[0]) // 0 and 1 are added internally
+	a.Equal("// const", lines[1])
+	a.Equal("intc 1", lines[2])
+	a.Equal("intc 2", lines[3])
+	a.Equal("+", lines[4])
+	a.Equal("store 0", lines[5])
+	a.Equal("load 0", lines[6])
+	a.Equal("!", lines[7])
+	a.Equal("store 1", lines[8])
+}
+
 func TestCodegenGeneric(t *testing.T) {
 	a := require.New(t)
 
