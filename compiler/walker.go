@@ -52,11 +52,6 @@ type tealangListener struct {
 }
 
 const ifExprPrefix = "if_expr"
-const endProgramLabel = "end_program"
-const trueConstName = "TRUE_INTERNAL"
-const falseConstName = "FALSE_INTERNAL"
-const trueConstValue = "1"
-const falseConstValue = "0"
 
 func newTealangListener() (listener tealangListener) {
 	listener.literals = make(map[string]literal)
