@@ -195,8 +195,6 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 		}
 		fmt.Fprintf(ostream, "%s\n", n.name)
 	} else {
-		// info, _ := n.ctx.lookup(n.name)
-		// definitionNode := info.definition.(*funDefNode)
 		definitionNode := n.definition
 
 		// for each arg evaluate and store as appropriate named var

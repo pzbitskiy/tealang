@@ -690,42 +690,6 @@ func (n *funCallNode) resolveArgs(definitionNode *funDefNode) error {
 	return nil
 }
 
-func (n *funCallNode) bindFunction(defOrigNode *funDefNode) error {
-	args := n.children()
-
-	if len(defOrigNode.args) != len(args) {
-		return fmt.Errorf("mismatching parsed argument(s)")
-	}
-
-	// clone and remap address table
-	ctx := defOrigNode.ctx.clone()
-	definitionNode := newFunDefNode(ctx, n)
-	definitionNode.name = defOrigNode.name
-	definitionNode.args = defOrigNode.args
-	// TODO: update address table for children...
-	definitionNode.childrenNodes = defOrigNode.childrenNodes
-
-	for i := range args {
-		varName := definitionNode.args[i]
-		info, err := definitionNode.ctx.lookup(varName)
-		if err != nil {
-			return err
-		}
-		info.theType, err = args[i].(ExprNodeIf).getType()
-		if err != nil {
-			return err
-		}
-		err = definitionNode.ctx.update(varName, info)
-		if err != nil {
-			return err
-		}
-	}
-
-	n.definition = definitionNode
-
-	return nil
-}
-
 func (n *funCallNode) checkBuiltinArgs() (err error) {
 	args := n.children()
 	for i, arg := range args {

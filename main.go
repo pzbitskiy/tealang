@@ -17,7 +17,7 @@ var inFile string
 var source string
 var compileOnly bool
 var verbose bool
-var experimental bool
+var deprecated bool
 
 var rootCmd = &cobra.Command{
 	Use:   "tealang",
@@ -35,16 +35,19 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if experimental {
-			_, errors := compiler.Parse(source)
-			if len(errors) > 0 {
-				for _, e := range errors {
-					fmt.Printf("%s\n", e.String())
-				}
-			}
-			return
+		var result string
+		if deprecated {
+			result = compiler.Compile(source)
 		}
-		result := compiler.Compile(source)
+		prog, parseErrors := compiler.Parse(source)
+		if len(parseErrors) > 0 {
+			for _, e := range parseErrors {
+				fmt.Printf("%s\n", e.String())
+			}
+			os.Exit(1)
+		}
+
+		result = compiler.Codegen(prog)
 		if compileOnly {
 			if outFile == "" {
 				ext := path.Ext(inFile)
@@ -64,7 +67,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&outFile, "output", "o", "", "Output file")
 	rootCmd.Flags().BoolVarP(&compileOnly, "compile", "c", false, "Compile to TEAL and stop")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.Flags().BoolVarP(&experimental, "experimental", "e", false, "Experimental feature")
+	rootCmd.Flags().BoolVarP(&deprecated, "experimental", "e", false, "Experimental feature")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
