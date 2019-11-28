@@ -80,7 +80,7 @@ func (ctx *context) lookup(name string) (varable varInfo, err error) {
 		}
 		current = current.parent
 	}
-	return varInfo{}, fmt.Errorf("ident %s not defined", name)
+	return varInfo{}, fmt.Errorf("ident '%s' not defined", name)
 }
 
 func (ctx *context) update(name string, info varInfo) (err error) {
@@ -98,7 +98,7 @@ func (ctx *context) update(name string, info varInfo) (err error) {
 
 func (ctx *context) newVar(name string, theType exprType) error {
 	if _, ok := ctx.vars[name]; ok {
-		return fmt.Errorf("variable %s already declared", name)
+		return fmt.Errorf("variable '%s' already declared", name)
 	}
 	ctx.vars[name] = varInfo{name, theType, false, false, ctx.addressNext, nil, nil}
 	ctx.addressNext++
@@ -107,7 +107,7 @@ func (ctx *context) newVar(name string, theType exprType) error {
 
 func (ctx *context) newConst(name string, theType exprType, value *string) error {
 	if _, ok := ctx.vars[name]; ok {
-		return fmt.Errorf("const %s already declared", name)
+		return fmt.Errorf("const '%s' already declared", name)
 	}
 	offset, err := ctx.addLiteral(*value, theType)
 	if err != nil {
@@ -119,7 +119,7 @@ func (ctx *context) newConst(name string, theType exprType, value *string) error
 
 func (ctx *context) newFunc(name string, theType exprType, parser func(listener *treeNodeListener)) error {
 	if _, ok := ctx.vars[name]; ok {
-		return fmt.Errorf("function %s already defined", name)
+		return fmt.Errorf("function '%s' already defined", name)
 	}
 
 	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, parser}
@@ -149,20 +149,6 @@ func (ctx *context) addLiteral(value string, theType exprType) (offset uint, err
 	}
 
 	return offset, err
-}
-
-func (ctx *context) clone() *context {
-	cloned := newContext(ctx.parent)
-
-	cloned.addressEntry = ctx.addressEntry
-	cloned.addressNext = ctx.addressNext
-	for k, v := range ctx.vars {
-		v.address = cloned.addressNext
-		cloned.vars[k] = v
-		cloned.addressNext++
-
-	}
-	return cloned
 }
 
 func (ctx *context) Print() {
@@ -207,7 +193,6 @@ type TreeNodeIf interface {
 	append(ch TreeNodeIf)
 	children() []TreeNodeIf
 	parent() TreeNodeIf
-	setParent(parent TreeNodeIf)
 	String() string
 	Print()
 	Codegen(ostream io.Writer)
@@ -757,10 +742,6 @@ func (n *TreeNode) String() string {
 
 func (n *TreeNode) parent() TreeNodeIf {
 	return n.parentNode
-}
-
-func (n *TreeNode) setParent(parent TreeNodeIf) {
-	n.parentNode = parent
 }
 
 // Print AST and context

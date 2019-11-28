@@ -27,7 +27,7 @@ func TestCodegenVariables(t *testing.T) {
 	a.Equal("intc 1", lines[lastLine-3])
 	a.Equal("bnz end_logic", lines[lastLine-2])
 	a.Equal("end_logic:", lines[lastLine-1])
-	a.Equal("", lines[lastLine])
+	a.Equal(fmt.Sprintf(""), lines[lastLine]) // import fmt
 }
 
 func TestCodegenErr(t *testing.T) {
@@ -177,15 +177,46 @@ function logic(txn, gtxn, args) {
 func TestCodegenGeneric(t *testing.T) {
 	a := require.New(t)
 
-	source := `let a = 1; let b = "123"; function logic(txn, gtxn, args) {}`
+	source := `
+let a = 456;
+const b = "123";
+let c = 1 + 2 * (2 + 3);
+let d = 1 + 2
+let e = if c == 1 {1} else {2}
+
+function test(x, y) {
+	return x + y
+}
+
+function test1(x) {
+	return !x
+}
+
+function logic(txn, gtxn, args) {
+	let x = 1 + 1;
+	if x == 2 {
+		x = 0
+		return 0
+	}
+	let s = global.GroupSize
+	let t = txn.Note
+	let g = gtxn[0].Sender
+	let r = args[0]
+	r = t
+
+	let z = sha256("test")
+
+	let f = test(20+2, 30)
+	if f + 2 < 10 {
+		error
+	}
+	return 1
+}
+`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
+	result.Print()
 	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1", lines[0]) // 0 and 1 are added internally
-	a.Equal("bytecblock 0x313233", lines[1])
-
-	// lastLine := len(lines) - 1
-	fmt.Printf(prog)
+	a.Greater(len(prog), 0)
 }

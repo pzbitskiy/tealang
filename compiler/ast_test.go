@@ -17,9 +17,14 @@ let c = 1 + 2 * (2 + 3);
 let d = 1 + "a"
 let e = if c == 1 {1} else {2}
 let e = if c == 1 {1} else {"1"}
+const b = 1;
 
 function test(x, y) {
 	return x + y
+}
+
+function test(x, y) {
+	return x - y
 }
 
 function logic(txn, gtxn, args) {
@@ -38,18 +43,21 @@ function logic(txn, gtxn, args) {
 	let z = sha256("test")
 
 	let f = test(20+2, 30)
+	if f + 2 < 10 {
+		error
+	}
 	return 1
-
-	error
 }
 `
 	result, parserErrors := Parse(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
-	a.Equal(3, len(parserErrors), parserErrors)
+	a.Equal(5, len(parserErrors), parserErrors)
 	a.Contains(parserErrors[0].msg, `incompatible types: uint64 vs byte[]`)
 	a.Contains(parserErrors[1].msg, `if blocks types mismatch uint64 vs byte[]`)
-	a.Contains(parserErrors[2].msg, `incompatible types: (var) byte[] vs uint64 (expr)`)
+	a.Contains(parserErrors[2].msg, `const 'b' already declared`)
+	a.Contains(parserErrors[3].msg, `function 'test' already defined`)
+	a.Contains(parserErrors[4].msg, `incompatible types: (var) byte[] vs uint64 (expr)`)
 }
 
 func TestOneLinerLogic(t *testing.T) {
@@ -91,7 +99,7 @@ func TestAssignment(t *testing.T) {
 	result, errors := Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
-	a.Contains(errors[0].String(), "ident a not defined")
+	a.Contains(errors[0].String(), "ident 'a' not defined")
 
 	source = "function logic(txn, gtxn, args) {const a=1; a=2; return 1;}"
 	result, errors = Parse(source)
@@ -118,7 +126,7 @@ func TestLookup(t *testing.T) {
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
-	a.Contains(errors[0].String(), "ident test not defined")
+	a.Contains(errors[0].String(), "ident 'test' not defined")
 }
 
 func TestFunctionLookup(t *testing.T) {
@@ -136,7 +144,7 @@ function logic(txn, gtxn, args) {test(1, 2); return 1;}
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
-	a.Contains(errors[0].String(), "ident test not defined")
+	a.Contains(errors[0].String(), "ident 'test' not defined")
 
 	source = `
 function logic(txn, gtxn, args) {test(1); return 1;}
@@ -144,7 +152,7 @@ function logic(txn, gtxn, args) {test(1); return 1;}
 	result, errors = Parse(source)
 	a.Empty(result, errors)
 	a.NotEmpty(errors)
-	a.Contains(errors[0].String(), "ident test not defined")
+	a.Contains(errors[0].String(), "ident 'test' not defined")
 
 	source = "let test = 1; function logic(txn, gtxn, args) {test(); return 1;}"
 	result, errors = Parse(source)
