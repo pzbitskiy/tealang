@@ -25,8 +25,8 @@ func TestCodegenVariables(t *testing.T) {
 	a.Equal("store 0", lines[lastLine-5]) //
 	a.Equal("intc 3", lines[lastLine-4])  // ret 6 (6's offset is 3)
 	a.Equal("intc 1", lines[lastLine-3])
-	a.Equal("bnz end_program", lines[lastLine-2])
-	a.Equal("end_program:", lines[lastLine-1])
+	a.Equal("bnz end_logic", lines[lastLine-2])
+	a.Equal("end_logic:", lines[lastLine-1])
 	a.Equal("", lines[lastLine])
 }
 
@@ -137,6 +137,41 @@ func TestCodegenGlobals(t *testing.T) {
 	a.Equal("store 1", lines[4])
 	a.Equal("arg 0", lines[5])
 	a.Equal("store 2", lines[6])
+}
+
+func TestCodegenFunCall(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function sum(x, y) { return x + y; }
+function logic(txn, gtxn, args) {
+	let a = 1
+	let b = sum (a, 2)
+	let x = 3
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2 3", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("store 0", lines[2])
+	a.Equal("load 0", lines[3])
+	a.Equal("store 1", lines[4])
+	a.Equal("intc 2", lines[5])
+	a.Equal("store 2", lines[6])
+	a.Equal("load 1", lines[7])
+	a.Equal("load 2", lines[8])
+	a.Equal("+", lines[9])
+	a.Equal("intc 1", lines[10])
+	a.Equal("bnz end_sum", lines[11])
+	a.Equal("end_sum:", lines[12])
+	a.Equal("store 1", lines[13])
+	a.Equal("intc 3", lines[14])
+	a.Equal("store 2", lines[15])
+	a.Equal("end_logic:", lines[16])
 }
 
 func TestCodegenGeneric(t *testing.T) {

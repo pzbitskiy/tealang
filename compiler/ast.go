@@ -39,8 +39,8 @@ type varInfo struct {
 	// constants have value
 	value *string
 
-	// function has reference to the definition node
-	definition TreeNodeIf
+	// function has reference lazy parser
+	parser func(listener *treeNodeListener)
 }
 
 func newLiteralInfo() (literals *literalInfo) {
@@ -117,12 +117,12 @@ func (ctx *context) newConst(name string, theType exprType, value *string) error
 	return nil
 }
 
-func (ctx *context) newFunc(name string, theType exprType, def TreeNodeIf) error {
+func (ctx *context) newFunc(name string, theType exprType, parser func(listener *treeNodeListener)) error {
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("function %s already defined", name)
 	}
 
-	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, def}
+	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, parser}
 	return nil
 }
 
@@ -149,6 +149,20 @@ func (ctx *context) addLiteral(value string, theType exprType) (offset uint, err
 	}
 
 	return offset, err
+}
+
+func (ctx *context) clone() *context {
+	cloned := newContext(ctx.parent)
+
+	cloned.addressEntry = ctx.addressEntry
+	cloned.addressNext = ctx.addressNext
+	for k, v := range ctx.vars {
+		v.address = cloned.addressNext
+		cloned.vars[k] = v
+		cloned.addressNext++
+
+	}
+	return cloned
 }
 
 func (ctx *context) Print() {
@@ -192,6 +206,8 @@ var builtinFun = map[string]bool{
 type TreeNodeIf interface {
 	append(ch TreeNodeIf)
 	children() []TreeNodeIf
+	parent() TreeNodeIf
+	setParent(parent TreeNodeIf)
 	String() string
 	Print()
 	Codegen(ostream io.Writer)
@@ -208,7 +224,7 @@ type TreeNode struct {
 	ctx *context
 
 	nodeName      string
-	parent        TreeNodeIf
+	parentNode    TreeNodeIf
 	childrenNodes []TreeNodeIf
 }
 
@@ -228,7 +244,8 @@ type blockNode struct {
 
 type returnNode struct {
 	*TreeNode
-	value ExprNodeIf
+	value        ExprNodeIf
+	enclosingFun string
 }
 
 type errorNode struct {
@@ -301,8 +318,9 @@ type ifStatementNode struct {
 
 type funCallNode struct {
 	*TreeNode
-	name    string
-	funType exprType
+	name       string
+	funType    exprType
+	definition *funDefNode
 }
 
 type runtimeFieldNode struct {
@@ -326,61 +344,62 @@ type runtimeArgNode struct {
 //
 //--------------------------------------------------------------------------------------------------
 
-func newNode(ctx *context) (node *TreeNode) {
+func newNode(ctx *context, parent TreeNodeIf) (node *TreeNode) {
 	node = new(TreeNode)
 	node.ctx = ctx
 	node.childrenNodes = make([]TreeNodeIf, 0)
+	node.parentNode = parent
 	return node
 }
 
-func newProgramNode(ctx *context) (node *programNode) {
+func newProgramNode(ctx *context, parent TreeNodeIf) (node *programNode) {
 	node = new(programNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "program"
 	return
 }
 
-func newBlockNode(ctx *context) (node *blockNode) {
+func newBlockNode(ctx *context, parent TreeNodeIf) (node *blockNode) {
 	node = new(blockNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "block"
 	return
 }
 
-func newReturnNode(ctx *context, value ExprNodeIf) (node *returnNode) {
+func newReturnNode(ctx *context, parent TreeNodeIf) (node *returnNode) {
 	node = new(returnNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "ret"
-	node.value = value
+	node.value = nil
 	return
 }
 
-func newErorrNode(ctx *context) (node *errorNode) {
+func newErorrNode(ctx *context, parent TreeNodeIf) (node *errorNode) {
 	node = new(errorNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "error"
 	return
 }
 
-func newAssignNode(ctx *context, ident string, value ExprNodeIf) (node *assignNode) {
+func newAssignNode(ctx *context, parent TreeNodeIf, ident string) (node *assignNode) {
 	node = new(assignNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "assign"
 	node.name = ident
-	node.value = value
+	node.value = nil
 	return
 }
 
-func newFunDefNode(ctx *context) (node *funDefNode) {
+func newFunDefNode(ctx *context, parent TreeNodeIf) (node *funDefNode) {
 	node = new(funDefNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "func"
 	return
 }
 
-func newVarDeclNode(ctx *context, ident string, value ExprNodeIf) (node *varDeclNode) {
+func newVarDeclNode(ctx *context, parent TreeNodeIf, ident string, value ExprNodeIf) (node *varDeclNode) {
 	node = new(varDeclNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "var"
 	node.name = ident
 	node.value = value
@@ -389,9 +408,9 @@ func newVarDeclNode(ctx *context, ident string, value ExprNodeIf) (node *varDecl
 	return
 }
 
-func newConstNode(ctx *context, ident string, value string, exprType exprType) (node *constNode) {
+func newConstNode(ctx *context, parent TreeNodeIf, ident string, value string, exprType exprType) (node *constNode) {
 	node = new(constNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "const"
 	node.name = ident
 	node.value = value
@@ -399,75 +418,75 @@ func newConstNode(ctx *context, ident string, value string, exprType exprType) (
 	return
 }
 
-func newExprIdentNode(ctx *context, name string, exprType exprType) (node *exprIdentNode) {
+func newExprIdentNode(ctx *context, parent TreeNodeIf, name string, exprType exprType) (node *exprIdentNode) {
 	node = new(exprIdentNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "expr ident"
 	node.name = name
 	node.exprType = exprType
 	return
 }
 
-func newExprLiteralNode(ctx *context, valType exprType, value string) (node *exprLiteralNode) {
+func newExprLiteralNode(ctx *context, parent TreeNodeIf, valType exprType, value string) (node *exprLiteralNode) {
 	node = new(exprLiteralNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "expr liter"
 	node.value = value
 	node.exprType = valType
 	return
 }
 
-func newExprBinOpNode(ctx *context, op string) (node *exprBinOpNode) {
+func newExprBinOpNode(ctx *context, parent TreeNodeIf, op string) (node *exprBinOpNode) {
 	node = new(exprBinOpNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "expr OP expr"
 	node.exprType = intType
 	node.op = op
 	return
 }
 
-func newExprGroupNode(ctx *context, value ExprNodeIf) (node *exprGroupNode) {
+func newExprGroupNode(ctx *context, parent TreeNodeIf, value ExprNodeIf) (node *exprGroupNode) {
 	node = new(exprGroupNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "(expr)"
 	node.value = value
 	return
 }
 
-func newExprUnOpNode(ctx *context, op string) (node *exprUnOpNode) {
+func newExprUnOpNode(ctx *context, parent TreeNodeIf, op string) (node *exprUnOpNode) {
 	node = new(exprUnOpNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "OP expr"
 	node.op = op
 	return
 }
 
-func newIfExprNode(ctx *context) (node *ifExprNode) {
+func newIfExprNode(ctx *context, parent TreeNodeIf) (node *ifExprNode) {
 	node = new(ifExprNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "if expr"
 	return
 }
 
-func newIfStatementNode(ctx *context) (node *ifStatementNode) {
+func newIfStatementNode(ctx *context, parent TreeNodeIf) (node *ifStatementNode) {
 	node = new(ifStatementNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "if stmt"
 	return
 }
 
-func newFunCallNode(ctx *context, name string) (node *funCallNode) {
+func newFunCallNode(ctx *context, parent TreeNodeIf, name string) (node *funCallNode) {
 	node = new(funCallNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "fun call"
 	node.name = name
 	node.funType = unknownType
 	return
 }
 
-func newRuntimeFieldNode(ctx *context, op string, field string, aux string) (node *runtimeFieldNode) {
+func newRuntimeFieldNode(ctx *context, parent TreeNodeIf, op string, field string, aux string) (node *runtimeFieldNode) {
 	node = new(runtimeFieldNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "runtime field"
 	node.op = op
 	node.field = field
@@ -476,9 +495,9 @@ func newRuntimeFieldNode(ctx *context, op string, field string, aux string) (nod
 	return
 }
 
-func newRuntimeArgNode(ctx *context, op string, number string) (node *runtimeArgNode) {
+func newRuntimeArgNode(ctx *context, parent TreeNodeIf, op string, number string) (node *runtimeArgNode) {
 	node = new(runtimeArgNode)
-	node.TreeNode = newNode(ctx)
+	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "runtime arg"
 	node.op = op
 	node.number = number
@@ -629,7 +648,7 @@ func (n *funCallNode) getType() (exprType, error) {
 
 	var err error
 	builtin := false
-	info, err := n.ctx.lookup(n.name)
+	_, err = n.ctx.lookup(n.name)
 	if err != nil {
 		_, builtin = builtinFun[n.name]
 		if !builtin {
@@ -641,7 +660,7 @@ func (n *funCallNode) getType() (exprType, error) {
 	if builtin {
 		tp, err = opTypeFromSpec(n.name)
 	} else {
-		tp, err = determineBlockReturnType(info.definition, []exprType{})
+		tp, err = determineBlockReturnType(n.definition, []exprType{})
 	}
 	return tp, err
 }
@@ -668,6 +687,42 @@ func (n *funCallNode) resolveArgs(definitionNode *funDefNode) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (n *funCallNode) bindFunction(defOrigNode *funDefNode) error {
+	args := n.children()
+
+	if len(defOrigNode.args) != len(args) {
+		return fmt.Errorf("mismatching parsed argument(s)")
+	}
+
+	// clone and remap address table
+	ctx := defOrigNode.ctx.clone()
+	definitionNode := newFunDefNode(ctx, n)
+	definitionNode.name = defOrigNode.name
+	definitionNode.args = defOrigNode.args
+	// TODO: update address table for children...
+	definitionNode.childrenNodes = defOrigNode.childrenNodes
+
+	for i := range args {
+		varName := definitionNode.args[i]
+		info, err := definitionNode.ctx.lookup(varName)
+		if err != nil {
+			return err
+		}
+		info.theType, err = args[i].(ExprNodeIf).getType()
+		if err != nil {
+			return err
+		}
+		err = definitionNode.ctx.update(varName, info)
+		if err != nil {
+			return err
+		}
+	}
+
+	n.definition = definitionNode
+
 	return nil
 }
 
@@ -734,6 +789,14 @@ func (n *TreeNode) children() []TreeNodeIf {
 
 func (n *TreeNode) String() string {
 	return n.nodeName
+}
+
+func (n *TreeNode) parent() TreeNodeIf {
+	return n.parentNode
+}
+
+func (n *TreeNode) setParent(parent TreeNodeIf) {
+	n.parentNode = parent
 }
 
 // Print AST and context

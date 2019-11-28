@@ -170,7 +170,7 @@ function test(x, y) {return x + y;}
 function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
 `
 	result, parserErrors := Parse(source)
-	a.NotEmpty(result)
+	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors)
 
 	source = `

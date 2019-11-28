@@ -23,7 +23,7 @@ logic
 
 declaration
     :   decl (NEWLINE|SEMICOLON)
-    |   FUNC IDENT '(' IDENT (',' IDENT)? ')' block NEWLINE
+    |   FUNC IDENT '(' (IDENT (',' IDENT)* )? ')' block NEWLINE
     |   NEWLINE|SEMICOLON
     ;
 

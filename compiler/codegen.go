@@ -56,7 +56,6 @@ func (n *programNode) Codegen(ostream io.Writer) {
 	for _, ch := range n.children() {
 		ch.Codegen(ostream)
 	}
-	fmt.Fprintf(ostream, "%s:\n", endProgramLabel)
 }
 
 func (n *funDefNode) Codegen(ostream io.Writer) {
@@ -64,6 +63,7 @@ func (n *funDefNode) Codegen(ostream io.Writer) {
 		for _, ch := range n.children() {
 			ch.Codegen(ostream)
 		}
+		fmt.Fprintf(ostream, "end_%s:\n", n.name)
 	}
 }
 
@@ -98,7 +98,11 @@ func (n *assignNode) Codegen(ostream io.Writer) {
 
 func (n *returnNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
-	fmt.Fprintf(ostream, "intc %d\nbnz %s\n", n.ctx.literals.literals[trueConstValue].offset, endProgramLabel)
+	fmt.Fprintf(
+		ostream,
+		"intc %d\nbnz end_%s\n",
+		n.ctx.literals.literals[trueConstValue].offset, n.enclosingFun,
+	)
 }
 
 func (n *errorNode) Codegen(ostream io.Writer) {
@@ -179,6 +183,34 @@ func (n *ifStatementNode) Codegen(ostream io.Writer) {
 func (n *blockNode) Codegen(ostream io.Writer) {
 	for _, ch := range n.children() {
 		ch.Codegen(ostream)
+	}
+}
+
+func (n *funCallNode) Codegen(ostream io.Writer) {
+	_, builtin := builtinFun[n.name]
+	if builtin {
+		// push args
+		for _, ch := range n.children() {
+			ch.Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "%s\n", n.name)
+	} else {
+		// info, _ := n.ctx.lookup(n.name)
+		// definitionNode := info.definition.(*funDefNode)
+		definitionNode := n.definition
+
+		// for each arg evaluate and store as appropriate named var
+		for idx, ch := range n.children() {
+			ch.Codegen(ostream)
+			argName := definitionNode.args[idx]
+			i, _ := definitionNode.ctx.lookup(argName)
+			fmt.Fprintf(ostream, "store %d\n", i.address)
+		}
+		// and now generate statements
+		for _, ch := range definitionNode.children() {
+			ch.Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "end_%s:\n", n.name)
 	}
 }
 
