@@ -19,6 +19,10 @@ var compileOnly bool
 var verbose bool
 var deprecated bool
 
+var currentDir string
+var sourceDir string
+var sourceFile string
+
 var rootCmd = &cobra.Command{
 	Use:   "tealang",
 	Short: "Tealang compiler to TEAL",
@@ -27,10 +31,19 @@ var rootCmd = &cobra.Command{
 			return errors.New("requires a source file name")
 		}
 		inFile = args[0]
-		srcBytes, err := ioutil.ReadFile(inFile)
+		currentDir, err := os.Getwd()
 		if err != nil {
 			return err
 		}
+
+		fullPath := path.Join(currentDir, inFile)
+		srcBytes, err := ioutil.ReadFile(fullPath)
+		if err != nil {
+			return err
+		}
+		sourceDir = path.Dir(fullPath)
+		sourceFile = path.Base(fullPath)
+
 		source = string(srcBytes)
 		return nil
 	},
@@ -39,7 +52,14 @@ var rootCmd = &cobra.Command{
 		if deprecated {
 			result = compiler.Compile(source)
 		}
-		prog, parseErrors := compiler.Parse(source)
+
+		input := compiler.InputDesc{
+			Source:     source,
+			SourceFile: sourceFile,
+			SourceDir:  sourceDir,
+			CurrentDir: currentDir,
+		}
+		prog, parseErrors := compiler.ParseProgram(input)
 		if len(parseErrors) > 0 {
 			for _, e := range parseErrors {
 				fmt.Printf("%s\n", e.String())

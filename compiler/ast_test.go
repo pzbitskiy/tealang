@@ -332,3 +332,24 @@ function logic(txn, gtxn, args) {
 	info, _ = ifStmtFalseNode.ctx.vars["x"]
 	a.Equal(uint(1), info.address)
 }
+
+func TestImports(t *testing.T) {
+	a := require.New(t)
+	source := `
+import test
+function logic(txn, gtxn, args) {return 1;}
+`
+	result, parserErrors := Parse(source)
+	a.Empty(result, parserErrors)
+	a.NotEmpty(parserErrors, parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `module test not found`)
+
+	source = `
+import stdlib
+function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
+`
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors, parserErrors)
+}

@@ -39,7 +39,7 @@ type parserState struct {
 }
 
 type tealangListener struct {
-	*parser.BaseTealangListener
+	*parser.BaseTealangParserListener
 
 	literals map[string]literal // literal value -> index in intc / bytec
 	intc     []string

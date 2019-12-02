@@ -8,6 +8,10 @@ package compiler
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path"
+	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
@@ -23,10 +27,11 @@ import (
 //--------------------------------------------------------------------------------------------------
 
 type treeNodeListener struct {
-	*gen.BaseTealangListener
+	*gen.BaseTealangParserListener
 	ctx    *context
 	node   TreeNodeIf
 	parent TreeNodeIf
+	input  InputDesc
 }
 
 func (l *treeNodeListener) getNode() TreeNodeIf {
@@ -40,8 +45,16 @@ func newTreeNodeListener(ctx *context, parent TreeNodeIf) *treeNodeListener {
 	return l
 }
 
+func newRootTreeNodeListener(ctx *context, parent TreeNodeIf, input InputDesc) *treeNodeListener {
+	l := new(treeNodeListener)
+	l.ctx = ctx
+	l.parent = parent
+	l.input = input
+	return l
+}
+
 type exprListener struct {
-	*gen.BaseTealangListener
+	*gen.BaseTealangParserListener
 	ctx    *context
 	expr   ExprNodeIf
 	parent TreeNodeIf
@@ -59,7 +72,12 @@ func (l *exprListener) getExpr() ExprNodeIf {
 }
 
 func reportError(msg string, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) {
-	e := newTealBaseRecognitionException(msg, parser, token, rule)
+	e := newTealangBaseRecognitionException(msg, parser, token, rule)
+	parser.NotifyErrorListeners(e.GetMessage(), e.GetOffendingToken(), e)
+}
+
+func reportParserError(err ParserError, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) {
+	e := newTealangParserErrorException(err, parser, token, rule)
 	parser.NotifyErrorListeners(e.GetMessage(), e.GetOffendingToken(), e)
 }
 
@@ -75,7 +93,7 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 
 	declarations := ctx.AllDeclaration()
 	for _, declaration := range declarations {
-		l := newTreeNodeListener(l.ctx, root)
+		l := newRootTreeNodeListener(l.ctx, root, l.input)
 		declaration.EnterRule(l)
 		node := l.getNode()
 		if node != nil {
@@ -112,6 +130,23 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	}
 
 	root.append(logic)
+
+	l.node = root
+}
+
+// EnterProgram is an entry point to AST
+func (l *treeNodeListener) EnterModule(ctx *gen.ModuleContext) {
+	root := newProgramNode(l.ctx, l.parent)
+
+	declarations := ctx.AllDeclaration()
+	for _, declaration := range declarations {
+		l := newRootTreeNodeListener(l.ctx, root, l.input)
+		declaration.EnterRule(l)
+		node := l.getNode()
+		if node != nil {
+			root.append(node)
+		}
+	}
 
 	l.node = root
 }
@@ -162,6 +197,32 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 		if err != nil {
 			reportError(err.Error(), ctx.GetParser(), ctx.FUNC().GetSymbol(), ctx.GetRuleContext())
 			return
+		}
+	} else if fun := ctx.IMPORT(); fun != nil {
+		moduleName := ctx.MODULENAME().GetText()
+		parentInput := l.input
+		tree, errs, err := parseModule(moduleName, parentInput, l.parent, l.ctx)
+		if err != nil {
+			reportError(err.Error(), ctx.GetParser(), ctx.MODULENAME().GetSymbol(), ctx.GetRuleContext())
+			return
+		}
+		if errs != nil {
+			for _, err := range errs {
+				// TODO: properly wrap/forward ParserError
+				reportParserError(err, ctx.GetParser(), ctx.FUNC().GetSymbol(), ctx.GetRuleContext())
+			}
+		}
+		// Modules contains only functions and constants
+		// and these are registered in the context and are already in AST.
+		// So only need to check that children nodes are constants and func defs
+		for _, ch := range tree.children() {
+			switch ch.(type) {
+			case *constNode, *funDefNode:
+				continue
+			default:
+				msg := fmt.Sprintf("module %s has %s but can only hold constants and functions", moduleName, ch.String())
+				reportError(msg, ctx.GetParser(), ctx.FUNC().GetSymbol(), ctx.GetRuleContext())
+			}
 		}
 	}
 }
@@ -613,16 +674,13 @@ func (l *exprListener) EnterArgsExpr(ctx *gen.ArgsExprContext) {
 
 //--------------------------------------------------------------------------------------------------
 //
-// module API functions
+// imports support
 //
 //--------------------------------------------------------------------------------------------------
-
-// Parse function creates AST
-func Parse(source string) (TreeNodeIf, []ParserError) {
+func newParser(source string, collector *errorCollector) *gen.TealangParser {
 	is := antlr.NewInputStream(source)
 	lexer := gen.NewTealangLexer(is)
 	lexer.RemoveErrorListeners()
-	collector := newErrorCollector(source)
 	lexer.AddErrorListener(collector)
 
 	tokenStream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
@@ -632,14 +690,134 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	parser.AddErrorListener(collector)
 	parser.BuildParseTrees = true
 
+	return parser
+
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+// module API functions
+//
+//--------------------------------------------------------------------------------------------------
+
+// InputDesc struct describe location of the source file
+// This info is later used for imports
+type InputDesc struct {
+	Source     string
+	SourceFile string
+	SourceDir  string
+	CurrentDir string
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+// TODO: fix interface
+func parseModule(moduleName string, parentInput InputDesc, parent TreeNodeIf, ctx *context) (TreeNodeIf, []ParserError, error) {
+	// search for module
+	var source string
+	var sourceFile string
+	sourceDir := parentInput.SourceDir
+	if moduleName == "stdlib" {
+		// TODO: load stdlib
+		source = `const TxTypePayment = 1
+const TxTypeKeyRegistration = 2
+const TxTypeAssetConfig = 3
+const TxTypeAssetTransfer = 4
+const AssetFreeze = 5
+
+function NoOp() {
+	return 0
+}
+`
+	} else {
+		components := strings.Split(moduleName, ".")
+		locations := make([]string, 16)
+
+		// search relative to source file first
+		fullPath := path.Join(sourceDir, path.Join(components...))
+		locations = append(locations, fullPath)
+		locations = append(locations, fullPath+".tl")
+
+		// search relative to current dir as a fallback
+		fullPath = path.Join(parentInput.CurrentDir, path.Join(components...))
+		locations = append(locations, fullPath)
+		locations = append(locations, fullPath+".tl")
+
+		for _, loc := range locations {
+			if fileExists(loc) {
+				sourceFile = path.Base(fullPath)
+				sourceDir = path.Dir(fullPath)
+				srcBytes, err := ioutil.ReadFile(fullPath)
+				if err != nil {
+					return nil, nil, err
+				}
+				source = string(srcBytes)
+			}
+			break
+		}
+
+		if source == "" {
+			return nil, nil, fmt.Errorf("module %s not found", moduleName)
+		}
+	}
+
+	input := InputDesc{
+		Source:     source,
+		SourceFile: sourceFile,
+		SourceDir:  sourceDir,
+		CurrentDir: parentInput.CurrentDir,
+	}
+	collector := newErrorCollector(input.Source, input.SourceFile)
+	parser := newParser(input.Source, collector)
+
+	tree := parser.Module()
+
+	collector.filterAmbiguity()
+	if len(collector.errors) > 0 {
+		return nil, collector.errors, nil
+	}
+
+	l := newRootTreeNodeListener(ctx, parent, input)
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if len(collector.errors) == 0 {
+					fmt.Printf("unexpected error: %s", r)
+				}
+			}
+		}()
+		tree.EnterRule(l)
+	}()
+
+	if len(collector.errors) > 0 {
+		return nil, collector.errors, nil
+	}
+
+	mod := l.getNode()
+	return mod, nil, nil
+}
+
+// ParseProgram accepts InputDesc that describes source location
+func ParseProgram(input InputDesc) (TreeNodeIf, []ParserError) {
+	collector := newErrorCollector(input.Source, input.SourceFile)
+	parser := newParser(input.Source, collector)
+
 	tree := parser.Program()
+
 	collector.filterAmbiguity()
 	if len(collector.errors) > 0 {
 		return nil, collector.errors
 	}
 
 	ctx := newContext(nil)
-	l := newTreeNodeListener(ctx, nil)
+	l := newRootTreeNodeListener(ctx, nil, input)
 
 	func() {
 		defer func() {
@@ -657,6 +835,11 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	}
 
 	prog := l.getNode()
-
 	return prog, nil
+}
+
+// Parse function creates AST
+func Parse(source string) (TreeNodeIf, []ParserError) {
+	input := InputDesc{source, "", "", ""}
+	return ParseProgram(input)
 }

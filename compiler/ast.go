@@ -547,7 +547,6 @@ func (n *exprUnOpNode) getType() (exprType, error) {
 		return invalidType, fmt.Errorf("operand %s has invalid type %s", n.String(), err.Error())
 	}
 	if tp != valType {
-		// TODO: report error
 		return invalidType, fmt.Errorf("up op expects type %s but operand is %s", tp, valType)
 	}
 	return tp, nil

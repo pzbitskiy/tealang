@@ -24,15 +24,17 @@ type ParserError struct {
 	column    int
 	msg       string
 	token     string
+	filename  string
 	excerpt   []string
 }
 
 type errorCollector struct {
-	errors []ParserError
-	source string
+	errors   []ParserError
+	source   string
+	filename string
 }
 
-type tealBaseRecognitionException struct {
+type tealangBaseRecognitionException struct {
 	message        string
 	recognizer     antlr.Recognizer
 	offendingToken antlr.Token
@@ -42,8 +44,8 @@ type tealBaseRecognitionException struct {
 }
 
 // copy of Antlr's NewBaseRecognitionException
-func newTealBaseRecognitionException(message string, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) *tealBaseRecognitionException {
-	t := new(tealBaseRecognitionException)
+func newTealangBaseRecognitionException(message string, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) *tealangBaseRecognitionException {
+	t := new(tealangBaseRecognitionException)
 
 	t.message = message
 	t.recognizer = parser
@@ -55,22 +57,37 @@ func newTealBaseRecognitionException(message string, parser antlr.Parser, token 
 	return t
 }
 
-func (e *tealBaseRecognitionException) GetOffendingToken() antlr.Token {
+// TODO: properly wrap ParserError
+func newTealangParserErrorException(err ParserError, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) *tealangBaseRecognitionException {
+	t := new(tealangBaseRecognitionException)
+
+	t.message = err.String()
+	t.recognizer = parser
+	t.input = parser.GetInputStream()
+	t.ctx = rule
+	t.offendingToken = token
+	t.offendingState = -1
+
+	return t
+}
+
+func (e *tealangBaseRecognitionException) GetOffendingToken() antlr.Token {
 	return e.offendingToken
 }
 
-func (e *tealBaseRecognitionException) GetMessage() string {
+func (e *tealangBaseRecognitionException) GetMessage() string {
 	return e.message
 }
 
-func (e *tealBaseRecognitionException) GetInputStream() antlr.IntStream {
+func (e *tealangBaseRecognitionException) GetInputStream() antlr.IntStream {
 	return e.input
 }
 
-func newErrorCollector(source string) (er *errorCollector) {
+func newErrorCollector(source string, filename string) (er *errorCollector) {
 	er = new(errorCollector)
 	er.errors = make([]ParserError, 0, 16)
 	er.source = source
+	er.filename = filename
 	return
 }
 
@@ -183,6 +200,7 @@ func (er *errorCollector) SyntaxError(recognizer antlr.Recognizer, offendingSymb
 		column,
 		msg,
 		token,
+		er.filename,
 		er.formatExcerpt(start, end),
 	}
 	er.errors = append(er.errors, info)
@@ -197,6 +215,7 @@ func (er *errorCollector) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DF
 		0,
 		"",
 		"",
+		er.filename,
 		er.formatExcerpt(startIndex, stopIndex),
 	}
 	er.errors = append(er.errors, info)
@@ -212,6 +231,7 @@ func (er *errorCollector) ReportAttemptingFullContext(recognizer antlr.Parser, d
 		recognizer.GetCurrentToken().GetColumn(),
 		"",
 		"",
+		er.filename,
 		er.formatExcerpt(startIndex, stopIndex),
 	}
 	er.errors = append(er.errors, info)
@@ -226,31 +246,36 @@ func (er *errorCollector) ReportContextSensitivity(recognizer antlr.Parser, dfa 
 		recognizer.GetCurrentToken().GetColumn(),
 		"",
 		"",
+		er.filename,
 		er.formatExcerpt(startIndex, stopIndex),
 	}
 	er.errors = append(er.errors, info)
 }
 
 func (err *ParserError) String() (msg string) {
+	filename := ""
+	if err.filename != "" {
+		filename = fmt.Sprintf("%s ", err.filename)
+	}
 	switch err.errorType {
 	case semanticError:
-		msg = fmt.Sprintf("error at line %d, col %d near token \"%s\"", err.line, err.column, err.token)
+		msg = fmt.Sprintf("error at %sline %d, col %d near token \"%s\"", filename, err.line, err.column, err.token)
 		lines := append([]string{msg}, err.excerpt...)
 		lines = append(lines, err.msg)
 		msg = strings.Join(lines, "\n")
 	case syntaxError:
-		msg = fmt.Sprintf("syntax error at line %d, col %d near token \"%s\"", err.line, err.column, err.token)
+		msg = fmt.Sprintf("syntax error at %sline %d, col %d near token \"%s\"", filename, err.line, err.column, err.token)
 		lines := append([]string{msg}, err.excerpt...)
 		if err.token == "<EOF>" {
 			lines = append(lines, "Missing logic function?")
 		}
 		msg = strings.Join(lines, "\n")
 	case ambiguityError:
-		msg = fmt.Sprintf("ambiguity error at offset %d", err.start)
+		msg = fmt.Sprintf("ambiguity error at %soffset %d", filename, err.start)
 		lines := append([]string{msg}, err.excerpt...)
 		msg = strings.Join(lines, "\n")
 	default:
-		msg = fmt.Sprintf("unknown error at offset %d", err.start)
+		msg = fmt.Sprintf("unknown error at %soffset %d", filename, err.start)
 		lines := append([]string{msg}, err.excerpt...)
 		msg = strings.Join(lines, "\n")
 	}

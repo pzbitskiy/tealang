@@ -1,0 +1,150 @@
+lexer grammar TealangLexer;
+
+GLOBALFIELD
+    :   MINTXNFEE
+    |   MINBALANCE
+    |   MAXTXNLIFE
+    |   ZEROADDRESS
+    |   GROUPSIZE
+    ;
+
+TXNFIELD
+    :   SENDER
+    |   FEE
+    |   FIRSTVALID
+    |   LASTVALID
+    |   NOTE
+    |   LEASE
+    |   RECEIVER
+    |   AMOUNT
+    |   CLOSEREMINDERTO
+    |   VOTEPK
+    |   SELECTIONPK
+    |   VOTEFIRST
+    |   VOTELAST
+    |   VOTEKD
+    |   TYPE
+    |   TYPEENUM
+    |   XFERASSET
+    |   AAMOUNT
+    |   ASENDER
+    |   ARECEIVER
+    |   ACLOSETO
+    |   GROUPINDEX
+    |   TXID
+    ;
+
+BUILTINFUNC
+    :   SHA256
+    |   KECCAK256
+    |   SHA512
+    |   ED25519
+    |   MULW
+    ;
+
+LET         : 'let' ;
+CONST       : 'const' ;
+ERR         : 'error' ;
+RET         : 'return' ;
+IF          : 'if' ;
+ELSE        : 'else' ;
+FUNC        : 'function' ;
+IMPORT      : 'import' -> pushMode(DOIMPORT);
+LOGIC       : 'logic';
+
+GLOBAL      : 'global';
+TXN         : 'txn';
+GTXN        : 'gtxn';
+ARGS        : 'args';
+
+
+MINTXNFEE   : 'MinTxnFee' ;
+MINBALANCE  : 'MinBalance' ;
+MAXTXNLIFE  : 'MaxTxnLife' ;
+ZEROADDRESS : 'ZeroAddress' ;
+GROUPSIZE   : 'GroupSize' ;
+
+SENDER      : 'Sender' ;
+FEE         : 'Fee' ;
+FIRSTVALID  : 'FirstValid' ;
+LASTVALID   : 'LastValid' ;
+NOTE        : 'Note' ;
+LEASE       : 'Lease';
+RECEIVER    : 'Receiver' ;
+AMOUNT      : 'Amount' ;
+CLOSEREMINDERTO : 'CloseRemainderTo' ;
+VOTEPK      : 'VotePK' ;
+SELECTIONPK : 'SelectionPK' ;
+VOTEFIRST   : 'VoteFirst' ;
+VOTELAST    : 'VoteLast' ;
+VOTEKD      : 'VoteKeyDilution' ;
+TYPE        : 'Type' ;
+TYPEENUM    : 'TypeEnum' ;
+XFERASSET   : 'XferAsset' ;
+AAMOUNT     : 'AssetAmount' ;
+ASENDER     : 'AssetSender' ;
+ARECEIVER   : 'AssetReceiver' ;
+ACLOSETO    : 'AssetCloseTo' ;
+GROUPINDEX  : 'GroupIndex' ;
+TXID        : 'TxId' ;
+
+SHA256      : 'sha256' ;
+KECCAK256   : 'keccak256' ;
+SHA512      : 'sha512_256' ;
+ED25519     : 'ed25519verify' ;
+MULW        : 'mulw';
+
+STRING      : EncodingPrefix? '"' StringChar* '"' ;
+NUMBER      : [0-9]+ ;
+IDENT       : [a-zA-Z_]+[a-zA-Z0-9_]* ;
+NEWLINE     : [\r\n]+ ;
+SEMICOLON   : ';' ;
+WHITESPACE  : (' ' | '\t')+ -> skip ;
+COMMENT     : '//' ~[\r\n]* -> skip ;
+
+DOT         : '.';
+COMMA       : ',';
+EQ          : '=';
+PLUS        : '+';
+MINUS       : '-';
+MUL         : '*';
+DIV         : '/';
+MOD         : '%';
+LNOT        : '!';
+BNOT        : '~';
+BOR         : '|';
+BAND        : '&';
+BXOR        : '^';
+LEFTFIGURE  : '{';
+RIGHTFIGURE : '}';
+LEFTPARA    : '(';
+RIGHTPARA   : ')';
+LEFTSQUARE  : '[';
+RIGHTSQUARE : ']';
+LESS        : '<';
+GREATER     : '>';
+LE          : '<=';
+GE          : '>=';
+NE          : '!=';
+EE          : '==';
+LOR         : '||';
+LAND        : '&&';
+
+fragment EncodingPrefix
+    :   'b32'
+    |   'b64'
+    ;
+
+fragment StringChar
+    :   ~["\\\r\n]
+    |   HexEscapeSeq
+    ;
+
+fragment HexEscapeSeq
+    : '\\x' [0-9a-fA-F]+
+    ;
+
+mode DOIMPORT;
+MODULENAME    : [a-zA-Z0-9_.]+ ;
+MODULENAMEEND : [\r\n]+  -> popMode;
+SEP  : (' ' | '\t')+ -> skip ;

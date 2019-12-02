@@ -224,3 +224,28 @@ function logic(txn, gtxn, args) {
 	prog := Codegen(result)
 	a.Greater(len(prog), 0)
 }
+
+func TestCodegenImportStdlib(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+import stdlib
+function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2 3 4 5", lines[0])
+	a.Equal("intc 1", lines[1]) // TxTypePayment
+	a.Equal("store 0", lines[2])
+	a.Equal("intc 0", lines[3]) // NoOp -> ret 0
+	a.Equal("intc 1", lines[4])
+	a.Equal("bnz end_NoOp", lines[5])
+	a.Equal("end_NoOp:", lines[6])
+	a.Equal("intc 1", lines[7])
+	a.Equal("intc 1", lines[8])
+	a.Equal("bnz end_logic", lines[9])
+	a.Equal("end_logic:", lines[10])
+}
