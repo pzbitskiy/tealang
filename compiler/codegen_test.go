@@ -46,7 +46,7 @@ func TestCodegenErr(t *testing.T) {
 func TestCodegenBinOp(t *testing.T) {
 	a := require.New(t)
 
-	source := `const c = 10; function logic(txn, gtxn, args) {let a = 1 + c; let b = !a;}`
+	source := `const c = 10; function logic(txn, gtxn, args) {let a = 1 + c; let b = !a; return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -66,7 +66,7 @@ func TestCodegenBinOp(t *testing.T) {
 func TestCodegenIfExpr(t *testing.T) {
 	a := require.New(t)
 
-	source := `let x = if 1 { 2 } else { 3 }; function logic(txn, gtxn, args) {}`
+	source := `let x = if 1 { 2 } else { 3 }; function logic(txn, gtxn, args) {return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -88,7 +88,7 @@ func TestCodegenIfExpr(t *testing.T) {
 func TestCodegenIfStmt(t *testing.T) {
 	a := require.New(t)
 
-	source := `function logic(txn, gtxn, args) { if 1 {let x=10;}}`
+	source := `function logic(txn, gtxn, args) { if 1 {let x=10;} return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -102,7 +102,7 @@ func TestCodegenIfStmt(t *testing.T) {
 	a.Equal("store 0", lines[5])
 	a.Equal("if_stmt_end_", lines[6][:len("if_stmt_end_")])
 
-	source = `function logic(txn, gtxn, args) { if 1 {let x=10;} else {let y=11;}}`
+	source = `function logic(txn, gtxn, args) { if 1 {let x=10;} else {let y=11;} return 1;}`
 	result, errors = Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -125,7 +125,7 @@ func TestCodegenIfStmt(t *testing.T) {
 func TestCodegenGlobals(t *testing.T) {
 	a := require.New(t)
 
-	source := `function logic(txn, gtxn, args) {let glob = global.MinTxnFee; let g = gtxn[1].Sender; let a = args[0];}`
+	source := `function logic(txn, gtxn, args) {let glob = global.MinTxnFee; let g = gtxn[1].Sender; let a = args[0]; return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -148,6 +148,7 @@ function logic(txn, gtxn, args) {
 	let a = 1
 	let b = sum (a, 2)
 	let x = 3
+	return 1
 }
 `
 	result, errors := Parse(source)
@@ -171,7 +172,10 @@ function logic(txn, gtxn, args) {
 	a.Equal("store 1", lines[13])
 	a.Equal("intc 3", lines[14])
 	a.Equal("store 2", lines[15])
-	a.Equal("end_logic:", lines[16])
+	a.Equal("intc 1", lines[16])
+	a.Equal("intc 1", lines[17])
+	a.Equal("bnz end_logic", lines[18])
+	a.Equal("end_logic:", lines[19])
 }
 
 func TestCodegenGeneric(t *testing.T) {

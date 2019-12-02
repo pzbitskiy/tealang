@@ -1,3 +1,7 @@
+// This is an outdated v0 implementation, do not use
+// no functions
+// no type checking
+
 package compiler
 
 import (

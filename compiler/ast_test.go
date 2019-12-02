@@ -228,15 +228,64 @@ function logic(txn, gtxn, args) {let x = 1; x = sha256("abc") ; return 1;}
 
 }
 
+func TestLogicReturn(t *testing.T) {
+	a := require.New(t)
+	source := `
+function logic(txn, gtxn, args) {let x = 1;}
+`
+	result, parserErrors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `logic must return int but got unknown`)
+
+	source = `
+function logic(txn, gtxn, args) {return "test";}
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `logic must return int but got byte[]`)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let a = 1;
+	if a == 1 {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+`
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
+	source = `
+function logic(txn, gtxn, args) {
+	let a = 1;
+	if a == 1 {
+		return 1;
+	}
+	return 0;
+}
+`
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
+}
+
 func TestDoubleVariable(t *testing.T) {
 	a := require.New(t)
 
-	source := "function logic(txn, gtxn, args) {let x = 1; let x = 2;}"
+	source := "function logic(txn, gtxn, args) {let x = 1; let x = 2; return 1;}"
 	result, errors := Parse(source)
 	a.Empty(result, errors)
 	a.NotEmpty(errors)
 
-	source = "let x = 1; function logic(txn, gtxn, args) {let x = 2;}"
+	source = "let x = 1; function logic(txn, gtxn, args) {let x = 2; return 1;}"
 	result, errors = Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -254,6 +303,7 @@ function logic(txn, gtxn, args) {
 		let x = 4;
 	}
 	let y = 5;
+	return 1;
 }`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)

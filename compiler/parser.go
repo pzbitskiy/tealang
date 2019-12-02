@@ -86,14 +86,31 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	logicListener := newTreeNodeListener(l.ctx, root)
 	ctx.Logic().EnterRule(logicListener)
 	logic := logicListener.getNode()
+	logicCtx := ctx.Logic().(*gen.LogicContext)
 	if logic == nil {
-		logicCtx := ctx.Logic().(*gen.LogicContext)
 		reportError(
 			"missing logic function",
 			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
 		)
 		return
 	}
+
+	tp, err := determineBlockReturnType(logic, []exprType{})
+	if err != nil {
+		reportError(
+			err.Error(),
+			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+		)
+		return
+	}
+	if tp != intType {
+		reportError(
+			fmt.Sprintf("logic must return int but got %s", tp),
+			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+		)
+		return
+	}
+
 	root.append(logic)
 
 	l.node = root

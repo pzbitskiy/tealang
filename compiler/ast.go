@@ -600,6 +600,8 @@ func determineBlockReturnType(node TreeNodeIf, retTypeSeen []exprType) (exprType
 				return invalidType, err
 			}
 			retTypeSeen = append(retTypeSeen, tp)
+		case *errorNode:
+			retTypeSeen = append(retTypeSeen, intType) // error is ok
 		case *ifStatementNode, *blockNode:
 			blockType, err := determineBlockReturnType(stmt, retTypeSeen)
 			if err != nil {
