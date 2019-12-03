@@ -23,12 +23,18 @@ import (
 //
 //--------------------------------------------------------------------------------------------------
 
+type parseContext struct {
+	input          InputDesc
+	moduleResolver func(moduleName string, sourceDir string, currentDir string) (InputDesc, error)
+	collector      *errorCollector
+}
+
 type treeNodeListener struct {
 	*gen.BaseTealangParserListener
-	ctx    *context
-	node   TreeNodeIf
-	parent TreeNodeIf
-	input  InputDesc
+	ctx      *context
+	node     TreeNodeIf
+	parent   TreeNodeIf
+	parseCtx *parseContext
 }
 
 func (l *treeNodeListener) getNode() TreeNodeIf {
@@ -42,11 +48,11 @@ func newTreeNodeListener(ctx *context, parent TreeNodeIf) *treeNodeListener {
 	return l
 }
 
-func newRootTreeNodeListener(ctx *context, parent TreeNodeIf, input InputDesc) *treeNodeListener {
+func newRootTreeNodeListener(ctx *context, parent TreeNodeIf, parseCtx *parseContext) *treeNodeListener {
 	l := new(treeNodeListener)
 	l.ctx = ctx
 	l.parent = parent
-	l.input = input
+	l.parseCtx = parseCtx
 	return l
 }
 
@@ -90,7 +96,7 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 
 	declarations := ctx.AllDeclaration()
 	for _, declaration := range declarations {
-		l := newRootTreeNodeListener(l.ctx, root, l.input)
+		l := newRootTreeNodeListener(l.ctx, root, l.parseCtx)
 		declaration.EnterRule(l)
 		node := l.getNode()
 		if node != nil {
@@ -137,7 +143,7 @@ func (l *treeNodeListener) EnterModule(ctx *gen.ModuleContext) {
 
 	declarations := ctx.AllDeclaration()
 	for _, declaration := range declarations {
-		l := newRootTreeNodeListener(l.ctx, root, l.input)
+		l := newRootTreeNodeListener(l.ctx, root, l.parseCtx)
 		declaration.EnterRule(l)
 		node := l.getNode()
 		if node != nil {
@@ -210,17 +216,16 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 		}
 	} else if fun := ctx.IMPORT(); fun != nil {
 		moduleName := ctx.MODULENAME().GetText()
-		parentInput := l.input
-		tree, errs, err := parseModule(moduleName, parentInput, l.parent, l.ctx)
+		tree, err := parseModule(moduleName, l.parseCtx, l.parent, l.ctx)
 		if err != nil {
 			reportError(err.Error(), ctx.GetParser(), ctx.MODULENAME().GetSymbol(), ctx.GetRuleContext())
 			return
 		}
-		if errs != nil {
-			for _, err := range errs {
-				// TODO: properly wrap/forward ParserError
-				reportParserError(err, ctx.GetParser(), ctx.MODULENAME().GetSymbol(), ctx.GetRuleContext())
-			}
+		if tree == nil {
+			reportError(
+				fmt.Sprintf("module %s parsing failed", moduleName),
+				ctx.GetParser(), ctx.MODULENAME().GetSymbol(), ctx.GetRuleContext(),
+			)
 			return
 		}
 		// Modules contains only functions and constants
@@ -761,11 +766,14 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-// TODO: fix interface
-func parseModule(moduleName string, parentInput InputDesc, parent TreeNodeIf, ctx *context) (TreeNodeIf, []ParserError, error) {
-	input, err := resolveModule(moduleName, parentInput.SourceDir, parentInput.CurrentDir)
+func parseModule(moduleName string, parseCtx *parseContext, parent TreeNodeIf, ctx *context) (TreeNodeIf, error) {
+	resolver := resolveModule
+	if parseCtx.moduleResolver != nil {
+		resolver = parseCtx.moduleResolver
+	}
+	input, err := resolver(moduleName, parseCtx.input.SourceDir, parseCtx.input.CurrentDir)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	collector := newErrorCollector(input.Source, input.SourceFile)
 	parser := newParser(input.Source, collector)
@@ -774,10 +782,10 @@ func parseModule(moduleName string, parentInput InputDesc, parent TreeNodeIf, ct
 
 	collector.filterAmbiguity()
 	if len(collector.errors) > 0 {
-		return nil, collector.errors, nil
+		return nil, fmt.Errorf("error during module %s parsing", moduleName)
 	}
 
-	l := newRootTreeNodeListener(ctx, parent, input)
+	l := newRootTreeNodeListener(ctx, parent, parseCtx)
 
 	func() {
 		defer func() {
@@ -791,11 +799,11 @@ func parseModule(moduleName string, parentInput InputDesc, parent TreeNodeIf, ct
 	}()
 
 	if len(collector.errors) > 0 {
-		return nil, collector.errors, nil
+		return nil, fmt.Errorf("error during module %s parsing", moduleName)
 	}
 
 	mod := l.getNode()
-	return mod, nil, nil
+	return mod, nil
 }
 
 // ParseProgram accepts InputDesc that describes source location
@@ -811,7 +819,11 @@ func ParseProgram(input InputDesc) (TreeNodeIf, []ParserError) {
 	}
 
 	ctx := newContext(nil)
-	l := newRootTreeNodeListener(ctx, nil, input)
+	parseCtx := parseContext{
+		input:     input,
+		collector: collector,
+	}
+	l := newRootTreeNodeListener(ctx, nil, &parseCtx)
 
 	func() {
 		defer func() {
