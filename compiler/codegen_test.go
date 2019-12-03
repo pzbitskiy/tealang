@@ -256,7 +256,8 @@ func TestCodegenImportStdlib(t *testing.T) {
 	a := require.New(t)
 
 	source := `
-import stdlib
+import stdlib.const
+import stdlib.templates
 function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
 `
 	result, errors := Parse(source)

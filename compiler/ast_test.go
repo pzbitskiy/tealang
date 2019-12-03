@@ -73,15 +73,16 @@ func TestOneLinerLogic(t *testing.T) {
 	a.Empty(errors)
 }
 
-func TestMissedLogicFunc(t *testing.T) {
-	a := require.New(t)
-	source := "let a = 1;"
-	a.NotPanics(func() { Parse(source) })
-	result, errors := Parse(source)
-	a.Empty(result)
-	a.NotEmpty(errors)
-	a.Contains(errors[0].String(), "Missing logic function")
-}
+// TODO: Add this heuristic back
+// func TestMissedLogicFunc(t *testing.T) {
+// 	a := require.New(t)
+// 	source := "let a = 1;"
+// 	a.NotPanics(func() { Parse(source) })
+// 	result, errors := Parse(source)
+// 	a.Empty(result)
+// 	a.NotEmpty(errors)
+// 	a.Contains(errors[0].String(), "Missing logic function")
+// }
 
 func TestInvalidLogicFunc(t *testing.T) {
 	a := require.New(t)
@@ -368,7 +369,8 @@ function logic(txn, gtxn, args) {return 1;}
 	a.Contains(parserErrors[0].msg, `module test not found`)
 
 	source = `
-import stdlib
+import stdlib.const
+import stdlib.templates
 function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
 `
 	result, parserErrors = Parse(source)

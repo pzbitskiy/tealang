@@ -17,7 +17,7 @@ grammar-java:
 	javac gen/java/Tealang*.java -classpath "gen/java:$(ANTLR4_JAR)"
 
 go: grammar-go
-	go generate ./compiler
+	go generate ./...
 	go build -o tealang ./main.go
 	go test ./...
 

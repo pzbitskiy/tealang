@@ -266,9 +266,6 @@ func (err *ParserError) String() (msg string) {
 	case syntaxError:
 		msg = fmt.Sprintf("syntax error at %sline %d, col %d near token \"%s\"", filename, err.line, err.column, err.token)
 		lines := append([]string{msg}, err.excerpt...)
-		if err.token == "<EOF>" {
-			lines = append(lines, "Missing logic function?")
-		}
 		msg = strings.Join(lines, "\n")
 	case ambiguityError:
 		msg = fmt.Sprintf("ambiguity error at %soffset %d", filename, err.start)

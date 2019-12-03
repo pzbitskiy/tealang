@@ -13,12 +13,14 @@ import (
 	"path"
 	"strings"
 
+	"../stdlib"
+
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
 	gen "../gen/go"
 )
 
-// go:generate sh ./bundle_langspec_json.sh
+//go:generate sh ./bundle_langspec_json.sh
 
 //--------------------------------------------------------------------------------------------------
 //
@@ -222,8 +224,9 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 		if errs != nil {
 			for _, err := range errs {
 				// TODO: properly wrap/forward ParserError
-				reportParserError(err, ctx.GetParser(), ctx.FUNC().GetSymbol(), ctx.GetRuleContext())
+				reportParserError(err, ctx.GetParser(), ctx.MODULENAME().GetSymbol(), ctx.GetRuleContext())
 			}
+			return
 		}
 		// Modules contains only functions and constants
 		// and these are registered in the context and are already in AST.
@@ -727,21 +730,15 @@ func fileExists(filename string) bool {
 // TODO: fix interface
 func parseModule(moduleName string, parentInput InputDesc, parent TreeNodeIf, ctx *context) (TreeNodeIf, []ParserError, error) {
 	// search for module
+	var ok bool
 	var source string
 	var sourceFile string
 	sourceDir := parentInput.SourceDir
-	if moduleName == "stdlib" {
-		// TODO: load stdlib
-		source = `const TxTypePayment = 1
-const TxTypeKeyRegistration = 2
-const TxTypeAssetConfig = 3
-const TxTypeAssetTransfer = 4
-const AssetFreeze = 5
-
-function NoOp() {
-	return 0
-}
-`
+	if strings.HasPrefix(moduleName, stdlib.StdLibName) {
+		source, ok = stdlib.LoadModule(moduleName)
+		if !ok {
+			return nil, nil, fmt.Errorf("standard module %s not found", moduleName)
+		}
 	} else {
 		components := strings.Split(moduleName, ".")
 		locations := make([]string, 16)
