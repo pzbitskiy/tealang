@@ -206,6 +206,28 @@ function logic(txn, gtxn, args) {let x = "abc"; x = test(1, 2); return 1;}
 	a.Contains(parserErrors[0].msg, `incompatible types: (var) byte[] vs uint64 (expr)`)
 }
 
+func TestFunctionArgsType(t *testing.T) {
+	a := require.New(t)
+	source := `
+function condition(a) {
+	let b = if a == 1 { 10 } else { 0 }
+
+    if b == 0 {
+        return a
+    }
+    return 1
+}
+
+function logic(txn, gtxn, args) {
+	let a = condition(1)
+    return 1
+}
+`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+}
+
 func TestBuiltinFunction(t *testing.T) {
 	a := require.New(t)
 	source := `

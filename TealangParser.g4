@@ -71,7 +71,6 @@ expr
     |	LEFTPARA expr RIGHTPARA                     # Group
     |   functionCall                                # FunctionCallExpr
     |   builtinVarExpr                              # BuiltinObject
-    // |   compoundElem                                # ObjElement
     |   op=LNOT expr                                # Not
     |   op=BNOT expr                                # BitNot
     |	expr op=(MUL|DIV|MOD) expr                  # MulDivMod

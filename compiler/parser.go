@@ -151,17 +151,30 @@ func (l *treeNodeListener) EnterModule(ctx *gen.ModuleContext) {
 	l.node = root
 }
 
-func parseFunDeclarationImpl(l *treeNodeListener, ctx *gen.DeclarationContext) {
+func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *gen.DeclarationContext) {
 	// start new scoped context
 	scopedContext := newContext(l.ctx)
 	name := ctx.IDENT(0).GetText()
 
 	// get arguments vars
-	argCount := len(ctx.AllIDENT())
-	args := make([]string, argCount-1)
-	for i := 0; i < argCount-1; i++ {
+	argCount := len(ctx.AllIDENT()) - 1
+	args := make([]string, argCount)
+	actualArgs := callNode.children()
+	if len(args) != len(actualArgs) {
+		reportError("mismatching argument(s)", ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	for i := 0; i < argCount; i++ {
 		ident := ctx.IDENT(i + 1).GetText()
-		err := scopedContext.newVar(ident, unknownType)
+
+		theType, err := actualArgs[i].(ExprNodeIf).getType()
+		if err != nil {
+			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(i+1).GetSymbol(), ctx.GetRuleContext())
+			return
+		}
+
+		err = scopedContext.newVar(ident, theType)
 		if err != nil {
 			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(i+1).GetSymbol(), ctx.GetRuleContext())
 			return
@@ -190,8 +203,8 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 	} else if fun := ctx.FUNC(); fun != nil {
 		name := ctx.IDENT(0).GetText()
 		// register now and parse it later just before the call
-		defParserCb := func(listener *treeNodeListener) {
-			parseFunDeclarationImpl(listener, ctx)
+		defParserCb := func(listener *treeNodeListener, callNode *funCallNode) {
+			parseFunDeclarationImpl(listener, callNode, ctx)
 		}
 		err := l.ctx.newFunc(name, unknownType, defParserCb)
 		if err != nil {
@@ -612,15 +625,9 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	argExprNodes := ctx.AllExpr()
 	funCallExprNode := l.funCallEnterImpl(name, argExprNodes)
 	listener := newTreeNodeListener(l.ctx, funCallExprNode)
-	info.parser(listener)
+	info.parser(listener, funCallExprNode)
 	defNode := listener.node.(*funDefNode)
 
-	if len(defNode.args) != len(argExprNodes) {
-		reportError("mismatching argument(s)", parser, token, rule)
-		return
-	}
-
-	err = funCallExprNode.resolveArgs(defNode)
 	if err != nil {
 		reportError(err.Error(), parser, token, rule)
 		return

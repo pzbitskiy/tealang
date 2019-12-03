@@ -40,7 +40,7 @@ type varInfo struct {
 	value *string
 
 	// function has reference lazy parser
-	parser func(listener *treeNodeListener)
+	parser func(listener *treeNodeListener, callNode *funCallNode)
 }
 
 func newLiteralInfo() (literals *literalInfo) {
@@ -117,7 +117,7 @@ func (ctx *context) newConst(name string, theType exprType, value *string) error
 	return nil
 }
 
-func (ctx *context) newFunc(name string, theType exprType, parser func(listener *treeNodeListener)) error {
+func (ctx *context) newFunc(name string, theType exprType, parser func(listener *treeNodeListener, callNode *funCallNode)) error {
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("function '%s' already defined", name)
 	}
