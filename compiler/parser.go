@@ -849,3 +849,47 @@ func Parse(source string) (TreeNodeIf, []ParserError) {
 	input := InputDesc{source, "", "", ""}
 	return ParseProgram(input)
 }
+
+func parseTestProgModule(progSource, moduleSource string) (TreeNodeIf, []ParserError) {
+	input := InputDesc{progSource, "test.tl", "", ""}
+	collector := newErrorCollector(input.Source, input.SourceFile)
+	parser := newParser(progSource, collector)
+
+	tree := parser.Program()
+
+	collector.filterAmbiguity()
+	if len(collector.errors) > 0 {
+		return nil, collector.errors
+	}
+
+	ctx := newContext(nil)
+	resolver := func(moduleName string, sourceDir string, currentDir string) (InputDesc, error) {
+		input := InputDesc{moduleSource, moduleName, "", ""}
+		return input, nil
+	}
+	parseCtx := parseContext{
+		input:          input,
+		moduleResolver: resolver,
+		collector:      collector,
+	}
+	l := newRootTreeNodeListener(ctx, nil, &parseCtx)
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if len(collector.errors) == 0 {
+					fmt.Printf("unexpected error: %s", r)
+				}
+			}
+		}()
+		tree.EnterRule(l)
+	}()
+
+	if len(collector.errors) > 0 {
+		return nil, collector.errors
+	}
+
+	prog := l.getNode()
+	return prog, nil
+
+}

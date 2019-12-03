@@ -257,7 +257,7 @@ func TestCodegenImportStdlib(t *testing.T) {
 
 	source := `
 import stdlib.const
-import stdlib.templates
+import stdlib.noop
 function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
 `
 	result, errors := Parse(source)

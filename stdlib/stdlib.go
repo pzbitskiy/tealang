@@ -16,6 +16,7 @@ func init() {
 	lib = make(map[string]string)
 	lib["const"] = stdlib_const
 	lib["templates"] = stdlib_templates
+	lib["noop"] = stdlib_noop
 }
 
 // LoadModule returns source of a standard library, and a flag indicating success

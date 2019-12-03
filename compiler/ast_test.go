@@ -239,6 +239,10 @@ function test(a) {
 	if a == gtxn[0].Sender {
 		return 0
 	}
+	const idx = 1
+	if a == gtxn[idx].Sender {
+		return 0
+	}
 	if global.MinTxnFee == 100 {
 		return 0
 	}
@@ -382,7 +386,7 @@ function logic(txn, gtxn, args) {
 	a.Equal(uint(1), info.address)
 }
 
-func TestImports(t *testing.T) {
+func TestImportsDefault(t *testing.T) {
 	a := require.New(t)
 	source := `
 import test
@@ -396,10 +400,31 @@ function logic(txn, gtxn, args) {return 1;}
 
 	source = `
 import stdlib.const
-import stdlib.templates
+import stdlib.noop
 function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
 `
 	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors, parserErrors)
+}
+
+func TestImports(t *testing.T) {
+	a := require.New(t)
+	source := `
+import test
+function logic(txn, gtxn, args) {let x = test(); return 1;}
+`
+	module := `
+function test() {
+	if txn.Sender == "abc" {
+		return global.MinBalance
+	}
+	if gtxn[1].Sender == "abc" {
+		return txn.FirstValid
+	}
+}
+`
+	result, parserErrors := parseTestProgModule(source, module)
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors, parserErrors)
 }
