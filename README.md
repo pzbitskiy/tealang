@@ -1,49 +1,88 @@
 # Teal Language
 
-**ANTLR4**-based high level language for TEAL.
-The goal is to hide stack VM of TEAM by high-level Go/Python/C-like syntax sugar.
+High-level language for Algorand Smart Contracts at Layer-1 and it's low-level TEAL language.
+The goal is to abstract the stack-based TEAL VM and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
 
-Supports constants, variables, assignments, binary and unary operations, conditions and function calls.
+* Integer and bytes types
 
+* Variables and constants
 ```
-const a = 1
-const b = "string"
-const c = "\x32\x33\x34";
+let variable1 = 1
+const myaddr = "XYZ"
+```
 
-let result = if b == c { 1 } else { 2 }
-if result == 0 {
-    error
-} else {
+* All binary and unary operations from TEAL
+```
+let a = (1 + 2) / 3
+let b = ~a
+```
+
+* Inlined functions
+```
+function sample(a) {
+    return a - 1
 }
 
-return 1
+function logic(txn, gtxn, args) {
+    return sample(2)
+}
 ```
+
+* Condition statements and expressions
+```
+function condition(a) {
+    let b = if a == 1 { 10 } else { 0 }
+
+    if b == 0 {
+        return a
+    }
+    return 1
+}
+```
+
+* Type checking
+```
+function get_string() {
+    return "\x32\x33\x34"
+}
+
+function logic(txn, gtxn, args) {
+    let a = 1
+    a = test()
+    return a
+}
+```
+
+* Antlr-based parser
+
+## Usage
+
+```sh
+tealang -c mycontract.tl -o mycontract.teal
+```
+
+Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for VSCode.
+
+TODO: Tealang guide
 
 ## Build from sources
 
 ### Prerequisites
 
 1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/)
-2. Set `CLASSPATH`
-    ```
-    export CLASSPATH=.:$(pwd)/gen/java:$CLASSPATH
-    ```
-3. Install runtime for Go
+2. Install runtime for Go
     ```
     go get github.com/antlr/antlr4/runtime/Go/antlr
     ```
 
+### Build
+```sh
+make go
+```
+
 ### Build and run Java AST visualizer
-
-```
-antlr4 Tealang.g4 -o gen/java && javac gen/java/Tealang*.java
-cat examples/fee-reimburse.tl | grun Tealang prog -gui
-```
-
-### Build Go
-
-```
-antlr4 -Dlanguage=Go -visitor -o gen/go Tealang.g4
+```sh
+make java-gui
 ```
