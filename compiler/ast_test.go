@@ -412,6 +412,22 @@ function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
 	a.Empty(parserErrors, parserErrors)
 }
 
+func TestImportsTemplate(t *testing.T) {
+	a := require.New(t)
+	source := `
+import stdlib.const
+import stdlib.templates
+function logic(txn, gtxn, args) {
+	let type = TxTypePayment
+	let result = DynamicFee("abc", 10, "xyz", 1, 1000, "mylease")
+	return result
+}
+`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors, parserErrors)
+}
+
 func TestImports(t *testing.T) {
 	a := require.New(t)
 	source := `

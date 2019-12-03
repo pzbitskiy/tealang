@@ -7,6 +7,8 @@
 package compiler
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"runtime/debug"
@@ -23,12 +25,6 @@ import (
 // Antlr event listeners
 //
 //--------------------------------------------------------------------------------------------------
-
-type parseContext struct {
-	input          InputDesc
-	moduleResolver func(moduleName string, sourceDir string, currentDir string) (InputDesc, error)
-	collector      *errorCollector
-}
 
 type treeNodeListener struct {
 	*gen.BaseTealangParserListener
@@ -73,6 +69,21 @@ func newExprListener(ctx *context, parent TreeNodeIf) *exprListener {
 
 func (l *exprListener) getExpr() ExprNodeIf {
 	return l.expr
+}
+
+type parseContext struct {
+	input          InputDesc
+	collector      *errorCollector
+	moduleResolver func(moduleName string, sourceDir string, currentDir string) (InputDesc, error)
+	loadedModules  map[string]TreeNodeIf
+}
+
+func newParseContext(input InputDesc, collector *errorCollector) (ctx *parseContext) {
+	ctx = new(parseContext)
+	ctx.input = input
+	ctx.collector = collector
+	ctx.loadedModules = make(map[string]TreeNodeIf)
+	return
 }
 
 func reportError(msg string, parser antlr.Parser, token antlr.Token, rule antlr.RuleContext) {
@@ -776,6 +787,13 @@ func parseModule(moduleName string, parseCtx *parseContext, parent TreeNodeIf, c
 	if err != nil {
 		return nil, err
 	}
+
+	raw := md5.Sum([]byte(input.Source))
+	checksum := hex.EncodeToString(raw[:])
+	if tree, ok := parseCtx.loadedModules[checksum]; ok {
+		return tree, nil
+	}
+
 	collector := newErrorCollector(input.Source, input.SourceFile)
 	parser := newParser(input.Source, collector)
 
@@ -806,6 +824,7 @@ func parseModule(moduleName string, parseCtx *parseContext, parent TreeNodeIf, c
 	}
 
 	mod := l.getNode()
+	parseCtx.loadedModules[checksum] = mod
 	return mod, nil
 }
 
@@ -822,11 +841,9 @@ func ParseProgram(input InputDesc) (TreeNodeIf, []ParserError) {
 	}
 
 	ctx := newContext(nil)
-	parseCtx := parseContext{
-		input:     input,
-		collector: collector,
-	}
-	l := newRootTreeNodeListener(ctx, nil, &parseCtx)
+
+	parseCtx := newParseContext(input, collector)
+	l := newRootTreeNodeListener(ctx, nil, parseCtx)
 
 	func() {
 		defer func() {
@@ -867,16 +884,12 @@ func parseTestProgModule(progSource, moduleSource string) (TreeNodeIf, []ParserE
 	}
 
 	ctx := newContext(nil)
-	resolver := func(moduleName string, sourceDir string, currentDir string) (InputDesc, error) {
+	parseCtx := newParseContext(input, collector)
+	parseCtx.moduleResolver = func(moduleName string, sourceDir string, currentDir string) (InputDesc, error) {
 		input := InputDesc{moduleSource, moduleName, "", ""}
 		return input, nil
 	}
-	parseCtx := parseContext{
-		input:          input,
-		moduleResolver: resolver,
-		collector:      collector,
-	}
-	l := newRootTreeNodeListener(ctx, nil, &parseCtx)
+	l := newRootTreeNodeListener(ctx, nil, parseCtx)
 
 	func() {
 		defer func() {
