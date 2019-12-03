@@ -13,7 +13,6 @@ import (
 	"io"
 )
 
-const endProgramLabel = "end_program"
 const trueConstName = "TRUE_INTERNAL"
 const falseConstName = "FALSE_INTERNAL"
 const trueConstValue = "1"

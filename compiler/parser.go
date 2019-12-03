@@ -8,12 +8,7 @@ package compiler
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path"
-	"strings"
-
-	"../stdlib"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
@@ -768,53 +763,9 @@ func fileExists(filename string) bool {
 
 // TODO: fix interface
 func parseModule(moduleName string, parentInput InputDesc, parent TreeNodeIf, ctx *context) (TreeNodeIf, []ParserError, error) {
-	// search for module
-	var ok bool
-	var source string
-	var sourceFile string
-	sourceDir := parentInput.SourceDir
-	if strings.HasPrefix(moduleName, stdlib.StdLibName) {
-		source, ok = stdlib.LoadModule(moduleName)
-		if !ok {
-			return nil, nil, fmt.Errorf("standard module %s not found", moduleName)
-		}
-	} else {
-		components := strings.Split(moduleName, ".")
-		locations := make([]string, 16)
-
-		// search relative to source file first
-		fullPath := path.Join(sourceDir, path.Join(components...))
-		locations = append(locations, fullPath)
-		locations = append(locations, fullPath+".tl")
-
-		// search relative to current dir as a fallback
-		fullPath = path.Join(parentInput.CurrentDir, path.Join(components...))
-		locations = append(locations, fullPath)
-		locations = append(locations, fullPath+".tl")
-
-		for _, loc := range locations {
-			if fileExists(loc) {
-				sourceFile = path.Base(fullPath)
-				sourceDir = path.Dir(fullPath)
-				srcBytes, err := ioutil.ReadFile(fullPath)
-				if err != nil {
-					return nil, nil, err
-				}
-				source = string(srcBytes)
-			}
-			break
-		}
-
-		if source == "" {
-			return nil, nil, fmt.Errorf("module %s not found", moduleName)
-		}
-	}
-
-	input := InputDesc{
-		Source:     source,
-		SourceFile: sourceFile,
-		SourceDir:  sourceDir,
-		CurrentDir: parentInput.CurrentDir,
+	input, err := resolveModule(moduleName, parentInput.SourceDir, parentInput.CurrentDir)
+	if err != nil {
+		return nil, nil, err
 	}
 	collector := newErrorCollector(input.Source, input.SourceFile)
 	parser := newParser(input.Source, collector)

@@ -229,6 +229,32 @@ function logic(txn, gtxn, args) {
 	a.Empty(parserErrors)
 }
 
+func TestFunctionGlobals(t *testing.T) {
+	a := require.New(t)
+	source := `
+function test(a) {
+	if a == txn.Sender {
+		return 0
+	}
+	if a == gtxn[0].Sender {
+		return 0
+	}
+	if global.MinTxnFee == 100 {
+		return 0
+	}
+    return 1
+}
+
+function logic(txn, gtxn, args) {
+	let a = test("abc")
+    return 1
+}
+`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+}
+
 func TestBuiltinFunction(t *testing.T) {
 	a := require.New(t)
 	source := `
