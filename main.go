@@ -17,7 +17,6 @@ var inFile string
 var source string
 var compileOnly bool
 var verbose bool
-var deprecated bool
 
 var currentDir string
 var sourceDir string
@@ -49,9 +48,6 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var result string
-		if deprecated {
-			result = compiler.Compile(source)
-		}
 
 		input := compiler.InputDesc{
 			Source:     source,
@@ -87,7 +83,6 @@ func main() {
 	rootCmd.Flags().StringVarP(&outFile, "output", "o", "", "Output file")
 	rootCmd.Flags().BoolVarP(&compileOnly, "compile", "c", false, "Compile to TEAL and stop")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.Flags().BoolVarP(&deprecated, "experimental", "e", false, "Experimental feature")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

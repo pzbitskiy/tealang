@@ -3,11 +3,11 @@ package compiler
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidProgram(t *testing.T) {
+	a := require.New(t)
 	source := `
 let a = 456; const b = 123; const c = "1234567890123";
 let d = 1 + 2 ;
@@ -29,62 +29,21 @@ function logic(txn, gtxn, args) {
 		a = 2
 	}
 
-	x = 2;
+	let x = 2;
 	x = global.GroupSize
-	x = gtxn[1].Sender
 	let y = args[0]
-	sha256(x)
-	ed25519verify("\x01\x02", c, x)
+	sha256(c)
+	ed25519verify("\x01\x02", c, "test")
 	return 1
 }
 `
-	result := Compile(source)
-	require.NotEmpty(t, result)
-}
-
-func TestInvalidProgram(t *testing.T) {
-	source := "a = 33"
-	assert.Panics(t, func() { Compile(source) }, "Code did nit panic")
-
-	source = "let a = 33bbb"
-	assert.Panics(t, func() { Compile(source) }, "Code did nit panic")
-
-	source = `
-let e = if a > 0 {1} else {2}
-
-if e == 1 {
-	let x = a + b;
-	error
-}
-`
-	assert.Panics(t, func() { Compile(source) }, "Code did nit panic")
-
-	source = `
-let e = if a > 0 {1} else {2}
-
-function test() {
-	if e == 1 {
-		let x = a + b;
-		error
-	}
-}
-`
-	assert.Panics(t, func() { Compile(source) }, "Code did nit panic")
-
-	source = `
-let e = if a > 0 {1} else {2}
-
-function logic() {
-	if e == 1 {
-		let x = a + b;
-		error
-	}
-}
-`
-	assert.Panics(t, func() { Compile(source) }, "Code did nit panic")
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
 }
 
 func TestParserValidProgram(t *testing.T) {
+	a := require.New(t)
 	source := `
 let a = 1
 let e = if a > 0 {1} else {2}
@@ -98,8 +57,8 @@ function logic(txn, gtxn, args) {
 }
 `
 	result, errors := Parse(source)
-	require.NotEmpty(t, result, errors)
-	require.Empty(t, errors)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
 }
 
 func TestParserErrorReporting(t *testing.T) {

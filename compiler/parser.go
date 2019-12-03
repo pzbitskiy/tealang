@@ -670,15 +670,54 @@ func (l *exprListener) EnterTxnFieldExpr(ctx *gen.TxnFieldExprContext) {
 }
 
 func (l *exprListener) EnterGroupTxnFieldExpr(ctx *gen.GroupTxnFieldExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Gtxn().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterGroupNumberTxnFieldExpr(ctx *gen.GroupNumberTxnFieldExprContext) {
 	field := ctx.TXNFIELD().GetText()
 	groupIndex := ctx.NUMBER().GetText()
 	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxn", field, groupIndex)
 	l.expr = node
 }
 
+func (l *exprListener) EnterGroupIdentTxnFieldExpr(ctx *gen.GroupIdentTxnFieldExprContext) {
+	field := ctx.TXNFIELD().GetText()
+	ident := ctx.IDENT().GetText()
+
+	info, err := l.ctx.lookup(ident)
+	if err != nil || !info.constant {
+		reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxn", field, *info.value)
+	l.expr = node
+}
+
 func (l *exprListener) EnterArgsExpr(ctx *gen.ArgsExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Args().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterArgsNumberExpr(ctx *gen.ArgsNumberExprContext) {
 	number := ctx.NUMBER().GetText()
 	node := newRuntimeArgNode(l.ctx, l.parent, "arg", number)
+	l.expr = node
+}
+
+func (l *exprListener) EnterArgsIdentExpr(ctx *gen.ArgsIdentExprContext) {
+	ident := ctx.IDENT().GetText()
+
+	info, err := l.ctx.lookup(ident)
+	if err != nil || !info.constant {
+		reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	node := newRuntimeArgNode(l.ctx, l.parent, "arg", *info.value)
 	l.expr = node
 }
 
