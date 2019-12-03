@@ -733,11 +733,16 @@ func (l *exprListener) EnterArgsIdentExpr(ctx *gen.ArgsIdentExprContext) {
 	l.expr = node
 }
 
-//--------------------------------------------------------------------------------------------------
-//
-// imports support
-//
-//--------------------------------------------------------------------------------------------------
+func (l *treeNodeListener) EnterOnelinecond(ctx *gen.OnelinecondContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	expr := listener.getExpr()
+
+	root := newProgramNode(l.ctx, l.parent)
+	root.append(expr)
+	l.node = root
+}
+
 func newParser(source string, collector *errorCollector) *gen.TealangParser {
 	is := antlr.NewInputStream(source)
 	lexer := gen.NewTealangLexer(is)
@@ -910,4 +915,41 @@ func parseTestProgModule(progSource, moduleSource string) (TreeNodeIf, []ParserE
 	prog := l.getNode()
 	return prog, nil
 
+}
+
+// ParseOneLineCond is for parsing one-liners like "(txn.fee == 1) && (global.MinTxnFee < 2000)"
+func ParseOneLineCond(source string) (TreeNodeIf, []ParserError) {
+	input := InputDesc{source, "", "", ""}
+	collector := newErrorCollector(input.Source, input.SourceFile)
+	parser := newParser(input.Source, collector)
+
+	tree := parser.Onelinecond()
+
+	collector.filterAmbiguity()
+	if len(collector.errors) > 0 {
+		return nil, collector.errors
+	}
+
+	ctx := newContext(nil)
+	parseCtx := newParseContext(input, collector)
+	l := newRootTreeNodeListener(ctx, nil, parseCtx)
+
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if len(collector.errors) == 0 {
+					fmt.Printf("unexpected error: %s\n", r)
+					fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
+				}
+			}
+		}()
+		tree.EnterRule(l)
+	}()
+
+	if len(collector.errors) > 0 {
+		return nil, collector.errors
+	}
+
+	expr := l.getNode()
+	return expr, nil
 }

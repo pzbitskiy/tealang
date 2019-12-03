@@ -448,3 +448,11 @@ function test() {
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors, parserErrors)
 }
+
+func TestOneLineCond(t *testing.T) {
+	a := require.New(t)
+	source := `(1+2) >= 3 && txn.Sender == "abc"`
+	result, parserErrors := ParseOneLineCond(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors, parserErrors)
+}

@@ -277,3 +277,24 @@ function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
 	a.Equal("bnz end_logic", lines[9])
 	a.Equal("end_logic:", lines[10])
 }
+
+func TestCodegenOneLineCond(t *testing.T) {
+	a := require.New(t)
+	source := `(1+2) >= 3 && txn.Sender == "123"`
+	result, parserErrors := ParseOneLineCond(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors, parserErrors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2 3", lines[0])
+	a.Equal("bytecblock 0x313233", lines[1])
+	a.Equal("intc 1", lines[2])
+	a.Equal("intc 2", lines[3]) // NoOp -> ret 0
+	a.Equal("+", lines[4])
+	a.Equal("intc 3", lines[5])
+	a.Equal(">=", lines[6])
+	a.Equal("txn Sender", lines[7])
+	a.Equal("bytec 0", lines[8])
+	a.Equal("==", lines[9])
+	a.Equal("&&", lines[10])
+}

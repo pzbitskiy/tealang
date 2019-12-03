@@ -17,6 +17,7 @@ var inFile string
 var source string
 var compileOnly bool
 var verbose bool
+var oneliner string
 
 var currentDir string
 var sourceDir string
@@ -26,6 +27,11 @@ var rootCmd = &cobra.Command{
 	Use:   "tealang",
 	Short: "Tealang compiler to TEAL",
 	Args: func(cmd *cobra.Command, args []string) (err error) {
+		if len(oneliner) > 0 {
+			source = oneliner
+			return nil
+		}
+
 		if len(args) < 1 {
 			return errors.New("requires a source file name")
 		}
@@ -47,7 +53,18 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		var result string
+		if len(oneliner) > 0 {
+			prog, parseErrors := compiler.ParseOneLineCond(source)
+			if len(parseErrors) > 0 {
+				for _, e := range parseErrors {
+					fmt.Printf("%s\n", e.String())
+				}
+				os.Exit(1)
+			}
+			result := compiler.Codegen(prog)
+			fmt.Println(result)
+			return
+		}
 
 		input := compiler.InputDesc{
 			Source:     source,
@@ -63,7 +80,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		result = compiler.Codegen(prog)
+		result := compiler.Codegen(prog)
 		if compileOnly {
 			if outFile == "" {
 				ext := path.Ext(inFile)
@@ -83,6 +100,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&outFile, "output", "o", "", "Output file")
 	rootCmd.Flags().BoolVarP(&compileOnly, "compile", "c", false, "Compile to TEAL and stop")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	rootCmd.Flags().StringVarP(&oneliner, "oneliner", "l", "", "Compile logic one liner")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

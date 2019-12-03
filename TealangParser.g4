@@ -12,6 +12,10 @@ module
     :   declaration* EOF
     ;
 
+onelinecond
+    :   expr EOF
+    ;
+
 statement
     :   decl (NEWLINE|SEMICOLON)
     |   condition
