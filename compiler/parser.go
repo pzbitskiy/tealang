@@ -9,6 +9,7 @@ package compiler
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
@@ -791,13 +792,15 @@ func parseModule(moduleName string, parseCtx *parseContext, parent TreeNodeIf, c
 		defer func() {
 			if r := recover(); r != nil {
 				if len(collector.errors) == 0 {
-					fmt.Printf("unexpected error: %s", r)
+					fmt.Printf("unexpected error: %s\n", r)
+					fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
 				}
 			}
 		}()
 		tree.EnterRule(l)
 	}()
 
+	parseCtx.collector.copyErrors(collector)
 	if len(collector.errors) > 0 {
 		return nil, fmt.Errorf("error during module %s parsing", moduleName)
 	}
@@ -829,7 +832,8 @@ func ParseProgram(input InputDesc) (TreeNodeIf, []ParserError) {
 		defer func() {
 			if r := recover(); r != nil {
 				if len(collector.errors) == 0 {
-					fmt.Printf("unexpected error: %s", r)
+					fmt.Printf("unexpected error: %s\n", r)
+					fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
 				}
 			}
 		}()
@@ -878,7 +882,8 @@ func parseTestProgModule(progSource, moduleSource string) (TreeNodeIf, []ParserE
 		defer func() {
 			if r := recover(); r != nil {
 				if len(collector.errors) == 0 {
-					fmt.Printf("unexpected error: %s", r)
+					fmt.Printf("unexpected error: %s\n", r)
+					fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
 				}
 			}
 		}()

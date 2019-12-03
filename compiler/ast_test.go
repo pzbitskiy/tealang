@@ -246,6 +246,10 @@ function test(a) {
 	if global.MinTxnFee == 100 {
 		return 0
 	}
+	let b = gtxn[idx].Sender
+
+	const reimburseTxIndex = 0
+	let reimburseReceiver = gtxn[reimburseTxIndex].Receiver
     return 1
 }
 

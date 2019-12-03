@@ -91,6 +91,10 @@ func newErrorCollector(source string, filename string) (er *errorCollector) {
 	return
 }
 
+func (er *errorCollector) copyErrors(other *errorCollector) {
+	er.errors = append(er.errors, other.errors...)
+}
+
 func (er *errorCollector) formatExcerpt(start, end int) []string {
 	maxExcerptOffset := 50
 	src := er.source
