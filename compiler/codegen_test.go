@@ -225,6 +225,33 @@ function logic(txn, gtxn, args) {
 	a.Greater(len(prog), 0)
 }
 
+func TestCodegenOpsPriority(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+let a = (1 + 2) / (3 - 4)
+function logic(txn, gtxn, args) { return a; }
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2 3 4", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("intc 2", lines[2])
+	a.Equal("+", lines[3])
+	a.Equal("intc 3", lines[4])
+	a.Equal("intc 4", lines[5])
+	a.Equal("-", lines[6])
+	a.Equal("/", lines[7])
+	a.Equal("store 0", lines[8])
+	a.Equal("load 0", lines[9])
+	a.Equal("intc 1", lines[10])
+	a.Equal("bnz end_logic", lines[11])
+	a.Equal("end_logic:", lines[12])
+}
+
 func TestCodegenImportStdlib(t *testing.T) {
 	a := require.New(t)
 
