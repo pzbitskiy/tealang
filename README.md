@@ -1,7 +1,7 @@
 # Teal Language
 
-High-level language for Algorand Smart Contracts at Layer-1 and it's low-level TEAL language.
-The goal is to abstract the stack-based TEAL VM and provide imperative Go/JS/Python-like syntax.
+High-level language for Algorand Smart Contracts at Layer-1 and it's low-level **TEAL** language.
+The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
 
@@ -13,7 +13,7 @@ let variable1 = 1
 const myaddr = "XYZ"
 ```
 
-* All binary and unary operations from TEAL
+* All binary and unary operations from **TEAL**
 ```
 let a = (1 + 2) / 3
 let b = ~a
@@ -55,7 +55,16 @@ function logic() {
 }
 ```
 
+* Modules
+```
+import stdlib.const
+```
+
 * Antlr-based parser
+
+## Language guide
+
+[Documentation](GUIDE.md)
 
 ## Usage
 
@@ -78,8 +87,6 @@ function logic() {
     ```
 
 Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
-
-TODO: Tealang guide
 
 ## Build from sources
 
@@ -109,3 +116,15 @@ make go
 ```sh
 make java-gui
 ```
+
+## Roadmap
+
+1. Constant folding.
+2. Strings concatenation.
+3. Fix known limitations.
+4. Code generation for return at the end of function
+
+## Limitations
+
+* No `mulw` **TEAL** opcode support.
+* No check that all branches `return` or `error`.

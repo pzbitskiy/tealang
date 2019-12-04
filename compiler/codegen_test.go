@@ -299,3 +299,66 @@ func TestCodegenOneLineCond(t *testing.T) {
 	a.Equal("==", lines[9])
 	a.Equal("&&", lines[10])
 }
+
+func TestCodegenShadow(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+let x = 1
+function logic() {
+	let x = 2       // shadows 1 in logic block
+	if 1 {
+		let x = 3   // shadows 2 in if-block
+	}
+	return x        // 2
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2 3", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("store 0", lines[2])
+	a.Equal("intc 2", lines[3])
+	a.Equal("store 1", lines[4])
+	a.Equal("intc 1", lines[5])
+	a.Equal("!", lines[6])
+	a.Equal("bnz if_stmt_end_", lines[7][:len("bnz if_stmt_end_")])
+	a.Equal("intc 3", lines[8])
+	a.Equal("store 2", lines[9])
+	a.Equal("if_stmt_end_", lines[10][:len("if_stmt_end_")])
+	a.Equal("load 1", lines[11])
+	a.Equal("intc 1", lines[12])
+	a.Equal("bnz end_logic", lines[13])
+	a.Equal("end_logic:", lines[14])
+}
+
+func TestCodegenNestedFun(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function test1() { return 1; }
+function test2() { return test1(); }
+function logic() {
+	return test2()
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("intc 1", lines[2])
+	a.Equal("bnz end_test1", lines[3])
+	a.Equal("end_test1:", lines[4])
+	a.Equal("intc 1", lines[5])
+	a.Equal("bnz end_test2", lines[6])
+	a.Equal("end_test2:", lines[7])
+	a.Equal("intc 1", lines[8])
+	a.Equal("bnz end_logic", lines[9])
+	a.Equal("end_logic:", lines[10])
+}

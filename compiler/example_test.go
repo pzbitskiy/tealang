@@ -40,3 +40,48 @@ function logic() {
 	prog := Codegen(result)
 	a.NotEmpty(prog)
 }
+
+func TestGuideCompile(t *testing.T) {
+	a := require.New(t)
+	source := `
+import stdlib.const
+
+const a = 1
+const b = "abc\x01"
+let x = b
+function test(x) { return x; }
+let sender = if global.GroupSize > 1 { txn.Sender } else { gtxn[1].Sender }
+
+function inc(x) { return x+1; }
+const myconst = 1
+function myfunction() { return 0; }
+
+function logic() {
+    if txn.Sender == "ABC" {
+		return 1
+	}
+
+    let x = 2       // shadows 1 in logic block
+    if 1 {
+        let x = 3   // shadows 2 in if-block
+    }
+    return x        // 2
+
+	if x == 1 {
+		return 1
+	} else {
+		let x = txn.Receiver
+	}
+
+	return inc(0);
+
+	let ret = TxTypePayment
+	return ret
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	a.NotEmpty(prog)
+}
