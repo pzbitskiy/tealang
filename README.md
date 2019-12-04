@@ -59,11 +59,25 @@ function logic() {
 
 ## Usage
 
-```sh
-tealang -c mycontract.tl -o mycontract.teal
-```
+* Tealang to bytecode
+    ```sh
+    tealang mycontract.tl -o mycontract.tok
+    ```
 
-Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for VSCode.
+* Tealang to TEAL
+    ```sh
+    tealang -c mycontract.tl -o mycontract.teal
+    ```
+* Tealang logic one-liner to bytecode
+    ```sh
+    tealang -l '(txn.Sender == "abc") && global.MinTxnFee > 2000' -o mycontract.tok
+    ```
+* Stdin to Stdout
+    ```sh
+    cat mycontract.tl | tealang -s -r - > mycontract.tok
+    ```
+
+Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
 
 TODO: Tealang guide
 
@@ -73,8 +87,17 @@ TODO: Tealang guide
 
 1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/)
 2. Install runtime for Go
-    ```
+    ```sh
     go get github.com/antlr/antlr4/runtime/Go/antlr
+    ```
+3. Install and setup **go-algorand**. Read [Algorand README](https://github.com/algorand/go-algorand/blob/master/README.md) if needed.
+    ```sh
+    go get github.com/algorand/go-algorand
+    pushd $(go env GOPATH)/src/github.com/algorand/go-algorand
+    make
+    cd $(go env GOPATH)/src/github.com/satori/go.uuid
+    git checkout v1.2.0
+    popd
     ```
 
 ### Build

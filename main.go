@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 
 	"./compiler"
 
+	"github.com/algorand/go-algorand/data/transactions/logic"
 	"github.com/spf13/cobra"
 )
 
@@ -18,24 +20,44 @@ var source string
 var compileOnly bool
 var verbose bool
 var oneliner string
+var stdout bool
+var raw bool
 
 var currentDir string
 var sourceDir string
 var sourceFile string
 
+const defaultInFile string = "a.tl"
+
 var rootCmd = &cobra.Command{
-	Use:   "tealang",
-	Short: "Tealang compiler to TEAL",
+	Use:   "tealang [flags] source-file",
+	Short: "Tealang compiler for Algorand Smart Contract (ASC1)",
+	Long: `Tealang compiler (ASC1)
+Documentation: https://github.com/pzbitskiy/tealang
+Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highlighter`,
+	DisableFlagsInUseLine: true,
 	Args: func(cmd *cobra.Command, args []string) (err error) {
 		if len(oneliner) > 0 {
 			source = oneliner
+			inFile = defaultInFile
 			return nil
 		}
 
 		if len(args) < 1 {
-			return errors.New("requires a source file name")
+			return errors.New("requires a source file name or - for stdin")
 		}
 		inFile = args[0]
+		if inFile == "-" {
+			data, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				fmt.Printf(err.Error())
+				os.Exit(1)
+			}
+			source = string(data)
+			inFile = defaultInFile
+			return nil
+		}
+
 		currentDir, err := os.Getwd()
 		if err != nil {
 			return err
@@ -53,54 +75,92 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if cmd.Flags().Changed("stdout") && cmd.Flags().Changed("output") {
+			fmt.Printf("only one of [--stdout] or [--output] can be specified")
+			os.Exit(1)
+		}
+		if cmd.Flags().Changed("raw") && !cmd.Flags().Changed("raw") {
+			fmt.Printf("[--raw] might be only used with [--stdout]")
+			os.Exit(1)
+		}
+
+		var prog compiler.TreeNodeIf
+		var parseErrors []compiler.ParserError
+		var teal string
+		var bytecode []byte
+		var err error
 		if len(oneliner) > 0 {
-			prog, parseErrors := compiler.ParseOneLineCond(source)
+			prog, parseErrors = compiler.ParseOneLineCond(source)
 			if len(parseErrors) > 0 {
 				for _, e := range parseErrors {
 					fmt.Printf("%s\n", e.String())
 				}
 				os.Exit(1)
 			}
-			result := compiler.Codegen(prog)
-			fmt.Println(result)
-			return
-		}
-
-		input := compiler.InputDesc{
-			Source:     source,
-			SourceFile: sourceFile,
-			SourceDir:  sourceDir,
-			CurrentDir: currentDir,
-		}
-		prog, parseErrors := compiler.ParseProgram(input)
-		if len(parseErrors) > 0 {
-			for _, e := range parseErrors {
-				fmt.Printf("%s\n", e.String())
+		} else {
+			input := compiler.InputDesc{
+				Source:     source,
+				SourceFile: sourceFile,
+				SourceDir:  sourceDir,
+				CurrentDir: currentDir,
 			}
-			os.Exit(1)
+			prog, parseErrors = compiler.ParseProgram(input)
+			if len(parseErrors) > 0 {
+				for _, e := range parseErrors {
+					fmt.Printf("%s\n", e.String())
+				}
+				os.Exit(1)
+			}
+		}
+		teal = compiler.Codegen(prog)
+
+		if !compileOnly {
+			bytecode, err = logic.AssembleString(teal)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
 		}
 
-		result := compiler.Codegen(prog)
-		if compileOnly {
+		if stdout {
+			output := teal
+			if bytecode != nil {
+				if raw {
+					output = string(bytecode)
+				} else {
+					output = hex.Dump(bytecode)
+				}
+			}
+			fmt.Print(output)
+		} else {
+			ext := path.Ext(inFile)
 			if outFile == "" {
-				ext := path.Ext(inFile)
-				outFile = inFile[0:len(inFile)-len(ext)] + ".teal"
+				if compileOnly {
+					outFile = inFile[0:len(inFile)-len(ext)] + ".teal"
+				} else {
+					outFile = inFile[0:len(inFile)-len(ext)] + ".tok"
+				}
 			}
 			if verbose {
 				fmt.Printf("Writing result to %s\n", outFile)
 			}
-			ioutil.WriteFile(outFile, []byte(result), 0644)
-		} else {
-			fmt.Println("assembling to tealc not implemented yet\n Use -c to see TEAL output")
+
+			output := []byte(teal)
+			if bytecode != nil {
+				output = bytecode
+			}
+			ioutil.WriteFile(outFile, output, 0644)
 		}
 	},
 }
 
 func main() {
-	rootCmd.Flags().StringVarP(&outFile, "output", "o", "", "Output file")
-	rootCmd.Flags().BoolVarP(&compileOnly, "compile", "c", false, "Compile to TEAL and stop")
-	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.Flags().StringVarP(&oneliner, "oneliner", "l", "", "Compile logic one liner like (txn.Sender == \"abc\") && (1+2) >= 3")
+	rootCmd.Flags().StringVarP(&outFile, "output", "o", "", "write output to this file")
+	rootCmd.Flags().BoolVarP(&compileOnly, "compile", "c", false, "compile to TEAL assembler, do not produce bytecode")
+	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
+	rootCmd.Flags().StringVarP(&oneliner, "oneliner", "l", "", "compile logic one-liner like '(txn.Sender == \"abc\") && (1+2) >= 3'")
+	rootCmd.Flags().BoolVarP(&stdout, "stdout", "s", false, "write output to stdout instead of a file")
+	rootCmd.Flags().BoolVarP(&raw, "raw", "r", false, "do not hex-encode bytecode when outputting to stdout")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
