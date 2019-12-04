@@ -540,11 +540,11 @@ func (n *exprBinOpNode) getType() (exprType, error) {
 
 	lhs, err := n.lhs.getType()
 	if err != nil {
-		return invalidType, fmt.Errorf("left operand %s has invalid type %s", n.lhs.String(), err.Error())
+		return invalidType, fmt.Errorf("left operand '%s' has invalid type: %s", n.lhs.String(), err.Error())
 	}
 	rhs, err := n.rhs.getType()
 	if err != nil {
-		return invalidType, fmt.Errorf("right operand %s has invalid type %s", n.rhs.String(), err.Error())
+		return invalidType, fmt.Errorf("right operand '%s' has invalid type: %s", n.rhs.String(), err.Error())
 	}
 
 	opLHS, err := argOpTypeFromSpec(n.op, 0)
@@ -552,7 +552,7 @@ func (n *exprBinOpNode) getType() (exprType, error) {
 		return invalidType, err
 	}
 	if opLHS != unknownType && lhs != opLHS {
-		return invalidType, fmt.Errorf("incompatible left operand type: %s vs %s in expr '%s'", opLHS, lhs, n)
+		return invalidType, fmt.Errorf("incompatible left operand type: '%s' vs '%s' in expr '%s'", opLHS, lhs, n)
 	}
 
 	opRHS, err := argOpTypeFromSpec(n.op, 1)
@@ -560,10 +560,10 @@ func (n *exprBinOpNode) getType() (exprType, error) {
 		return invalidType, err
 	}
 	if opRHS != unknownType && rhs != opRHS {
-		return invalidType, fmt.Errorf("incompatible right operand type: %s vs %s in expr '%s'", opRHS, rhs, n)
+		return invalidType, fmt.Errorf("incompatible right operand type: '%s' vs '%s' in expr '%s'", opRHS, rhs, n)
 	}
 	if lhs != rhs {
-		return invalidType, fmt.Errorf("incompatible types: %s vs %s in expr '%s'", lhs, rhs, n)
+		return invalidType, fmt.Errorf("incompatible types: '%s' vs '%s' in expr '%s'", lhs, rhs, n)
 	}
 
 	return tp, nil
@@ -577,7 +577,7 @@ func (n *exprUnOpNode) getType() (exprType, error) {
 
 	valType, err := n.value.getType()
 	if err != nil {
-		return invalidType, fmt.Errorf("operand %s has invalid type %s", n.String(), err.Error())
+		return invalidType, fmt.Errorf("operand '%s' has invalid type: %s", n.String(), err.Error())
 	}
 
 	operandType, err := argOpTypeFromSpec(n.op, 0)
@@ -585,11 +585,11 @@ func (n *exprUnOpNode) getType() (exprType, error) {
 		return invalidType, err
 	}
 	if operandType != unknownType && valType != operandType {
-		return invalidType, fmt.Errorf("incompatible operand type: %s vs %s in expr '%s'", operandType, valType, n)
+		return invalidType, fmt.Errorf("incompatible operand type: '%s' vs %s in expr '%s'", operandType, valType, n)
 	}
 
 	if tp != valType {
-		return invalidType, fmt.Errorf("up op expects type %s but operand is %s", tp, valType)
+		return invalidType, fmt.Errorf("up op expects type '%s' but operand is '%s'", tp, valType)
 	}
 	return tp, nil
 }
@@ -602,19 +602,19 @@ func (n *ifExprNode) getType() (exprType, error) {
 
 	condType := tp
 	if condType != intType {
-		return invalidType, fmt.Errorf("cond type is %s, expected %s", condType, tp)
+		return invalidType, fmt.Errorf("cond type is '%s', expected '%s'", condType, tp)
 	}
 
 	condTrueExprType, err := n.condTrueExpr.getType()
 	if err != nil {
-		return invalidType, fmt.Errorf("first block has invalid type %s", err.Error())
+		return invalidType, fmt.Errorf("first block has invalid type: %s", err.Error())
 	}
 	condFalseExprType, err := n.condFalseExpr.getType()
 	if err != nil {
-		return invalidType, fmt.Errorf("second block has invalid type %s", err.Error())
+		return invalidType, fmt.Errorf("second block has invalid type: %s", err.Error())
 	}
 	if condTrueExprType != condFalseExprType {
-		return invalidType, fmt.Errorf("if blocks types mismatch %s vs %s", condTrueExprType, condFalseExprType)
+		return invalidType, fmt.Errorf("if blocks types mismatch '%s' vs '%s'", condTrueExprType, condFalseExprType)
 	}
 
 	return condTrueExprType, nil
@@ -851,4 +851,11 @@ func (n *ifStatementNode) String() string {
 
 func (n *funCallNode) String() string {
 	return fmt.Sprintf("%s (%v)", n.name, n.children())
+}
+
+func (n *runtimeFieldNode) String() string {
+	if n.op == "gtxn" {
+		return fmt.Sprintf("%s[%s].%s", n.op, n.index, n.field)
+	}
+	return fmt.Sprintf("%s.%s", n.op, n.field)
 }

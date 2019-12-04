@@ -53,8 +53,8 @@ function logic() {
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(5, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `incompatible right operand type: uint64 vs byte[]`)
-	a.Contains(parserErrors[1].msg, `if blocks types mismatch uint64 vs byte[]`)
+	a.Contains(parserErrors[0].msg, `incompatible right operand type: 'uint64' vs 'byte[]'`)
+	a.Contains(parserErrors[1].msg, `if blocks types mismatch 'uint64' vs 'byte[]'`)
 	a.Contains(parserErrors[2].msg, `const 'b' already declared`)
 	a.Contains(parserErrors[3].msg, `function 'test' already defined`)
 	a.Contains(parserErrors[4].msg, `incompatible types: (var) byte[] vs uint64 (expr)`)
@@ -464,7 +464,7 @@ func TestBinOpArgType(t *testing.T) {
 	result, parserErrors := ParseOneLineCond(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
-	a.Contains(parserErrors[0].String(), "incompatible types: uint64 vs byte[] in expr '1 == \"abc\"'")
+	a.Contains(parserErrors[0].String(), "incompatible types: 'uint64' vs 'byte[]' in expr '1 == \"abc\"'")
 }
 
 func TestBuiltinDeclaration(t *testing.T) {
