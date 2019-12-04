@@ -28,7 +28,7 @@ function get_string() {
     return "\x32\x33\x34"
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
 	let a = condition(1)
 	let b = get_string()
     return sample(2)

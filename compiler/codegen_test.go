@@ -11,7 +11,7 @@ import (
 func TestCodegenVariables(t *testing.T) {
 	a := require.New(t)
 
-	source := `let a = 1; let b = "123"; function logic(txn, gtxn, args) {a = 5; return 6;}`
+	source := `let a = 1; let b = "123"; function logic() {a = 5; return 6;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -33,7 +33,7 @@ func TestCodegenVariables(t *testing.T) {
 func TestCodegenErr(t *testing.T) {
 	a := require.New(t)
 
-	source := `function logic(txn, gtxn, args) {error;}`
+	source := `function logic() {error;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -46,7 +46,7 @@ func TestCodegenErr(t *testing.T) {
 func TestCodegenBinOp(t *testing.T) {
 	a := require.New(t)
 
-	source := `const c = 10; function logic(txn, gtxn, args) {let a = 1 + c; let b = !a; return 1;}`
+	source := `const c = 10; function logic() {let a = 1 + c; let b = !a; return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -66,7 +66,7 @@ func TestCodegenBinOp(t *testing.T) {
 func TestCodegenIfExpr(t *testing.T) {
 	a := require.New(t)
 
-	source := `let x = if 1 { 2 } else { 3 }; function logic(txn, gtxn, args) {return 1;}`
+	source := `let x = if 1 { 2 } else { 3 }; function logic() {return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -88,7 +88,7 @@ func TestCodegenIfExpr(t *testing.T) {
 func TestCodegenIfStmt(t *testing.T) {
 	a := require.New(t)
 
-	source := `function logic(txn, gtxn, args) { if 1 {let x=10;} return 1;}`
+	source := `function logic() { if 1 {let x=10;} return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -102,7 +102,7 @@ func TestCodegenIfStmt(t *testing.T) {
 	a.Equal("store 0", lines[5])
 	a.Equal("if_stmt_end_", lines[6][:len("if_stmt_end_")])
 
-	source = `function logic(txn, gtxn, args) { if 1 {let x=10;} else {let y=11;} return 1;}`
+	source = `function logic() { if 1 {let x=10;} else {let y=11;} return 1;}`
 	result, errors = Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -125,7 +125,7 @@ func TestCodegenIfStmt(t *testing.T) {
 func TestCodegenGlobals(t *testing.T) {
 	a := require.New(t)
 
-	source := `function logic(txn, gtxn, args) {let glob = global.MinTxnFee; let g = gtxn[1].Sender; let a = args[0]; return 1;}`
+	source := `function logic() {let glob = global.MinTxnFee; let g = gtxn[1].Sender; let a = args[0]; return 1;}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -144,7 +144,7 @@ func TestCodegenFunCall(t *testing.T) {
 
 	source := `
 function sum(x, y) { return x + y; }
-function logic(txn, gtxn, args) {
+function logic() {
 	let a = 1
 	let b = sum (a, 2)
 	let x = 3
@@ -196,7 +196,7 @@ function test1(x) {
 	return !x
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
 	let x = 1 + 1;
 	if x == 2 {
 		x = 0
@@ -230,7 +230,7 @@ func TestCodegenOpsPriority(t *testing.T) {
 
 	source := `
 let a = (1 + 2) / (3 - 4)
-function logic(txn, gtxn, args) { return a; }
+function logic() { return a; }
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
@@ -258,7 +258,7 @@ func TestCodegenImportStdlib(t *testing.T) {
 	source := `
 import stdlib.const
 import stdlib.noop
-function logic(txn, gtxn, args) { let type = TxTypePayment; type = NoOp(); return 1;}
+function logic() { let type = TxTypePayment; type = NoOp(); return 1;}
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)

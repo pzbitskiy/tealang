@@ -25,7 +25,7 @@ function sample(a) {
     return a - 1
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
     return sample(2)
 }
 ```
@@ -48,7 +48,7 @@ function get_string() {
     return "\x32\x33\x34"
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
     let a = 1
     a = test()
     return a

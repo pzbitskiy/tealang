@@ -260,7 +260,6 @@ func (l *treeNodeListener) EnterLogic(ctx *gen.LogicContext) {
 
 	node := newFunDefNode(scopedContext, l.parent)
 	node.name = "logic"
-	node.args = []string{ctx.TXN().GetText(), ctx.GTXN().GetText(), ctx.ARGS().GetText()}
 
 	listener := newTreeNodeListener(scopedContext, node)
 	ctx.Block().EnterRule(listener)

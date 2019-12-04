@@ -13,8 +13,6 @@ import (
 	"io"
 )
 
-const trueConstName = "TRUE_INTERNAL"
-const falseConstName = "FALSE_INTERNAL"
 const trueConstValue = "1"
 const falseConstValue = "0"
 

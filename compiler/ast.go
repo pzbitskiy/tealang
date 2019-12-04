@@ -71,6 +71,18 @@ func newContext(parent *context) (ctx *context) {
 	return
 }
 
+// for future use
+var builtins = map[string]bool{
+	"global":        true,
+	"txn":           true,
+	"gtxn":          true,
+	"args":          true,
+	"sha256":        true,
+	"sha512_256":    true,
+	"keccak256":     true,
+	"ed25519verify": true,
+}
+
 func (ctx *context) lookup(name string) (varable varInfo, err error) {
 	current := ctx
 	for current != nil {
@@ -97,6 +109,9 @@ func (ctx *context) update(name string, info varInfo) (err error) {
 }
 
 func (ctx *context) newVar(name string, theType exprType) error {
+	if _, ok := builtins[name]; ok {
+		return fmt.Errorf("%s is builtin", name)
+	}
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("variable '%s' already declared", name)
 	}
@@ -106,6 +121,9 @@ func (ctx *context) newVar(name string, theType exprType) error {
 }
 
 func (ctx *context) newConst(name string, theType exprType, value *string) error {
+	if _, ok := builtins[name]; ok {
+		return fmt.Errorf("%s is builtin", name)
+	}
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("const '%s' already declared", name)
 	}
@@ -118,6 +136,9 @@ func (ctx *context) newConst(name string, theType exprType, value *string) error
 }
 
 func (ctx *context) newFunc(name string, theType exprType, parser func(listener *treeNodeListener, callNode *funCallNode)) error {
+	if _, ok := builtins[name]; ok {
+		return fmt.Errorf("%s is builtin", name)
+	}
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("function '%s' already defined", name)
 	}

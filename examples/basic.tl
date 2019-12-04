@@ -7,7 +7,7 @@ function compare_increment(a, b) {
     return out
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
     let result = compare_increment(1, 2)
     if result == 0 {
         error

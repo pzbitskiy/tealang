@@ -27,7 +27,7 @@ function test(x, y) {
 	return x - y
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
 	let x = 1 + 1;
 	if x == 2 {
 		x = 0
@@ -62,12 +62,12 @@ function logic(txn, gtxn, args) {
 
 func TestOneLinerLogic(t *testing.T) {
 	a := require.New(t)
-	source := "function logic(txn, gtxn, args) {return 1;}"
+	source := "function logic() {return 1;}"
 	result, errors := Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
 
-	source = "let a=1; function logic(txn, gtxn, args) {return 1;}"
+	source = "let a=1; function logic() {return 1;}"
 	result, errors = Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
@@ -96,19 +96,19 @@ func TestInvalidLogicFunc(t *testing.T) {
 func TestAssignment(t *testing.T) {
 	a := require.New(t)
 
-	source := "function logic(txn, gtxn, args) {a=2; return 1;}"
+	source := "function logic() {a=2; return 1;}"
 	result, errors := Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "ident 'a' not defined")
 
-	source = "function logic(txn, gtxn, args) {const a=1; a=2; return 1;}"
+	source = "function logic() {const a=1; a=2; return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "assign to a constant")
 
-	source = "const a=1; function logic(txn, gtxn, args) {a=2; return 1;}"
+	source = "const a=1; function logic() {a=2; return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
@@ -118,12 +118,12 @@ func TestAssignment(t *testing.T) {
 func TestLookup(t *testing.T) {
 	a := require.New(t)
 
-	source := "let a=1; function logic(txn, gtxn, args) {a=2; return 1;}"
+	source := "let a=1; function logic() {a=2; return 1;}"
 	result, errors := Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
 
-	source = "function logic(txn, gtxn, args) {let a = test(); return 1;}"
+	source = "function logic() {let a = test(); return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
@@ -135,27 +135,27 @@ func TestFunctionLookup(t *testing.T) {
 
 	source := `
 function test(x, y) {return x + y;}
-function logic(txn, gtxn, args) {let a = test(1, 2); return 1;}
+function logic() {let a = test(1, 2); return 1;}
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
 
-	source = "function logic(txn, gtxn, args) {let a = test(); return 1;}"
+	source = "function logic() {let a = test(); return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "ident 'test' not defined")
 
 	source = `
-function logic(txn, gtxn, args) {let a = test(1); return 1;}
+function logic() {let a = test(1); return 1;}
 `
 	result, errors = Parse(source)
 	a.Empty(result, errors)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "ident 'test' not defined")
 
-	source = "let test = 1; function logic(txn, gtxn, args) {let a = test(); return 1;}"
+	source = "let test = 1; function logic() {let a = test(); return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
@@ -163,7 +163,7 @@ function logic(txn, gtxn, args) {let a = test(1); return 1;}
 
 	source = `
 function test(x) {return x;}
-function logic(txn, gtxn, args) {let a = test(); return 1;}
+function logic() {let a = test(); return 1;}
 `
 	result, errors = Parse(source)
 	a.Empty(result)
@@ -176,7 +176,7 @@ func TestFunctionType(t *testing.T) {
 
 	source := `
 function test(x, y) {return x + y;}
-function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
+function logic() {let x = test(1, 2); return 1;}
 `
 	result, parserErrors := Parse(source)
 	a.NotEmpty(result, parserErrors)
@@ -187,7 +187,7 @@ function test(x, y) {
 	if (x) {return x + y;}
 	else {return "a";}
 }
-function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
+function logic() {let x = test(1, 2); return 1;}
 `
 	result, parserErrors = Parse(source)
 	a.Empty(result)
@@ -197,7 +197,7 @@ function logic(txn, gtxn, args) {let x = test(1, 2); return 1;}
 
 	source = `
 function test(x, y) {return x + y;}
-function logic(txn, gtxn, args) {let x = "abc"; x = test(1, 2); return 1;}
+function logic() {let x = "abc"; x = test(1, 2); return 1;}
 `
 
 	result, parserErrors = Parse(source)
@@ -219,7 +219,7 @@ function condition(a) {
     return 1
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
 	let a = condition(1)
     return 1
 }
@@ -253,7 +253,7 @@ function test(a) {
     return 1
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
 	let a = test("abc")
     return 1
 }
@@ -266,7 +266,7 @@ function logic(txn, gtxn, args) {
 func TestBuiltinFunction(t *testing.T) {
 	a := require.New(t)
 	source := `
-function logic(txn, gtxn, args) {let x = sha256(1) ; return 1;}
+function logic() {let x = sha256(1) ; return 1;}
 `
 	result, parserErrors := Parse(source)
 	a.Empty(result)
@@ -275,7 +275,7 @@ function logic(txn, gtxn, args) {let x = sha256(1) ; return 1;}
 	a.Contains(parserErrors[0].msg, `incompatible types: (exp) byte[] vs uint64 (actual) in expr 'sha256 ([1])'`)
 
 	source = `
-function logic(txn, gtxn, args) {let x = 1; x = sha256("abc") ; return 1;}
+function logic() {let x = 1; x = sha256("abc") ; return 1;}
 `
 	result, parserErrors = Parse(source)
 	a.Empty(result)
@@ -288,7 +288,7 @@ function logic(txn, gtxn, args) {let x = 1; x = sha256("abc") ; return 1;}
 func TestLogicReturn(t *testing.T) {
 	a := require.New(t)
 	source := `
-function logic(txn, gtxn, args) {let x = 1;}
+function logic() {let x = 1;}
 `
 	result, parserErrors := Parse(source)
 	a.Empty(result)
@@ -297,7 +297,7 @@ function logic(txn, gtxn, args) {let x = 1;}
 	a.Contains(parserErrors[0].msg, `logic must return int but got unknown`)
 
 	source = `
-function logic(txn, gtxn, args) {return "test";}
+function logic() {return "test";}
 `
 	result, parserErrors = Parse(source)
 	a.Empty(result)
@@ -306,7 +306,7 @@ function logic(txn, gtxn, args) {return "test";}
 	a.Contains(parserErrors[0].msg, `logic must return int but got byte[]`)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let a = 1;
 	if a == 1 {
 		return 1;
@@ -320,7 +320,7 @@ function logic(txn, gtxn, args) {
 	a.Empty(parserErrors)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let a = 1;
 	if a == 1 {
 		return 1;
@@ -337,12 +337,12 @@ function logic(txn, gtxn, args) {
 func TestDoubleVariable(t *testing.T) {
 	a := require.New(t)
 
-	source := "function logic(txn, gtxn, args) {let x = 1; let x = 2; return 1;}"
+	source := "function logic() {let x = 1; let x = 2; return 1;}"
 	result, errors := Parse(source)
 	a.Empty(result, errors)
 	a.NotEmpty(errors)
 
-	source = "let x = 1; function logic(txn, gtxn, args) {let x = 2; return 1;}"
+	source = "let x = 1; function logic() {let x = 2; return 1;}"
 	result, errors = Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -352,7 +352,7 @@ func TestDoubleScopeVariable(t *testing.T) {
 	a := require.New(t)
 
 	source := `
-function logic(txn, gtxn, args) {
+function logic() {
 	let x = 2;
 	if 1 {
 		let x = 3;
@@ -394,7 +394,7 @@ func TestImportsDefault(t *testing.T) {
 	a := require.New(t)
 	source := `
 import test
-function logic(txn, gtxn, args) {return 1;}
+function logic() {return 1;}
 `
 	result, parserErrors := Parse(source)
 	a.Empty(result, parserErrors)
@@ -405,7 +405,7 @@ function logic(txn, gtxn, args) {return 1;}
 	source = `
 import stdlib.const
 import stdlib.noop
-function logic(txn, gtxn, args) { let type = TxTypePayment; type = NoOp(); return 1;}
+function logic() { let type = TxTypePayment; type = NoOp(); return 1;}
 `
 	result, parserErrors = Parse(source)
 	a.NotEmpty(result, parserErrors)
@@ -417,7 +417,7 @@ func TestImportsTemplate(t *testing.T) {
 	source := `
 import stdlib.const
 import stdlib.templates
-function logic(txn, gtxn, args) {
+function logic() {
 	let type = TxTypePayment
 	let result = DynamicFee("abc", 10, "xyz", 1, 1000, "mylease")
 	return result
@@ -432,7 +432,7 @@ func TestImports(t *testing.T) {
 	a := require.New(t)
 	source := `
 import test
-function logic(txn, gtxn, args) {let x = test(); return 1;}
+function logic() {let x = test(); return 1;}
 `
 	module := `
 function test() {
@@ -465,4 +465,49 @@ func TestBinOpArgType(t *testing.T) {
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Contains(parserErrors[0].String(), "incompatible types: uint64 vs byte[] in expr '1 == \"abc\"'")
+}
+
+func TestBuiltinDeclaration(t *testing.T) {
+	a := require.New(t)
+
+	source := `let global = 1
+const gtxn = 2
+function txn() { return 1; }
+function sha256(x) { return x; }
+function logic() {
+	const sha512_256 = 1
+	let args = 2
+}
+`
+	result, parserErrors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(3, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `mismatched input 'global' expecting IDENT`)
+	a.Contains(parserErrors[1].msg, `no viable alternative at input 'const gtxn'`)
+	a.Contains(parserErrors[2].msg, `no viable alternative at input 'function txn'`)
+
+	source = `function sha256(x) { return x; }
+function logic() {
+	const sha512_256 = 1
+	let args = 2
+}
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `no viable alternative at input 'function sha256'`)
+
+	source = `function logic() {
+	const sha512_256 = 1
+	let args = 2
+}
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(2, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `no viable alternative at input 'const sha512_256'`)
+	a.Contains(parserErrors[1].msg, `mismatched input 'args' expecting IDENT`)
 }

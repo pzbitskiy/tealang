@@ -6,7 +6,7 @@ function test(x, y) {
 	return x+y/2
 }
 
-function logic(txn, gtxn, args) {
+function logic() {
 	if e == 1 {
 		let x = a + b;
 		error

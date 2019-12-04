@@ -29,7 +29,7 @@ block
     ;
 
 logic
-    : FUNC LOGIC LEFTPARA TXN COMMA GTXN COMMA ARGS RIGHTPARA block NEWLINE*
+    : FUNC LOGIC LEFTPARA RIGHTPARA block NEWLINE*
     ;
 
 declaration

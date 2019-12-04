@@ -13,7 +13,7 @@ let a = 456; const b = 123; const c = "1234567890123";
 let d = 1 + 2 ;
 let e = if a > 0 {1} else {2}
 
-function logic(txn, gtxn, args) {
+function logic() {
 	if e == 1 {
 		let x = a + b;
 		error
@@ -48,7 +48,7 @@ func TestParserValidProgram(t *testing.T) {
 let a = 1
 let e = if a > 0 {1} else {2}
 
-function logic(txn, gtxn, args) {
+function logic() {
 	if e == 1 {
 		let x = 2;
 		error
@@ -67,7 +67,7 @@ func TestParserErrorReporting(t *testing.T) {
 	source := `
 let e = if a > 0 {1} else {}
 
-function logic(txn, gtxn, args) {
+function logic() {
 	if e == 1 {
 		let x = 2;
 		error
@@ -111,7 +111,7 @@ let a = 33bbb
 	a.Equal(msg, errors[0].String())
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	if e == 1 {
 		let x = 2;
 		error
@@ -132,7 +132,7 @@ ident not found`
 	a.Equal(msg, errors[0].String())
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let x = "123"
 	let e = 1
 	if e == 1 {
@@ -155,7 +155,7 @@ incompatible types: (var) byte[] vs uint64 (expr)`
 	a.Equal(msg, errors[0].String())
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	e = "123"
 	return 1
@@ -178,7 +178,7 @@ func TestIfElseProgram(t *testing.T) {
 	a := require.New(t)
 
 	source := `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	if e == 1 {return 1;}
 	else {return 0;}
@@ -189,7 +189,7 @@ function logic(txn, gtxn, args) {
 	a.Empty(errors)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	if e == 1 { return 1; }
 	else { return 0; }
@@ -200,7 +200,7 @@ function logic(txn, gtxn, args) {
 	a.Empty(errors)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	if e == 1 {
 		return 1;
@@ -214,7 +214,7 @@ function logic(txn, gtxn, args) {
 	a.Empty(errors)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	if e == 1 {
 		return 1;
@@ -229,7 +229,7 @@ function logic(txn, gtxn, args) {
 	a.Empty(errors)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	if e == 1
 	{
@@ -242,7 +242,7 @@ function logic(txn, gtxn, args) {
 	a.NotEmpty(errors)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	if e == 1 {
 		return 1;
@@ -254,7 +254,7 @@ function logic(txn, gtxn, args) {
 	a.Empty(errors)
 
 	source = `
-function logic(txn, gtxn, args) {
+function logic() {
 	let e = 2
 	if e == 1 { return 1; }
 	return 0
