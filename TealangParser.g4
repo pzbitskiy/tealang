@@ -19,7 +19,6 @@ onelinecond
 statement
     :   decl (NEWLINE|SEMICOLON)
     |   condition
-    |   expr (NEWLINE|SEMICOLON)
     |   termination
     |   assignment
     |   NEWLINE|SEMICOLON

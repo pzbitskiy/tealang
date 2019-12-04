@@ -53,7 +53,7 @@ function logic(txn, gtxn, args) {
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(5, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `incompatible types: uint64 vs byte[]`)
+	a.Contains(parserErrors[0].msg, `incompatible right operand type: uint64 vs byte[]`)
 	a.Contains(parserErrors[1].msg, `if blocks types mismatch uint64 vs byte[]`)
 	a.Contains(parserErrors[2].msg, `const 'b' already declared`)
 	a.Contains(parserErrors[3].msg, `function 'test' already defined`)
@@ -123,7 +123,7 @@ func TestLookup(t *testing.T) {
 	a.NotEmpty(result)
 	a.Empty(errors)
 
-	source = "function logic(txn, gtxn, args) {test(); return 1;}"
+	source = "function logic(txn, gtxn, args) {let a = test(); return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
@@ -135,27 +135,27 @@ func TestFunctionLookup(t *testing.T) {
 
 	source := `
 function test(x, y) {return x + y;}
-function logic(txn, gtxn, args) {test(1, 2); return 1;}
+function logic(txn, gtxn, args) {let a = test(1, 2); return 1;}
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result)
 	a.Empty(errors)
 
-	source = "function logic(txn, gtxn, args) {test(); return 1;}"
+	source = "function logic(txn, gtxn, args) {let a = test(); return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "ident 'test' not defined")
 
 	source = `
-function logic(txn, gtxn, args) {test(1); return 1;}
+function logic(txn, gtxn, args) {let a = test(1); return 1;}
 `
 	result, errors = Parse(source)
 	a.Empty(result, errors)
 	a.NotEmpty(errors)
 	a.Contains(errors[0].String(), "ident 'test' not defined")
 
-	source = "let test = 1; function logic(txn, gtxn, args) {test(); return 1;}"
+	source = "let test = 1; function logic(txn, gtxn, args) {let a = test(); return 1;}"
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)
@@ -163,7 +163,7 @@ function logic(txn, gtxn, args) {test(1); return 1;}
 
 	source = `
 function test(x) {return x;}
-function logic(txn, gtxn, args) {test(); return 1;}
+function logic(txn, gtxn, args) {let a = test(); return 1;}
 `
 	result, errors = Parse(source)
 	a.Empty(result)
@@ -405,7 +405,7 @@ function logic(txn, gtxn, args) {return 1;}
 	source = `
 import stdlib.const
 import stdlib.noop
-function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
+function logic(txn, gtxn, args) { let type = TxTypePayment; type = NoOp(); return 1;}
 `
 	result, parserErrors = Parse(source)
 	a.NotEmpty(result, parserErrors)
@@ -455,4 +455,14 @@ func TestOneLineCond(t *testing.T) {
 	result, parserErrors := ParseOneLineCond(source)
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors, parserErrors)
+}
+
+func TestBinOpArgType(t *testing.T) {
+	a := require.New(t)
+
+	source := `1 == "abc"`
+	result, parserErrors := ParseOneLineCond(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Contains(parserErrors[0].String(), "incompatible types: uint64 vs byte[] in expr '1 == \"abc\"'")
 }

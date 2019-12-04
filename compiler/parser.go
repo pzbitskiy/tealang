@@ -343,10 +343,6 @@ func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
 		ctx.Termination().EnterRule(l)
 	} else if ctx.Assignment() != nil {
 		ctx.Assignment().EnterRule(l)
-	} else if ctx.Expr() != nil {
-		listener := newExprListener(l.ctx, l.parent)
-		ctx.Expr().EnterRule(listener)
-		l.node = listener.getExpr()
 	}
 }
 
@@ -737,6 +733,11 @@ func (l *treeNodeListener) EnterOnelinecond(ctx *gen.OnelinecondContext) {
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.Expr().EnterRule(listener)
 	expr := listener.getExpr()
+	_, err := expr.getType() // trigger type evaluation
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.Expr().GetStart(), ctx.GetRuleContext())
+		return
+	}
 
 	root := newProgramNode(l.ctx, l.parent)
 	root.append(expr)

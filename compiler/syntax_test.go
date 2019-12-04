@@ -32,8 +32,8 @@ function logic(txn, gtxn, args) {
 	let x = 2;
 	x = global.GroupSize
 	let y = args[0]
-	sha256(c)
-	ed25519verify("\x01\x02", c, "test")
+	y = sha256(c)
+	x = ed25519verify("\x01\x02", c, "test")
 	return 1
 }
 `

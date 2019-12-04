@@ -526,11 +526,23 @@ func (n *exprBinOpNode) getType() (exprType, error) {
 		return invalidType, fmt.Errorf("right operand %s has invalid type %s", n.rhs.String(), err.Error())
 	}
 
+	opLHS, err := argOpTypeFromSpec(n.op, 0)
+	if err != nil {
+		return invalidType, err
+	}
+	if opLHS != unknownType && lhs != opLHS {
+		return invalidType, fmt.Errorf("incompatible left operand type: %s vs %s in expr '%s'", opLHS, lhs, n)
+	}
+
+	opRHS, err := argOpTypeFromSpec(n.op, 1)
+	if err != nil {
+		return invalidType, err
+	}
+	if opRHS != unknownType && rhs != opRHS {
+		return invalidType, fmt.Errorf("incompatible right operand type: %s vs %s in expr '%s'", opRHS, rhs, n)
+	}
 	if lhs != rhs {
 		return invalidType, fmt.Errorf("incompatible types: %s vs %s in expr '%s'", lhs, rhs, n)
-	}
-	if tp != lhs {
-		return invalidType, fmt.Errorf("bin op expects type %s but operands are %s", tp, lhs)
 	}
 
 	return tp, nil
@@ -546,6 +558,15 @@ func (n *exprUnOpNode) getType() (exprType, error) {
 	if err != nil {
 		return invalidType, fmt.Errorf("operand %s has invalid type %s", n.String(), err.Error())
 	}
+
+	operandType, err := argOpTypeFromSpec(n.op, 0)
+	if err != nil {
+		return invalidType, err
+	}
+	if operandType != unknownType && valType != operandType {
+		return invalidType, fmt.Errorf("incompatible operand type: %s vs %s in expr '%s'", operandType, valType, n)
+	}
+
 	if tp != valType {
 		return invalidType, fmt.Errorf("up op expects type %s but operand is %s", tp, valType)
 	}

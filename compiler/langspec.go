@@ -21,6 +21,8 @@ func argOpTypeFromSpec(op string, arg int) (exprType, error) {
 			return intType, nil
 		case 'B':
 			return bytesType, nil
+		case '.':
+			return unknownType, nil
 		}
 	}
 	return invalidType, fmt.Errorf("can't get type for %s arg #%d", op, arg)

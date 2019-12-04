@@ -100,7 +100,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&outFile, "output", "o", "", "Output file")
 	rootCmd.Flags().BoolVarP(&compileOnly, "compile", "c", false, "Compile to TEAL and stop")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.Flags().StringVarP(&oneliner, "oneliner", "l", "", "Compile logic one liner")
+	rootCmd.Flags().StringVarP(&oneliner, "oneliner", "l", "", "Compile logic one liner like (txn.Sender == \"abc\") && (1+2) >= 3")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

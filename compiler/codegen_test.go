@@ -258,7 +258,7 @@ func TestCodegenImportStdlib(t *testing.T) {
 	source := `
 import stdlib.const
 import stdlib.noop
-function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
+function logic(txn, gtxn, args) { let type = TxTypePayment; type = NoOp(); return 1;}
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
@@ -272,10 +272,11 @@ function logic(txn, gtxn, args) { let type = TxTypePayment; NoOp(); return 1;}
 	a.Equal("intc 1", lines[4])
 	a.Equal("bnz end_NoOp", lines[5])
 	a.Equal("end_NoOp:", lines[6])
-	a.Equal("intc 1", lines[7])
+	a.Equal("store 0", lines[7])
 	a.Equal("intc 1", lines[8])
-	a.Equal("bnz end_logic", lines[9])
-	a.Equal("end_logic:", lines[10])
+	a.Equal("intc 1", lines[9])
+	a.Equal("bnz end_logic", lines[10])
+	a.Equal("end_logic:", lines[11])
 }
 
 func TestCodegenOneLineCond(t *testing.T) {
