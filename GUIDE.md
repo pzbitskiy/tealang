@@ -33,7 +33,27 @@ let x = b
 function test(x) { return x; }
 ```
 
-Declarations, definitions and assignments are statement
+Declarations, definitions and assignments are statements.
+
+## String literals
+
+String literals are decoded and stored as byte arrays in underlying **TEAL** program.
+Literals might be encoded and contain hex escape sequence. The following encoding prefixes are supported:
+* b32 for **base32** strings
+* b64 for **base64** strings
+* addr for Algorand addresses
+
+```
+const zeroAddress = addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+const someval = b64"MTIz"
+
+function logic() {
+    if txn.Receiver == zeroAddress {
+        return 1
+    }
+    return 0
+}
+```
 
 ## Functions
 
@@ -50,7 +70,7 @@ function logic() { return inc(0); }
 Must exist in every program and return integer. The return value (zero/non-zero) is **TRUE** or **FALSE** return code for entire **TEAL** program (smart contract).
 ```
 function logic() {
-    if txn.Sender == "ABC" {
+    if txn.Sender == addr"47YPQTIGQEO7T4Y4RWDYWEKV6RTR2UNBQXBABEEGM72ESWDQNCQ52OPASU" {
          return 1
     }
     return 0

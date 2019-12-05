@@ -51,6 +51,8 @@ const b = "abc\x01"
 let x = b
 function test(x) { return x; }
 let sender = if global.GroupSize > 1 { txn.Sender } else { gtxn[1].Sender }
+const zeroAddress = addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+const someval = b64"MTIz"
 
 function inc(x) { return x+1; }
 const myconst = 1
@@ -72,6 +74,10 @@ function logic() {
 	} else {
 		let x = txn.Receiver
 	}
+
+    if txn.Receiver == zeroAddress {
+        return 1
+    }
 
 	return inc(0);
 

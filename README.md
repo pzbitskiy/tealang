@@ -1,6 +1,6 @@
 # Teal Language
 
-High-level language for Algorand Smart Contracts at Layer-1 and it's low-level **TEAL** language.
+High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL** language.
 The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
@@ -10,7 +10,7 @@ The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS
 * Variables and constants
 ```
 let variable1 = 1
-const myaddr = "XYZ"
+const myaddr = addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
 ```
 
 * All binary and unary operations from **TEAL**

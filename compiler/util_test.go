@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -67,4 +68,54 @@ func TestStringDecoding(t *testing.T) {
 	s = `"test\x10\x1"`
 	result, err = parseStringLiteral(s)
 	require.EqualError(t, err, "non-terminated hex seq")
+}
+
+func TestStringEncodingPrefixes(t *testing.T) {
+	a := require.New(t)
+
+	s := `b64"MTIz"`
+	e := []byte(`123`)
+	result, err := parseStringLiteral(s)
+	a.NoError(err)
+	a.Equal(e, result)
+
+	s = `b64"MTIzCg=="`
+	e = []byte("123\n")
+	result, err = parseStringLiteral(s)
+	a.NoError(err)
+	a.Equal(e, result)
+
+	s = `b64"123"`
+	result, err = parseStringLiteral(s)
+	a.Error(err)
+
+	s = `b32"GEZDGCQ="`
+	e = []byte("123\n")
+	result, err = parseStringLiteral(s)
+	a.NoError(err)
+	a.Equal(e, result)
+
+	s = `b32"GEZDG==="`
+	e = []byte("123")
+	result, err = parseStringLiteral(s)
+	a.NoError(err)
+	a.Equal(e, result)
+
+	s = `b32"123"`
+	result, err = parseStringLiteral(s)
+	a.Error(err)
+
+	s = `addr"J5YDZLPOHWB5O6MVRHNFGY4JXIQAYYM6NUJWPBSYBBIXH5ENQ4Z5LTJELU"`
+	result, err = parseStringLiteral(s)
+	a.NoError(err)
+
+	s = `addr"J5YDZLPOHWB5O6MVRHNFGY4JXIQAYYM6NUJWPBSYBBIXH5ENQ4Z5LTJELY"`
+	result, err = parseStringLiteral(s)
+	a.Error(err)
+
+	s = `addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"`
+	e = bytes.Repeat([]byte("\x00"), 32)
+	result, err = parseStringLiteral(s)
+	a.NoError(err)
+	a.Equal(e, result)
 }

@@ -265,3 +265,27 @@ function logic() {
 	a.Empty(errors)
 
 }
+
+func TestStringLiteralPrefixes(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let a = b32"GEZDGCQ="
+	return 0
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	source = `
+function logic() {
+	let a = addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+	return 0
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+}

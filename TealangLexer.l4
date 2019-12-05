@@ -133,6 +133,7 @@ LAND        : '&&';
 fragment EncodingPrefix
     :   'b32'
     |   'b64'
+    |   'addr'
     ;
 
 fragment StringChar

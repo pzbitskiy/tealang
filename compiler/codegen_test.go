@@ -362,3 +362,27 @@ function logic() {
 	a.Equal("bnz end_logic", lines[9])
 	a.Equal("end_logic:", lines[10])
 }
+
+func TestAddressStringLiteralDecoding(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let a = addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+	return 0
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1", lines[0])
+	a.Equal("bytecblock 0x"+strings.Repeat("00", 32), lines[1])
+	a.Equal("bytec 0", lines[2])
+	a.Equal("store 0", lines[3])
+	a.Equal("intc 0", lines[4])
+	a.Equal("intc 1", lines[5])
+	a.Equal("bnz end_logic", lines[6])
+	a.Equal("end_logic:", lines[7])
+}
