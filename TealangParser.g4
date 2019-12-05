@@ -59,12 +59,14 @@ termination
 
 decl
     :   LET IDENT EQ expr                          # DeclareVar
+    |   LET IDENT COMMA IDENT EQ mulwCall          # DeclareVarMulw
     |   CONST IDENT EQ NUMBER                      # DeclareNumberConst
     |   CONST IDENT EQ STRING                      # DeclareStringConst
     ;
 
 assignment
-    :   IDENT '=' expr                              # Assign
+    :   IDENT EQ expr                              # Assign
+    |   IDENT COMMA IDENT EQ mulwCall              # AssignMulw
     ;
 
 expr
@@ -82,6 +84,10 @@ expr
     |   expr op=(BOR|BXOR|BAND) expr                # BitOp
     |   expr op=(LAND|LOR) expr                     # AndOr
     |   condExpr                                    # IfExpr
+    ;
+
+mulwCall
+    :   MULW LEFTPARA (expr COMMA expr ) RIGHTPARA
     ;
 
 functionCall

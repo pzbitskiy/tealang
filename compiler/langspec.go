@@ -25,7 +25,7 @@ func argOpTypeFromSpec(op string, arg int) (exprType, error) {
 			return unknownType, nil
 		}
 	}
-	return invalidType, fmt.Errorf("can't get type for %s arg #%d", op, arg)
+	return invalidType, fmt.Errorf("can't get type for %s arg #%d", op, arg+1)
 }
 
 func runtimeFieldTypeFromSpec(op string, field string) (exprType, error) {

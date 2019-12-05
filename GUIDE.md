@@ -116,6 +116,17 @@ let sender = if global.GroupSize > 1 { txn.Sender } else { gtxn[1].Sender }
 All operations like +, -, *, ==, !=, <, >, >=, etc.
 See [TEAL documentation](https://github.com/algorand/go-algorand/blob/master/data/transactions/logic/README.md#arithmetic-logic-and-cryptographic-operations) for the full list.
 
+## Builtin functions
+
+`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw` are supported.
+The latter is a special one - it returns two values, high and low.
+
+```
+let h = len("123")
+let l = btoi("1")
+h, l = mulw(l, h)
+```
+
 ## Builtin objects
 
 There are 4 builtin objects: `txn`, `gtxn`, `global`, `args`. Accessing them is an expression.

@@ -81,6 +81,10 @@ function logic() {
 
 	return inc(0);
 
+	let h = len("123")
+	let l = btoi("1")
+	h, l = mulw(l, h)
+
 	let ret = TxTypePayment
 	return ret
 }

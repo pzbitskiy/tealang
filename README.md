@@ -126,5 +126,4 @@ make java-gui
 
 ## Limitations
 
-* No `mulw` **TEAL** opcode support.
 * No check that all branches `return` or `error`.

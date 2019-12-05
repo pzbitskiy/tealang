@@ -293,6 +293,37 @@ func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 	l.node = node
 }
 
+func (l *treeNodeListener) EnterDeclareVarMulw(ctx *gen.DeclareVarMulwContext) {
+	identHigh := ctx.IDENT(0).GetText()
+	identLow := ctx.IDENT(1).GetText()
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.MulwCall().EnterRule(listener)
+	exprNode := listener.getExpr()
+
+	varType, err := exprNode.getType()
+	if err != nil {
+		reportError(
+			err.Error(), ctx.GetParser(),
+			ctx.MulwCall().(*gen.MulwCallContext).MULW().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+
+	err = l.ctx.newVar(identLow, varType)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+	err = l.ctx.newVar(identHigh, varType)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	node := newVarDeclMulwNode(l.ctx, l.parent, identLow, identHigh, exprNode)
+	l.node = node
+}
+
 func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {
 	varName := ctx.IDENT().GetText()
 	varValue := ctx.NUMBER().GetText()
@@ -411,20 +442,27 @@ func (l *treeNodeListener) EnterIfStatementFalse(ctx *gen.IfStatementFalseContex
 	l.node = blockNode
 }
 
-func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
-	ident := ctx.IDENT().GetSymbol().GetText()
-	info, err := l.ctx.lookup(ident)
+func getVarInfoForAssignment(ident string, ctx *context) (varInfo, error) {
+	info, err := ctx.lookup(ident)
 	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
-		return
+		return varInfo{}, err
 	}
 	if info.constant {
-		reportError("cannot assign to a constant", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
-		return
+		return varInfo{}, fmt.Errorf("cannot assign to a constant")
 	}
 
 	if info.function {
-		reportError("cannot assign to a function", ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return varInfo{}, fmt.Errorf("cannot assign to a function")
+	}
+
+	return info, nil
+}
+
+func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
+	ident := ctx.IDENT().GetSymbol().GetText()
+	info, err := getVarInfoForAssignment(ident, l.ctx)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 		return
 	}
 
@@ -445,6 +483,51 @@ func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 		reportError(
 			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", info.theType, rhsType),
 			ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	l.node = node
+}
+
+func (l *treeNodeListener) EnterAssignMulw(ctx *gen.AssignMulwContext) {
+	identHigh := ctx.IDENT(0).GetSymbol().GetText()
+	infoHigh, err := getVarInfoForAssignment(identHigh, l.ctx)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	identLow := ctx.IDENT(1).GetSymbol().GetText()
+	infoLow, err := getVarInfoForAssignment(identLow, l.ctx)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+
+	node := newAssignMulwNode(l.ctx, l.parent, identLow, identHigh)
+	listener := newExprListener(l.ctx, node)
+	ctx.MulwCall().EnterRule(listener)
+	rhs := listener.getExpr()
+	node.value = rhs
+	rhsType, err := rhs.getType()
+	if err != nil {
+		reportError(
+			fmt.Sprintf("failed type resolution type: %s", err.Error()),
+			ctx.GetParser(), ctx.MulwCall().(*gen.MulwCallContext).MULW().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	if infoHigh.theType != rhsType {
+		reportError(
+			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoHigh.theType, rhsType),
+			ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	if infoLow.theType != rhsType {
+		reportError(
+			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoLow.theType, rhsType),
+			ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext(),
 		)
 		return
 	}
@@ -656,6 +739,22 @@ func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext)
 		node.append(arg)
 	}
 	return node
+}
+
+func (l *exprListener) EnterMulwCall(ctx *gen.MulwCallContext) {
+	name := ctx.MULW().GetText()
+	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		parser := ctx.GetParser()
+		token := ctx.MULW().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError(err.Error(), parser, token, rule)
+		return
+	}
+
+	l.expr = exprNode
 }
 
 func (l *exprListener) EnterBuiltinObject(ctx *gen.BuiltinObjectContext) {

@@ -71,18 +71,6 @@ func newContext(parent *context) (ctx *context) {
 	return
 }
 
-// for future use
-var builtins = map[string]bool{
-	"global":        true,
-	"txn":           true,
-	"gtxn":          true,
-	"args":          true,
-	"sha256":        true,
-	"sha512_256":    true,
-	"keccak256":     true,
-	"ed25519verify": true,
-}
-
 func (ctx *context) lookup(name string) (varable varInfo, err error) {
 	current := ctx
 	for current != nil {
@@ -109,9 +97,6 @@ func (ctx *context) update(name string, info varInfo) (err error) {
 }
 
 func (ctx *context) newVar(name string, theType exprType) error {
-	if _, ok := builtins[name]; ok {
-		return fmt.Errorf("%s is builtin", name)
-	}
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("variable '%s' already declared", name)
 	}
@@ -121,9 +106,6 @@ func (ctx *context) newVar(name string, theType exprType) error {
 }
 
 func (ctx *context) newConst(name string, theType exprType, value *string) error {
-	if _, ok := builtins[name]; ok {
-		return fmt.Errorf("%s is builtin", name)
-	}
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("const '%s' already declared", name)
 	}
@@ -136,9 +118,6 @@ func (ctx *context) newConst(name string, theType exprType, value *string) error
 }
 
 func (ctx *context) newFunc(name string, theType exprType, parser func(listener *treeNodeListener, callNode *funCallNode)) error {
-	if _, ok := builtins[name]; ok {
-		return fmt.Errorf("%s is builtin", name)
-	}
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("function '%s' already defined", name)
 	}
@@ -207,6 +186,7 @@ var builtinFun = map[string]bool{
 	"len":           true,
 	"itob":          true,
 	"btoi":          true,
+	"mulw":          true,
 }
 
 // TreeNodeIf represents a node in AST
@@ -265,9 +245,25 @@ type assignNode struct {
 	value    ExprNodeIf
 }
 
+type assignMulwNode struct {
+	*TreeNode
+	low      string
+	high     string
+	exprType exprType
+	value    ExprNodeIf
+}
+
 type varDeclNode struct {
 	*TreeNode
 	name     string
+	exprType exprType
+	value    ExprNodeIf
+}
+
+type varDeclMulwNode struct {
+	*TreeNode
+	low      string
+	high     string
 	exprType exprType
 	value    ExprNodeIf
 }
@@ -396,6 +392,16 @@ func newAssignNode(ctx *context, parent TreeNodeIf, ident string) (node *assignN
 	return
 }
 
+func newAssignMulwNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string) (node *assignMulwNode) {
+	node = new(assignMulwNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "assign mulw"
+	node.low = identLow
+	node.high = identHigh
+	node.value = nil
+	return
+}
+
 func newFunDefNode(ctx *context, parent TreeNodeIf) (node *funDefNode) {
 	node = new(funDefNode)
 	node.TreeNode = newNode(ctx, parent)
@@ -408,6 +414,18 @@ func newVarDeclNode(ctx *context, parent TreeNodeIf, ident string, value ExprNod
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "var"
 	node.name = ident
+	node.value = value
+	tp, _ := value.getType()
+	node.exprType = tp
+	return
+}
+
+func newVarDeclMulwNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, value ExprNodeIf) (node *varDeclMulwNode) {
+	node = new(varDeclMulwNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "var mulw"
+	node.low = identLow
+	node.high = identHigh
 	node.value = value
 	tp, _ := value.getType()
 	node.exprType = tp
@@ -803,6 +821,10 @@ func printImpl(n TreeNodeIf, offset int) {
 
 func (n *varDeclNode) String() string {
 	return fmt.Sprintf("var (%s) %s = %s", n.exprType, n.name, n.value)
+}
+
+func (n *varDeclMulwNode) String() string {
+	return fmt.Sprintf("var (%s) %s, %s = %s", n.exprType, n.high, n.low, n.value)
 }
 
 func (n *constNode) String() string {

@@ -93,6 +93,15 @@ func (n *assignNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 }
 
+func (n *assignMulwNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	info, _ := n.ctx.lookup(n.low)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.high)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+}
+
 func (n *returnNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
 	fmt.Fprintf(
@@ -127,6 +136,15 @@ func (n *varDeclNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
 
 	info, _ := n.ctx.lookup(n.name)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+}
+
+func (n *varDeclMulwNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	info, _ := n.ctx.lookup(n.low)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.high)
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 }
 

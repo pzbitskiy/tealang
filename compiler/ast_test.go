@@ -483,7 +483,7 @@ function logic() {
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(3, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `mismatched input 'global' expecting IDENT`)
+	a.Contains(parserErrors[0].msg, `no viable alternative at input 'let global'`)
 	a.Contains(parserErrors[1].msg, `no viable alternative at input 'const gtxn'`)
 	a.Contains(parserErrors[2].msg, `no viable alternative at input 'function txn'`)
 
@@ -509,5 +509,38 @@ function logic() {
 	a.NotEmpty(parserErrors)
 	a.Equal(2, len(parserErrors), parserErrors)
 	a.Contains(parserErrors[0].msg, `no viable alternative at input 'const sha512_256'`)
-	a.Contains(parserErrors[1].msg, `mismatched input 'args' expecting IDENT`)
+	a.Contains(parserErrors[1].msg, `no viable alternative at input 'let args'`)
+}
+
+func TestBuiltinFuncArgsNumber(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let a = sha256("test", 1)
+}
+`
+	result, parserErrors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `can't get type for sha256 arg #2`)
+}
+
+func TestBuiltinMulw(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+let a, b = mulw(1, 2)
+function logic() {
+	a, b = mulw(1, 2)
+	if a == b {
+		return 0
+	}
+	return 1
+}
+`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
 }

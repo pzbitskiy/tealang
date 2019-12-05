@@ -39,7 +39,9 @@ BUILTINFUNC
     |   KECCAK256
     |   SHA512
     |   ED25519
-    |   MULW
+    |   LEN
+    |   ITOB
+    |   BTOI
     ;
 
 LET         : 'let' ;
@@ -93,6 +95,9 @@ KECCAK256   : 'keccak256' ;
 SHA512      : 'sha512_256' ;
 ED25519     : 'ed25519verify' ;
 MULW        : 'mulw';
+LEN         : 'len';
+ITOB        : 'itob';
+BTOI        : 'btoi';
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
 NUMBER      : [0-9]+ ;

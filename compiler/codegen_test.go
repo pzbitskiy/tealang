@@ -386,3 +386,36 @@ function logic() {
 	a.Equal("bnz end_logic", lines[6])
 	a.Equal("end_logic:", lines[7])
 }
+
+func TestCodegenMulw(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+let h, l = mulw(1, 2)
+function logic() {
+	h, l = mulw(3, 4)
+	return l
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	fmt.Print(prog)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2 3 4", lines[0])
+	a.Equal("intc 1", lines[1])
+	a.Equal("intc 2", lines[2])
+	a.Equal("mulw", lines[3])
+	a.Equal("store 0", lines[4]) // store low
+	a.Equal("store 1", lines[5]) // store high
+	a.Equal("intc 3", lines[6])
+	a.Equal("intc 4", lines[7])
+	a.Equal("mulw", lines[8])
+	a.Equal("store 0", lines[9])
+	a.Equal("store 1", lines[10])
+	a.Equal("load 0", lines[11])
+	a.Equal("intc 1", lines[12])
+	a.Equal("bnz end_logic", lines[13])
+	a.Equal("end_logic:", lines[14])
+}
