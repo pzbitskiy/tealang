@@ -1,4 +1,4 @@
-# Teal Language
+# Tealang
 
 High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL** language.
 The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
@@ -81,9 +81,13 @@ import stdlib.const
     ```sh
     tealang -l '(txn.Sender == "abc") && global.MinTxnFee > 2000' -o mycontract.tok
     ```
-* Stdin to Stdout
+* stdin to stdout
     ```sh
     cat mycontract.tl | tealang -s -r - > mycontract.tok
+    ```
+* Dryrun / trace
+    ```sh
+    tealang -s -c -d '' examples/basic.tl
     ```
 
 Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
@@ -107,7 +111,7 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
     popd
     ```
 
-### Build
+### Build and test
 ```sh
 make go
 ```

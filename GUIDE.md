@@ -1,6 +1,6 @@
 # Tealang guide
 
-Tealang translates all (except `mulw`) own constructions to corresponding **TEAL** instructions
+Tealang translates all own constructions to corresponding **TEAL** instructions
 so that there is almost one-to-one mapping between statements in both languages.
 
 Refer to [TEAL documentation](https://developer.algorand.org/docs/teal) for details.
