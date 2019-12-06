@@ -156,8 +156,8 @@ There are 4 builtin objects: `txn`, `gtxn`, `global`, `args`. Accessing them is 
 | 12 | VoteFirst | uint64 |  |
 | 13 | VoteLast | uint64 |  |
 | 14 | VoteKeyDilution | uint64 |  |
-| 15 | Type | []byte |  |
-| 16 | TypeEnum | uint64 | See table below |
+| 15 | Type | []byte | transaction type string |
+| 16 | TypeEnum | uint64 | type constant |
 | 17 | XferAsset | uint64 | Asset ID |
 | 18 | AssetAmount | uint64 | value in Asset's units |
 | 19 | AssetSender | []byte | 32 byte address. Causes clawback of all value of asset from AssetSender if Sender is the Clawback address of the asset. |

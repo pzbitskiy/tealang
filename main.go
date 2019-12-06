@@ -7,8 +7,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"./compiler"
+	dr "./dryrun"
 
 	"github.com/algorand/go-algorand/data/transactions/logic"
 	"github.com/spf13/cobra"
@@ -22,6 +24,7 @@ var verbose bool
 var oneliner string
 var stdout bool
 var raw bool
+var dryrun string
 
 var currentDir string
 var sourceDir string
@@ -151,6 +154,28 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 			}
 			ioutil.WriteFile(outFile, output, 0644)
 		}
+
+		if cmd.Flags().Changed("dryrun") {
+			if bytecode == nil {
+				bytecode, err = logic.AssembleString(teal)
+				if err != nil {
+					fmt.Println(err.Error())
+					os.Exit(1)
+				}
+			}
+			sb := strings.Builder{}
+			cost, pass, err := dr.Run(bytecode, dryrun, &sb)
+			fmt.Printf("cost=%d trace:\n%s\n", cost, sb.String())
+			if pass {
+				fmt.Printf(" - pass -\n")
+			} else {
+				fmt.Printf("REJECT\n")
+			}
+			if err != nil {
+				fmt.Printf("ERROR: %s\n", err.Error())
+			}
+
+		}
 	},
 }
 
@@ -161,6 +186,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&oneliner, "oneliner", "l", "", "compile logic one-liner like '(txn.Sender == \"abc\") && (1+2) >= 3'")
 	rootCmd.Flags().BoolVarP(&stdout, "stdout", "s", false, "write output to stdout instead of a file")
 	rootCmd.Flags().BoolVarP(&raw, "raw", "r", false, "do not hex-encode bytecode when outputting to stdout")
+	rootCmd.Flags().StringVarP(&dryrun, "dryrun", "d", "", "dry run program with transaction data from the file provided")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

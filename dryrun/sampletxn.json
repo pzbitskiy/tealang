@@ -1,0 +1,23 @@
+{
+    "Sender": "47YPQTIGQEO7T4Y4RWDYWEKV6RTR2UNBQXBABEEGM72ESWDQNCQ52OPASU",
+    "Fee": 1000,
+    "FirstValid": 1,
+    "LastValid": 1001,
+    "Note": "wRKw5cJ0CMo=",
+    "Lease": "dBlHI6BdrIg=",
+    "Receiver": "PNWOET7LLOWMBMLE4KOCELCX6X3D3Q4H2Q4QJASYIEOF7YIPPQBG3YQ5YI",
+    "Amount": 2000000,
+    "CloseRemainderTo": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+    "VotePK": "",
+    "SelectionPK": "",
+    "VoteFirst": 0,
+    "VoteLast": 0,
+    "VoteKeyDilution": 0,
+    "Type": "pay",
+    "XferAsset": 1,
+    "AssetAmount": 10,
+    "AssetSender": "47YPQTIGQEO7T4Y4RWDYWEKV6RTR2UNBQXBABEEGM72ESWDQNCQ52OPASU",
+    "AssetReceiver": "PNWOET7LLOWMBMLE4KOCELCX6X3D3Q4H2Q4QJASYIEOF7YIPPQBG3YQ5YI",
+    "AssetCloseTo": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
+    "GroupIndex": 1
+}
