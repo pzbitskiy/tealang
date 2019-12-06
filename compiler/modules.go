@@ -3,6 +3,7 @@ package compiler
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 
@@ -23,7 +24,7 @@ func resolveModule(moduleName string, sourceDir string, currentDir string) (Inpu
 		sourceDir = currentDir
 	} else {
 		components := strings.Split(moduleName, ".")
-		locations := make([]string, 16)
+		locations := make([]string, 0, 16)
 
 		// search relative to source file first
 		fullPath := path.Join(sourceDir, path.Join(components...))
@@ -37,15 +38,15 @@ func resolveModule(moduleName string, sourceDir string, currentDir string) (Inpu
 
 		for _, loc := range locations {
 			if fileExists(loc) {
-				sourceFile = path.Base(fullPath)
-				sourceDir = path.Dir(fullPath)
-				srcBytes, err := ioutil.ReadFile(fullPath)
+				sourceFile = path.Base(loc)
+				sourceDir = path.Dir(loc)
+				srcBytes, err := ioutil.ReadFile(loc)
 				if err != nil {
 					return InputDesc{}, err
 				}
-				source = string(srcBytes)
+				source = string(srcBytes) + "\n"
+				break
 			}
-			break
 		}
 
 		if source == "" {
@@ -53,4 +54,12 @@ func resolveModule(moduleName string, sourceDir string, currentDir string) (Inpu
 		}
 	}
 	return InputDesc{source, sourceFile, sourceDir, currentDir}, nil
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }

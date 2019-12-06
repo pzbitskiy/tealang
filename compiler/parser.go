@@ -10,7 +10,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"runtime/debug"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
@@ -719,6 +718,10 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	funCallExprNode := l.funCallEnterImpl(name, argExprNodes)
 	listener := newTreeNodeListener(l.ctx, funCallExprNode)
 	info.parser(listener, funCallExprNode)
+	if listener.node == nil {
+		reportError("function parsing failed", parser, token, rule)
+		return
+	}
 	defNode := listener.node.(*funDefNode)
 
 	if err != nil {
@@ -874,14 +877,6 @@ type InputDesc struct {
 	CurrentDir string
 }
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
 func parseModule(moduleName string, parseCtx *parseContext, parent TreeNodeIf, ctx *context) (TreeNodeIf, error) {
 	resolver := resolveModule
 	if parseCtx.moduleResolver != nil {
@@ -905,6 +900,7 @@ func parseModule(moduleName string, parseCtx *parseContext, parent TreeNodeIf, c
 
 	collector.filterAmbiguity()
 	if len(collector.errors) > 0 {
+		parseCtx.collector.copyErrors(collector)
 		return nil, fmt.Errorf("error during module %s parsing", moduleName)
 	}
 

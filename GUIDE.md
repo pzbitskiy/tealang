@@ -25,7 +25,7 @@ In opposite, expression is evaluated to some value.
 
 ## Declarations, definitions and assignments
 
-Constants, variables and function are supported:
+Constants, variables and functions are supported:
 ```
 const a = 1
 const b = "abc\x01"
@@ -133,10 +133,10 @@ There are 4 builtin objects: `txn`, `gtxn`, `global`, `args`. Accessing them is 
 
 | Object and Syntax | Description |
 | --- | --- |
-| `args[N]` | returns Args[N] value |
-| `txn.FIELD` | retrieves field from current transaction |
+| `args[N]` | returns Args[N] value as []byte |
+| `txn.FIELD` | retrieves field from current transaction (see below) |
 | `gtxn[N].FIELD` | retrieves field from a transaction N in the current transaction group |
-| `global.FIELD` | returns globals |
+| `global.FIELD` | returns globals (see below) |
 
 #### Transaction fields
 | Index | Name | Type | Notes |
@@ -146,8 +146,8 @@ There are 4 builtin objects: `txn`, `gtxn`, `global`, `args`. Accessing them is 
 | 2 | FirstValid | uint64 | round number |
 | 3 | FirstValidTime | uint64 | Causes program to fail; reserved for future use. |
 | 4 | LastValid | uint64 | round number |
-| 5 | Note | []byte |  |
-| 6 | Lease | []byte |  |
+| 5 | Note | []byte | Note field |
+| 6 | Lease | []byte | Lease field |
 | 7 | Receiver | []byte | 32 byte address |
 | 8 | Amount | uint64 | micro-Algos |
 | 9 | CloseRemainderTo | []byte | 32 byte address |
