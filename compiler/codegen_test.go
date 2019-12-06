@@ -21,12 +21,14 @@ func TestCodegenVariables(t *testing.T) {
 	a.Equal("bytecblock 0x313233", lines[1])
 
 	lastLine := len(lines) - 1
-	a.Equal("intc 2", lines[lastLine-6])  // a = 5 (a's address is 0, 5's offset is 2)
-	a.Equal("store 0", lines[lastLine-5]) //
-	a.Equal("intc 3", lines[lastLine-4])  // ret 6 (6's offset is 3)
-	a.Equal("intc 1", lines[lastLine-3])
-	a.Equal("bnz end_logic", lines[lastLine-2])
-	a.Equal("end_logic:", lines[lastLine-1])
+	a.Equal("intc 2", lines[lastLine-8])  // a = 5 (a's address is 0, 5's offset is 2)
+	a.Equal("store 0", lines[lastLine-7]) //
+	a.Equal("intc 3", lines[lastLine-6])  // ret 6 (6's offset is 3)
+	a.Equal("intc 1", lines[lastLine-5])
+	a.Equal("bnz end_logic", lines[lastLine-4])
+	a.Equal("end_logic:", lines[lastLine-3])
+	a.Equal("dup", lines[lastLine-2])
+	a.Equal("pop", lines[lastLine-1])
 	a.Equal(fmt.Sprintf(""), lines[lastLine]) // import fmt
 }
 

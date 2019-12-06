@@ -53,6 +53,11 @@ func (n *programNode) Codegen(ostream io.Writer) {
 	for _, ch := range n.children() {
 		ch.Codegen(ostream)
 	}
+
+	// Workaround for https://github.com/algorand/go-algorand/pull/611
+	// bnz to the end of program do not work, so simulate NOP command there
+	fmt.Fprintf(ostream, "dup\n")
+	fmt.Fprintf(ostream, "pop\n")
 }
 
 func (n *funDefNode) Codegen(ostream io.Writer) {
