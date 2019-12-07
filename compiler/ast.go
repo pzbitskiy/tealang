@@ -687,6 +687,29 @@ func determineBlockReturnType(node TreeNodeIf, retTypeSeen []exprType) (exprType
 	return commonType, nil
 }
 
+func ensureBlockReturns(node TreeNodeIf) bool {
+	chLength := len(node.children())
+	if chLength == 0 {
+		return false
+	}
+
+	lastNode := node.children()[chLength-1]
+	switch tt := lastNode.(type) {
+	case *returnNode, *errorNode:
+		return true
+	case *ifStatementNode:
+		if len(tt.children()) == 1 {
+			// only if-block present
+			return false
+		}
+		// otherwise ensure both if-else and else-block returns
+		return ensureBlockReturns(lastNode.children()[0]) && ensureBlockReturns(lastNode.children()[1])
+	default:
+	}
+
+	return false
+}
+
 func (n *funCallNode) getType() (exprType, error) {
 	if n.funType != unknownType {
 		return n.funType, nil

@@ -247,6 +247,7 @@ function logic() {
 	if e == 1 {
 		return 1;
 	}
+	return 0
 }
 `
 	result, errors = Parse(source)

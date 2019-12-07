@@ -127,6 +127,14 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 		return
 	}
 
+	if !ensureBlockReturns(logic) {
+		reportError(
+			"logic function does not return",
+			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+		)
+		return
+	}
+
 	tp, err := determineBlockReturnType(logic, []exprType{})
 	if err != nil {
 		reportError(
@@ -723,6 +731,14 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 		return
 	}
 	defNode := listener.node.(*funDefNode)
+
+	if !ensureBlockReturns(defNode) {
+		reportError(
+			fmt.Sprintf("%s function does not return", name),
+			parser, token, rule,
+		)
+		return
+	}
 
 	if err != nil {
 		reportError(err.Error(), parser, token, rule)

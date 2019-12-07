@@ -125,10 +125,5 @@ make java-gui
 
 1. Constant folding.
 2. Strings concatenation.
-3. Fix known limitations.
-4. Code generation for return at the end of function.
-5. Improve errors reporting.
-
-## Limitations
-
-* No check that all branches `return` or `error`.
+3. Code generation for return at the end of function.
+4. Improve errors reporting.

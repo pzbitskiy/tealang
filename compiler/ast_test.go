@@ -294,7 +294,7 @@ function logic() {let x = 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `logic must return int but got unknown`)
+	a.Contains(parserErrors[0].msg, `logic function does not return`)
 
 	source = `
 function logic() {return "test";}
@@ -442,6 +442,7 @@ function test() {
 	if gtxn[1].Sender == "abc" {
 		return txn.FirstValid
 	}
+	return 0
 }
 `
 	result, parserErrors := parseTestProgModule(source, module)
@@ -543,4 +544,142 @@ function logic() {
 	result, parserErrors := Parse(source)
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors)
+}
+
+func TestFunctionReturn(t *testing.T) {
+	a := require.New(t)
+	source := `
+function logic() {let x = 1;}
+`
+	result, parserErrors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `logic function does not return`)
+
+	source = `
+function test() {
+	if txn.Sender == "abc" {
+		return global.MinBalance
+	}
+	if gtxn[1].Sender == "abc" {
+		return txn.FirstValid
+	}
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `test function does not return`)
+
+	source = `
+function test() {
+	if gtxn[1].Sender == "abc" {
+		return txn.FirstValid
+	} else {
+		let x = 2;
+	}
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `test function does not return`)
+
+	source = `
+function test() {
+	if gtxn[1].Sender == "abc" {
+		let x = 1
+	} else {
+		return 0
+	}
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `test function does not return`)
+
+	source = `
+function test() {
+	if gtxn[1].Sender == "abc" {
+		return txn.FirstValid
+	} else {
+		return 0
+	}
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
+	source = `
+function test() {
+	if gtxn[1].Sender == "abc" {
+		return txn.FirstValid
+	} else {
+		return 0
+	}
+	return 1
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
+	source = `
+function test() {
+	if gtxn[1].Sender == "abc" {
+		return txn.FirstValid
+	}
+	return 1
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
+	source = `
+function test() {
+	if gtxn[1].Sender == "abc" {
+		error
+	}
+	return 1
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
+	source = `
+function test() {
+	if gtxn[1].Sender == "abc" {
+		return 1
+	}
+	error
+}
+function logic() {return test();}
+`
+
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
 }
