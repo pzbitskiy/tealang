@@ -50,7 +50,7 @@ function get_string() {
 
 function logic() {
     let a = 1
-    a = test()
+    a = get_string()
     return a
 }
 ```
