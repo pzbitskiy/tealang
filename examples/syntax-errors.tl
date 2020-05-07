@@ -7,22 +7,8 @@ function test(x, y) {
 }
 
 function logic() {
-    if e == 1 {
-        let x = a + b;
-        error
-    }
-
-    if a == 1 {
-        return 0
-    }
-
     let x = 2;
-    x = global.GroupSize
     x = gtxn[1].Sender
-
-    test(1+1, 2)
-    sha256(x)
-    ed25519verify("\x01\x02", c, x)
 
     return 1
 }
