@@ -300,18 +300,18 @@ func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 	l.node = node
 }
 
-func (l *treeNodeListener) EnterDeclareVarMulw(ctx *gen.DeclareVarMulwContext) {
+func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExprContext) {
 	identHigh := ctx.IDENT(0).GetText()
 	identLow := ctx.IDENT(1).GetText()
 	listener := newExprListener(l.ctx, l.parent)
-	ctx.MulwCall().EnterRule(listener)
+	ctx.TupleExpr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
 	varType, err := exprNode.getType()
 	if err != nil {
 		reportError(
 			err.Error(), ctx.GetParser(),
-			ctx.MulwCall().(*gen.MulwCallContext).MULW().GetSymbol(), ctx.GetRuleContext(),
+			ctx.TupleExpr().GetParser().GetCurrentToken(), ctx.GetRuleContext(),
 		)
 		return
 	}
@@ -327,7 +327,7 @@ func (l *treeNodeListener) EnterDeclareVarMulw(ctx *gen.DeclareVarMulwContext) {
 		return
 	}
 
-	node := newVarDeclMulwNode(l.ctx, l.parent, identLow, identHigh, exprNode)
+	node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh, exprNode)
 	l.node = node
 }
 
@@ -496,7 +496,7 @@ func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 	l.node = node
 }
 
-func (l *treeNodeListener) EnterAssignMulw(ctx *gen.AssignMulwContext) {
+func (l *treeNodeListener) EnterAssignTuple(ctx *gen.AssignTupleContext) {
 	identHigh := ctx.IDENT(0).GetSymbol().GetText()
 	infoHigh, err := getVarInfoForAssignment(identHigh, l.ctx)
 	if err != nil {
@@ -511,16 +511,16 @@ func (l *treeNodeListener) EnterAssignMulw(ctx *gen.AssignMulwContext) {
 		return
 	}
 
-	node := newAssignMulwNode(l.ctx, l.parent, identLow, identHigh)
+	node := newAssignTupleNode(l.ctx, l.parent, identLow, identHigh)
 	listener := newExprListener(l.ctx, node)
-	ctx.MulwCall().EnterRule(listener)
+	ctx.TupleExpr().EnterRule(listener)
 	rhs := listener.getExpr()
 	node.value = rhs
 	rhsType, err := rhs.getType()
 	if err != nil {
 		reportError(
 			fmt.Sprintf("failed type resolution type: %s", err.Error()),
-			ctx.GetParser(), ctx.MulwCall().(*gen.MulwCallContext).MULW().GetSymbol(), ctx.GetRuleContext(),
+			ctx.GetParser(), ctx.TupleExpr().GetParser().GetCurrentToken(), ctx.GetRuleContext(),
 		)
 		return
 	}
@@ -760,14 +760,27 @@ func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext)
 	return node
 }
 
-func (l *exprListener) EnterMulwCall(ctx *gen.MulwCallContext) {
-	name := ctx.MULW().GetText()
+func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
+	// var node antlr.TerminalNode
+	var name string
+	if node := ctx.MULW(); node != nil {
+		name = node.GetText()
+	} else if node := ctx.ADDW(); node != nil {
+		name = node.GetText()
+	} else if node := ctx.APPLOCALGETEX(); node != nil {
+		name = node.GetText()
+	} else if node := ctx.APPGLOBALGETEX(); node != nil {
+		name = node.GetText()
+	} else if node := ctx.ASSETHOLDINGGET(); node != nil {
+		name = node.GetText()
+	}
+
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
 
 	err := exprNode.checkBuiltinArgs()
 	if err != nil {
 		parser := ctx.GetParser()
-		token := ctx.MULW().GetSymbol()
+		token := ctx.GetParser().GetCurrentToken()
 		rule := ctx.GetRuleContext()
 		reportError(err.Error(), parser, token, rule)
 		return

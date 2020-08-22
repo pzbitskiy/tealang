@@ -396,6 +396,7 @@ func TestCodegenMulw(t *testing.T) {
 let h, l = mulw(1, 2)
 function logic() {
 	h, l = mulw(3, 4)
+	let a, b = addw(5, 6)
 	return l
 }
 `
@@ -405,7 +406,7 @@ function logic() {
 	prog := Codegen(result)
 	fmt.Print(prog)
 	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3 4", lines[0])
+	a.Equal("intcblock 0 1 2 3 4 5 6", lines[0])
 	a.Equal("intc 1", lines[1])
 	a.Equal("intc 2", lines[2])
 	a.Equal("mulw", lines[3])
@@ -416,8 +417,13 @@ function logic() {
 	a.Equal("mulw", lines[8])
 	a.Equal("store 0", lines[9])
 	a.Equal("store 1", lines[10])
-	a.Equal("load 0", lines[11])
-	a.Equal("intc 1", lines[12])
-	a.Equal("bnz end_logic", lines[13])
-	a.Equal("end_logic:", lines[14])
+	a.Equal("intc 5", lines[11])
+	a.Equal("intc 6", lines[12])
+	a.Equal("addw", lines[13])
+	a.Equal("store 2", lines[14])
+	a.Equal("store 3", lines[15])
+	a.Equal("load 0", lines[16])
+	a.Equal("intc 1", lines[17])
+	a.Equal("bnz end_logic", lines[18])
+	a.Equal("end_logic:", lines[19])
 }

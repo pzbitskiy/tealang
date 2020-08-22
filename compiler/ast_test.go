@@ -534,10 +534,11 @@ func TestBuiltinMulw(t *testing.T) {
 	source := `
 let a, b = mulw(1, 2)
 function logic() {
-	a, b = mulw(1, 2)
+	a, b = mulw(3, 4)
 	if a == b {
 		return 0
 	}
+	a, b = addw(5, 6)
 	return 1
 }
 `

@@ -179,14 +179,18 @@ func (n exprType) String() string {
 }
 
 var builtinFun = map[string]bool{
-	"sha256":        true,
-	"keccak256":     true,
-	"sha512_256":    true,
-	"ed25519verify": true,
-	"len":           true,
-	"itob":          true,
-	"btoi":          true,
-	"mulw":          true,
+	"sha256":            true,
+	"keccak256":         true,
+	"sha512_256":        true,
+	"ed25519verify":     true,
+	"len":               true,
+	"itob":              true,
+	"btoi":              true,
+	"mulw":              true,
+	"addw":              true,
+	"app_local_get_ex":  true,
+	"app_global_get_ex": true,
+	"asset_holding_get": true,
 }
 
 // TreeNodeIf represents a node in AST
@@ -245,7 +249,7 @@ type assignNode struct {
 	value    ExprNodeIf
 }
 
-type assignMulwNode struct {
+type assignTupleNode struct {
 	*TreeNode
 	low      string
 	high     string
@@ -260,7 +264,7 @@ type varDeclNode struct {
 	value    ExprNodeIf
 }
 
-type varDeclMulwNode struct {
+type varDeclTupleNode struct {
 	*TreeNode
 	low      string
 	high     string
@@ -392,10 +396,10 @@ func newAssignNode(ctx *context, parent TreeNodeIf, ident string) (node *assignN
 	return
 }
 
-func newAssignMulwNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string) (node *assignMulwNode) {
-	node = new(assignMulwNode)
+func newAssignTupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string) (node *assignTupleNode) {
+	node = new(assignTupleNode)
 	node.TreeNode = newNode(ctx, parent)
-	node.nodeName = "assign mulw"
+	node.nodeName = "assign tuple"
 	node.low = identLow
 	node.high = identHigh
 	node.value = nil
@@ -420,10 +424,10 @@ func newVarDeclNode(ctx *context, parent TreeNodeIf, ident string, value ExprNod
 	return
 }
 
-func newVarDeclMulwNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, value ExprNodeIf) (node *varDeclMulwNode) {
-	node = new(varDeclMulwNode)
+func newVarDeclTupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, value ExprNodeIf) (node *varDeclTupleNode) {
+	node = new(varDeclTupleNode)
 	node.TreeNode = newNode(ctx, parent)
-	node.nodeName = "var mulw"
+	node.nodeName = "var, var"
 	node.low = identLow
 	node.high = identHigh
 	node.value = value
@@ -846,7 +850,7 @@ func (n *varDeclNode) String() string {
 	return fmt.Sprintf("var (%s) %s = %s", n.exprType, n.name, n.value)
 }
 
-func (n *varDeclMulwNode) String() string {
+func (n *varDeclTupleNode) String() string {
 	return fmt.Sprintf("var (%s) %s, %s = %s", n.exprType, n.high, n.low, n.value)
 }
 
