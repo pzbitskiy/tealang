@@ -1,7 +1,7 @@
-default: all
+default: build
 
-all: go grammar-java
-test: go
+all: go test grammar-java
+build: go
 
 ANTLR4_JAR := /usr/local/lib/antlr-4.7.2-complete.jar
 
@@ -19,6 +19,8 @@ grammar-java:
 go: grammar-go
 	go generate ./...
 	go build -o tealang ./main.go
+
+test:
 	go test ./...
 
 java-trace: grammar-java
