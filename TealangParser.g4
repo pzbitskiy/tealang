@@ -59,14 +59,14 @@ termination
 
 decl
     :   LET IDENT EQ expr                          # DeclareVar
-    |   LET IDENT COMMA IDENT EQ mulwCall          # DeclareVarMulw
+    |   LET IDENT COMMA IDENT EQ tupleExpr         # DeclareVarTupleExpr
     |   CONST IDENT EQ NUMBER                      # DeclareNumberConst
     |   CONST IDENT EQ STRING                      # DeclareStringConst
     ;
 
 assignment
     :   IDENT EQ expr                              # Assign
-    |   IDENT COMMA IDENT EQ mulwCall              # AssignMulw
+    |   IDENT COMMA IDENT EQ tupleExpr             # AssignTuple
     ;
 
 expr
@@ -86,8 +86,12 @@ expr
     |   condExpr                                    # IfExpr
     ;
 
-mulwCall
-    :   MULW LEFTPARA (expr COMMA expr ) RIGHTPARA
+tupleExpr
+    :   MULW LEFTPARA ( expr COMMA expr ) RIGHTPARA
+    |   ADDW LEFTPARA ( expr COMMA expr ) RIGHTPARA
+    |   APPLOCALGETEX LEFTPARA ( expr COMMA expr COMMA expr ) RIGHTPARA
+    |   APPGLOBALGETEX LEFTPARA ( expr COMMA expr ) RIGHTPARA
+    |   ASSETHOLDINGGET LEFTPARA (expr COMMA expr COMMA expr ) RIGHTPARA
     ;
 
 functionCall
