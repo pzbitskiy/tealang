@@ -6,6 +6,10 @@ GLOBALFIELD
     |   MAXTXNLIFE
     |   ZEROADDRESS
     |   GROUPSIZE
+    |   LOGICSIGVERSION
+    |   ROUND
+    |   LATESTTIMESTAMP
+    |   CURRENTAPPID
     ;
 
 TXNFIELD
@@ -32,6 +36,30 @@ TXNFIELD
     |   ACLOSETO
     |   GROUPINDEX
     |   TXID
+    |   APPLICATIONID
+    |   ONCOMPLETION
+    |   APPLICATIONARGS
+    |   NUMARGS
+    |   ACCOUNTS
+    |   NUMACCOUNTS
+    |   APPROVALPROGRAM
+    |   CLEARSTATEPROGRAM
+    |   REKEYTO
+    |   CONFIGASSET
+    |   CONFIGASSETTOTAL
+    |   CONFIGASSETDEC
+    |   CONFIGASSETDEFFROZEN
+    |   CONFIGASSETUNITNAM
+    |   CONFIGASSETNAME
+    |   CONFIGASSETURL
+    |   CONFIGASSETMETAHASH
+    |   CONFIGASSETMANAGER
+    |   CONFIGASSETRESERVE
+    |   CONFIGASSETFREEZE
+    |   CONFIGASSETCLAWBACK
+    |   FREEZEASSET
+    |   FREEZEASSETACCOUNT
+    |   FREEZEAZZETFROZEN
     ;
 
 BUILTINFUNC
@@ -42,6 +70,17 @@ BUILTINFUNC
     |   LEN
     |   ITOB
     |   BTOI
+    |   SUBSTRING
+    |   CONCAT
+    |   BALANCE
+    |   APPOPTEDIN
+    |   APPLOCALGET
+    |   APPGLOBALGET
+    |   APPLOCALPUT
+    |   APPGLOBALPUT
+    |   APPLOCALDEL
+    |   APPGLOBALDEL
+    |   ASSETPARAMSGET
     ;
 
 LET         : 'let' ;
@@ -53,6 +92,8 @@ ELSE        : 'else' ;
 FUNC        : 'function' ;
 IMPORT      : 'import' -> pushMode(DOIMPORT);
 LOGIC       : 'logic';
+APPROVE     : 'approve';
+CLEARSTATE  : 'clearstate';
 
 GLOBAL      : 'global';
 TXN         : 'txn';
@@ -60,44 +101,89 @@ GTXN        : 'gtxn';
 ARGS        : 'args';
 
 
-MINTXNFEE   : 'MinTxnFee' ;
-MINBALANCE  : 'MinBalance' ;
-MAXTXNLIFE  : 'MaxTxnLife' ;
-ZEROADDRESS : 'ZeroAddress' ;
-GROUPSIZE   : 'GroupSize' ;
+MINTXNFEE       : 'MinTxnFee' ;
+MINBALANCE      : 'MinBalance' ;
+MAXTXNLIFE      : 'MaxTxnLife' ;
+ZEROADDRESS     : 'ZeroAddress' ;
+GROUPSIZE       : 'GroupSize' ;
+LOGICSIGVERSION : 'LogicSigVersion';
+ROUND           : 'Round';
+LATESTTIMESTAMP : 'LatestTimestamp';
+CURRENTAPPID    : 'CurrentApplicationID';
 
-SENDER      : 'Sender' ;
-FEE         : 'Fee' ;
-FIRSTVALID  : 'FirstValid' ;
-LASTVALID   : 'LastValid' ;
-NOTE        : 'Note' ;
-LEASE       : 'Lease';
-RECEIVER    : 'Receiver' ;
-AMOUNT      : 'Amount' ;
-CLOSEREMINDERTO : 'CloseRemainderTo' ;
-VOTEPK      : 'VotePK' ;
-SELECTIONPK : 'SelectionPK' ;
-VOTEFIRST   : 'VoteFirst' ;
-VOTELAST    : 'VoteLast' ;
-VOTEKD      : 'VoteKeyDilution' ;
-TYPE        : 'Type' ;
-TYPEENUM    : 'TypeEnum' ;
-XFERASSET   : 'XferAsset' ;
-AAMOUNT     : 'AssetAmount' ;
-ASENDER     : 'AssetSender' ;
-ARECEIVER   : 'AssetReceiver' ;
-ACLOSETO    : 'AssetCloseTo' ;
-GROUPINDEX  : 'GroupIndex' ;
-TXID        : 'TxId' ;
+SENDER               : 'Sender' ;
+FEE                  : 'Fee' ;
+FIRSTVALID           : 'FirstValid' ;
+LASTVALID            : 'LastValid' ;
+NOTE                 : 'Note' ;
+LEASE                : 'Lease';
+RECEIVER             : 'Receiver' ;
+AMOUNT               : 'Amount' ;
+CLOSEREMINDERTO      : 'CloseRemainderTo' ;
+VOTEPK               : 'VotePK' ;
+SELECTIONPK          : 'SelectionPK' ;
+VOTEFIRST            : 'VoteFirst' ;
+VOTELAST             : 'VoteLast' ;
+VOTEKD               : 'VoteKeyDilution' ;
+TYPE                 : 'Type' ;
+TYPEENUM             : 'TypeEnum' ;
+XFERASSET            : 'XferAsset' ;
+AAMOUNT              : 'AssetAmount' ;
+ASENDER              : 'AssetSender' ;
+ARECEIVER            : 'AssetReceiver' ;
+ACLOSETO             : 'AssetCloseTo' ;
+GROUPINDEX           : 'GroupIndex' ;
+TXID                 : 'TxId' ;
+APPLICATIONID        : 'ApplicationID' ;
+ONCOMPLETION         : 'OnCompletion' ;
+APPLICATIONARGS      : 'ApplicationArgs' ;
+NUMARGS              : 'NumAppArgs' ;
+ACCOUNTS             : 'Accounts' ;
+NUMACCOUNTS          : 'NumAccounts' ;
+APPROVALPROGRAM      : 'ApprovalProgram' ;
+CLEARSTATEPROGRAM    : 'ClearStateProgram' ;
+REKEYTO              : 'RekeyTo' ;
+CONFIGASSET          : 'ConfigAsset' ;
+CONFIGASSETTOTAL     : 'ConfigAssetTotal' ;
+CONFIGASSETDEC       : 'ConfigAssetDecimals' ;
+CONFIGASSETDEFFROZEN : 'ConfigAssetDefaultFrozen' ;
+CONFIGASSETUNITNAM   : 'ConfigAssetUnitName' ;
+CONFIGASSETNAME      : 'ConfigAssetName' ;
+CONFIGASSETURL       : 'ConfigAssetURL' ;
+CONFIGASSETMETAHASH  : 'ConfigAssetMetadataHash' ;
+CONFIGASSETMANAGER   : 'ConfigAssetManager' ;
+CONFIGASSETRESERVE   : 'ConfigAssetReserve' ;
+CONFIGASSETFREEZE    : 'ConfigAssetFreeze' ;
+CONFIGASSETCLAWBACK  : 'ConfigAssetClawback' ;
+FREEZEASSET          : 'FreezeAsset' ;
+FREEZEASSETACCOUNT   : 'FreezeAssetAccount' ;
+FREEZEAZZETFROZEN    : 'FreezeAssetFrozen' ;
 
 SHA256      : 'sha256' ;
 KECCAK256   : 'keccak256' ;
 SHA512      : 'sha512_256' ;
 ED25519     : 'ed25519verify' ;
-MULW        : 'mulw';
 LEN         : 'len';
 ITOB        : 'itob';
 BTOI        : 'btoi';
+SUBSTRING   : 'substring';
+CONCAT      : 'concat';
+
+MULW        : 'mulw';
+ADDW        : 'addw';
+
+BALANCE         : 'balance';
+APPOPTEDIN      : 'app_opted_in';
+APPLOCALGET     : 'app_local_get';
+APPLOCALGETEX   : 'app_local_get_ex';
+APPGLOBALGET    : 'app_global_get';
+APPGLOBALGETEX  : 'app_global_get_ex';
+APPLOCALPUT     : 'app_local_put';
+APPGLOBALPUT    : 'app_global_put';
+APPLOCALDEL     : 'app_local_del';
+APPGLOBALDEL    : 'app_global_del';
+ASSETHOLDINGGET : 'asset_holding_get';
+ASSETPARAMSGET  : 'asset_params_get';
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
 NUMBER      : [0-9]+ ;
