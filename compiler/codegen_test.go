@@ -25,8 +25,8 @@ func TestCodegenVariables(t *testing.T) {
 	a.Equal("store 0", lines[lastLine-7]) //
 	a.Equal("intc 3", lines[lastLine-6])  // ret 6 (6's offset is 3)
 	a.Equal("intc 1", lines[lastLine-5])
-	a.Equal("bnz end_logic", lines[lastLine-4])
-	a.Equal("end_logic:", lines[lastLine-3])
+	a.Equal("bnz end_main", lines[lastLine-4])
+	a.Equal("end_main:", lines[lastLine-3])
 	a.Equal("dup", lines[lastLine-2])
 	a.Equal("pop", lines[lastLine-1])
 	a.Equal(fmt.Sprintf(""), lines[lastLine]) // import fmt
@@ -176,8 +176,8 @@ function logic() {
 	a.Equal("store 2", lines[15])
 	a.Equal("intc 1", lines[16])
 	a.Equal("intc 1", lines[17])
-	a.Equal("bnz end_logic", lines[18])
-	a.Equal("end_logic:", lines[19])
+	a.Equal("bnz end_main", lines[18])
+	a.Equal("end_main:", lines[19])
 }
 
 func TestCodegenGeneric(t *testing.T) {
@@ -250,8 +250,8 @@ function logic() { return a; }
 	a.Equal("store 0", lines[8])
 	a.Equal("load 0", lines[9])
 	a.Equal("intc 1", lines[10])
-	a.Equal("bnz end_logic", lines[11])
-	a.Equal("end_logic:", lines[12])
+	a.Equal("bnz end_main", lines[11])
+	a.Equal("end_main:", lines[12])
 }
 
 func TestCodegenImportStdlib(t *testing.T) {
@@ -277,8 +277,8 @@ function logic() { let type = TxTypePayment; type = NoOp(); return 1;}
 	a.Equal("store 0", lines[7])
 	a.Equal("intc 1", lines[8])
 	a.Equal("intc 1", lines[9])
-	a.Equal("bnz end_logic", lines[10])
-	a.Equal("end_logic:", lines[11])
+	a.Equal("bnz end_main", lines[10])
+	a.Equal("end_main:", lines[11])
 }
 
 func TestCodegenOneLineCond(t *testing.T) {
@@ -333,8 +333,8 @@ function logic() {
 	a.Equal("if_stmt_end_", lines[10][:len("if_stmt_end_")])
 	a.Equal("load 1", lines[11])
 	a.Equal("intc 1", lines[12])
-	a.Equal("bnz end_logic", lines[13])
-	a.Equal("end_logic:", lines[14])
+	a.Equal("bnz end_main", lines[13])
+	a.Equal("end_main:", lines[14])
 }
 
 func TestCodegenNestedFun(t *testing.T) {
@@ -361,8 +361,8 @@ function logic() {
 	a.Equal("bnz end_test2", lines[6])
 	a.Equal("end_test2:", lines[7])
 	a.Equal("intc 1", lines[8])
-	a.Equal("bnz end_logic", lines[9])
-	a.Equal("end_logic:", lines[10])
+	a.Equal("bnz end_main", lines[9])
+	a.Equal("end_main:", lines[10])
 }
 
 func TestAddressStringLiteralDecoding(t *testing.T) {
@@ -385,8 +385,8 @@ function logic() {
 	a.Equal("store 0", lines[3])
 	a.Equal("intc 0", lines[4])
 	a.Equal("intc 1", lines[5])
-	a.Equal("bnz end_logic", lines[6])
-	a.Equal("end_logic:", lines[7])
+	a.Equal("bnz end_main", lines[6])
+	a.Equal("end_main:", lines[7])
 }
 
 func TestCodegenMulw(t *testing.T) {
@@ -404,7 +404,6 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	prog := Codegen(result)
-	fmt.Print(prog)
 	lines := strings.Split(prog, "\n")
 	a.Equal("intcblock 0 1 2 3 4 5 6", lines[0])
 	a.Equal("intc 1", lines[1])
@@ -424,6 +423,6 @@ function logic() {
 	a.Equal("store 3", lines[15])
 	a.Equal("load 0", lines[16])
 	a.Equal("intc 1", lines[17])
-	a.Equal("bnz end_logic", lines[18])
-	a.Equal("end_logic:", lines[19])
+	a.Equal("bnz end_main", lines[18])
+	a.Equal("end_main:", lines[19])
 }

@@ -83,6 +83,12 @@ BUILTINFUNC
     |   ASSETPARAMSGET
     ;
 
+MAINFUNC
+    :   LOGIC
+    |   APPROVAL
+    |   CLEARSTATE
+    ;
+
 LET         : 'let' ;
 CONST       : 'const' ;
 ERR         : 'error' ;
@@ -92,7 +98,7 @@ ELSE        : 'else' ;
 FUNC        : 'function' ;
 IMPORT      : 'import' -> pushMode(DOIMPORT);
 LOGIC       : 'logic';
-APPROVE     : 'approve';
+APPROVAL    : 'approval';
 CLEARSTATE  : 'clearstate';
 
 GLOBAL      : 'global';

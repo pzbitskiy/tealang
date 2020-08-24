@@ -5,7 +5,7 @@ options {
 }
 
 program
-    :   declaration* logic EOF
+    :   declaration* (main) EOF
     ;
 
 module
@@ -28,8 +28,8 @@ block
     :   LEFTFIGURE statement* RIGHTFIGURE
     ;
 
-logic
-    : FUNC LOGIC LEFTPARA RIGHTPARA block NEWLINE*
+main
+    : FUNC MAINFUNC LEFTPARA RIGHTPARA block NEWLINE*
     ;
 
 declaration

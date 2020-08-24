@@ -25,6 +25,8 @@ import (
 //
 //--------------------------------------------------------------------------------------------------
 
+var mainFuncName = "main"
+
 type treeNodeListener struct {
 	*gen.BaseTealangParserListener
 	ctx      *context
@@ -115,48 +117,49 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 		}
 	}
 
-	logicListener := newTreeNodeListener(l.ctx, root)
-	ctx.Logic().EnterRule(logicListener)
-	logic := logicListener.getNode()
-	logicCtx := ctx.Logic().(*gen.LogicContext)
-	if logic == nil {
+	mainListener := newTreeNodeListener(l.ctx, root)
+
+	ctx.Main().EnterRule(mainListener)
+	main := mainListener.getNode()
+	mainCtx := ctx.Main().(*gen.MainContext)
+	if main == nil {
 		reportError(
-			"missing logic function",
-			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+			"missing main function",
+			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
 		)
 		return
 	}
 
-	if !ensureBlockReturns(logic) {
+	if !ensureBlockReturns(main) {
 		reportError(
-			"logic function does not return",
-			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+			"main function does not return",
+			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
 		)
 		return
 	}
 
-	tp, err := determineBlockReturnType(logic, []exprType{})
+	tp, err := determineBlockReturnType(main, []exprType{})
 	if err != nil {
 		reportError(
 			err.Error(),
-			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
 		)
 		return
 	}
 	if tp != intType {
 		reportError(
-			fmt.Sprintf("logic must return int but got %s", tp),
-			ctx.GetParser(), logicCtx.FUNC().GetSymbol(), logicCtx.GetRuleContext(),
+			fmt.Sprintf("main function must return int but got %s", tp),
+			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
 		)
 		return
 	}
 
-	root.append(logic)
+	root.append(main)
 
 	l.node = root
 }
 
-// EnterProgram is an entry point to AST
+// EnterModule is an entry point to AST
 func (l *treeNodeListener) EnterModule(ctx *gen.ModuleContext) {
 	root := newProgramNode(l.ctx, l.parent)
 
@@ -262,11 +265,11 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 	}
 }
 
-func (l *treeNodeListener) EnterLogic(ctx *gen.LogicContext) {
+func (l *treeNodeListener) EnterMain(ctx *gen.MainContext) {
 	scopedContext := newContext(l.ctx)
 
 	node := newFunDefNode(scopedContext, l.parent)
-	node.name = "logic"
+	node.name = mainFuncName
 
 	listener := newTreeNodeListener(scopedContext, node)
 	ctx.Block().EnterRule(listener)
