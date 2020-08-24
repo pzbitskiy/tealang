@@ -59,6 +59,36 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
+
+	source = `
+let e = 1
+
+function approval() {
+	if e == 1 {
+		let x = 2;
+		error
+	}
+	return 1
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+
+	source = `
+let e = 2;
+
+function clearstate() {
+	if e == 1 {
+		let x = 2;
+		error
+	}
+	return 1
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
 }
 
 func TestParserErrorReporting(t *testing.T) {

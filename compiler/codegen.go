@@ -61,7 +61,7 @@ func (n *programNode) Codegen(ostream io.Writer) {
 }
 
 func (n *funDefNode) Codegen(ostream io.Writer) {
-	if n.name == "logic" {
+	if n.name == mainFuncName {
 		for _, ch := range n.children() {
 			ch.Codegen(ostream)
 		}

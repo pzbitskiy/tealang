@@ -285,7 +285,7 @@ function logic() {let x = 1; x = sha256("abc") ; return 1;}
 
 }
 
-func TestLogicReturn(t *testing.T) {
+func TestMainReturn(t *testing.T) {
 	a := require.New(t)
 	source := `
 function logic() {let x = 1;}
@@ -294,7 +294,25 @@ function logic() {let x = 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `logic function does not return`)
+	a.Contains(parserErrors[0].msg, `main function does not return`)
+
+	source = `
+function approval() {let x = 1;}
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `main function does not return`)
+
+	source = `
+function clearstate() {let x = 1;}
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `main function does not return`)
 
 	source = `
 function logic() {return "test";}
@@ -303,7 +321,7 @@ function logic() {return "test";}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `logic must return int but got byte[]`)
+	a.Contains(parserErrors[0].msg, `main function must return int but got byte[]`)
 
 	source = `
 function logic() {
@@ -556,7 +574,7 @@ function logic() {let x = 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `logic function does not return`)
+	a.Contains(parserErrors[0].msg, `main function does not return`)
 
 	source = `
 function test() {
