@@ -2,16 +2,18 @@ package compiler
 
 import "fmt"
 
-func opTypeFromSpec(op string) (exprType, error) {
+func opTypeFromSpec(op string, ret int) (exprType, error) {
 	if op, ok := langOps[op]; ok && len(op.Returns) != 0 {
-		switch op.Returns[0] {
+		switch op.Returns[ret] {
 		case 'U':
 			return intType, nil
 		case 'B':
 			return bytesType, nil
+		case '.':
+			return unknownType, nil
 		}
 	}
-	return invalidType, fmt.Errorf("can't get type for %s", op)
+	return invalidType, fmt.Errorf("can't get type for %s ret #%d", op, ret+1)
 }
 
 func argOpTypeFromSpec(op string, arg int) (exprType, error) {

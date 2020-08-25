@@ -62,6 +62,25 @@ TXNFIELD
     |   FREEZEAZZETFROZEN
     ;
 
+ASSETHOLDINGFIELDS
+    :   ASSETBALANCE
+    |   ASSETFROZEN
+    ;
+
+ASSETPARAMSFIELDS
+    :   ASSETTOTAL
+    |   ASSETDECIMALS
+    |   ASSETDEFAULTFROZEN
+    |   ASSETUNITNAME
+    |   ASSETNAME
+    |   ASSETURL
+    |   ASSETMETADATAHASH
+    |   ASSETMANAGER
+    |   ASSETRESERVE
+    |   ASSETFREEZE
+    |   ASSETCLAWBACK
+    ;
+
 BUILTINFUNC
     :   SHA256
     |   KECCAK256
@@ -76,11 +95,13 @@ BUILTINFUNC
     |   APPOPTEDIN
     |   APPLOCALGET
     |   APPGLOBALGET
-    |   APPLOCALPUT
+    ;
+
+BUILTINNORETFUNC
+    :   APPLOCALPUT
     |   APPGLOBALPUT
     |   APPLOCALDEL
     |   APPGLOBALDEL
-    |   ASSETPARAMSGET
     ;
 
 MAINFUNC
@@ -164,6 +185,20 @@ CONFIGASSETCLAWBACK  : 'ConfigAssetClawback' ;
 FREEZEASSET          : 'FreezeAsset' ;
 FREEZEASSETACCOUNT   : 'FreezeAssetAccount' ;
 FREEZEAZZETFROZEN    : 'FreezeAssetFrozen' ;
+
+ASSETBALANCE       : 'AssetBalance' ;
+ASSETFROZEN        : 'AssetFrozen' ;
+ASSETTOTAL         : 'AssetTotal' ;
+ASSETDECIMALS      : 'AssetDecimals' ;
+ASSETDEFAULTFROZEN : 'AssetDefaultFrozen' ;
+ASSETUNITNAME      : 'AssetUnitName' ;
+ASSETNAME          : 'AssetName' ;
+ASSETURL           : 'AssetURL' ;
+ASSETMETADATAHASH  : 'AssetMetadataHash' ;
+ASSETMANAGER       : 'AssetManager' ;
+ASSETRESERVE       : 'AssetReserve' ;
+ASSETFREEZE        : 'AssetFreeze' ;
+ASSETCLAWBACK      : 'AssetClawback' ;
 
 SHA256      : 'sha256' ;
 KECCAK256   : 'keccak256' ;

@@ -267,7 +267,7 @@ function logic() { let type = TxTypePayment; type = NoOp(); return 1;}
 	a.Empty(errors)
 	prog := Codegen(result)
 	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3 4 5", lines[0])
+	a.Equal("intcblock 0 1 2 3 4 5 6", lines[0])
 	a.Equal("intc 1", lines[1]) // TxTypePayment
 	a.Equal("store 0", lines[2])
 	a.Equal("intc 0", lines[3]) // NoOp -> ret 0
@@ -425,4 +425,87 @@ function logic() {
 	a.Equal("intc 1", lines[17])
 	a.Equal("bnz end_main", lines[18])
 	a.Equal("end_main:", lines[19])
+}
+
+func TestCodegenApp(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function approval() {
+	let val, exist = app_local_get_ex(1, 0, "key");
+	return exist;
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1", lines[0])
+	a.Equal("bytecblock 0x6b6579", lines[1])
+	a.Equal("intc 1", lines[2])
+	a.Equal("intc 0", lines[3])
+	a.Equal("bytec 0", lines[4])
+	a.Equal("app_local_get_ex", lines[5])
+	a.Equal("store 0", lines[6])
+	a.Equal("store 1", lines[7])
+	a.Equal("load 0", lines[8])
+	a.Equal("intc 1", lines[9])
+	a.Equal("bnz end_main", lines[10])
+	a.Equal("end_main:", lines[11])
+
+	source = `
+function approval() {
+	app_local_put(0, "key", 1);
+	return 1;
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog = Codegen(result)
+	fmt.Print(prog)
+	lines = strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1", lines[0])
+	a.Equal("bytecblock 0x6b6579", lines[1])
+	a.Equal("intc 0", lines[2])
+	a.Equal("bytec 0", lines[3])
+	a.Equal("intc 1", lines[4])
+	a.Equal("app_local_put", lines[5])
+	a.Equal("intc 1", lines[6])
+	a.Equal("intc 1", lines[7])
+	a.Equal("bnz end_main", lines[8])
+	a.Equal("end_main:", lines[9])
+}
+
+func TestCodegenAsset(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function approval() {
+	let asset = 100;
+	let acc = 1;
+	let amount, exist = asset_holding_get(AssetBalance, asset, acc);
+	return exist;
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 100", lines[0])
+	a.Equal("intc 2", lines[1])
+	a.Equal("store 0", lines[2])
+	a.Equal("intc 1", lines[3])
+	a.Equal("store 1", lines[4])
+	a.Equal("load 0", lines[5])
+	a.Equal("load 1", lines[6])
+	a.Equal("asset_holding_get AssetBalance", lines[7])
+	a.Equal("store 2", lines[8])
+	a.Equal("store 3", lines[9])
+	a.Equal("load 2", lines[10])
+	a.Equal("intc 1", lines[11])
+	a.Equal("bnz end_main", lines[12])
+	a.Equal("end_main:", lines[13])
 }

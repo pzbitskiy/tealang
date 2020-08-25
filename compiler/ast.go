@@ -188,9 +188,18 @@ var builtinFun = map[string]bool{
 	"btoi":              true,
 	"mulw":              true,
 	"addw":              true,
+	"balance":           true,
+	"app_opted_in":      true,
+	"app_local_get":     true,
 	"app_local_get_ex":  true,
+	"app_global_get":    true,
 	"app_global_get_ex": true,
+	"app_local_put":     true,
+	"app_global_put":    true,
+	"app_local_del":     true,
+	"app_global_del":    true,
 	"asset_holding_get": true,
+	"asset_params_get":  true,
 }
 
 // TreeNodeIf represents a node in AST
@@ -325,6 +334,7 @@ type ifStatementNode struct {
 type funCallNode struct {
 	*TreeNode
 	name       string
+	field      string
 	funType    exprType
 	definition *funDefNode
 }
@@ -555,7 +565,7 @@ func (n *exprIdentNode) getType() (exprType, error) {
 }
 
 func (n *exprBinOpNode) getType() (exprType, error) {
-	tp, err := opTypeFromSpec(n.op)
+	tp, err := opTypeFromSpec(n.op, 0)
 	if err != nil {
 		return invalidType, fmt.Errorf("bin op '%s' not it the language: %s", n.op, err.Error())
 	}
@@ -592,7 +602,7 @@ func (n *exprBinOpNode) getType() (exprType, error) {
 }
 
 func (n *exprUnOpNode) getType() (exprType, error) {
-	tp, err := opTypeFromSpec(n.op)
+	tp, err := opTypeFromSpec(n.op, 0)
 	if err != nil {
 		return invalidType, fmt.Errorf("un op '%s' not it the language: %s", n.op, err.Error())
 	}
@@ -731,11 +741,29 @@ func (n *funCallNode) getType() (exprType, error) {
 
 	var tp exprType
 	if builtin {
-		tp, err = opTypeFromSpec(n.name)
+		tp, err = opTypeFromSpec(n.name, 0)
 	} else {
 		tp, err = determineBlockReturnType(n.definition, []exprType{})
 	}
 	return tp, err
+}
+
+func (n *funCallNode) getTypeTuple() (exprType, exprType, error) {
+	var err error
+	builtin := false
+	_, builtin = builtinFun[n.name]
+	if !builtin {
+		return invalidType, invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
+	}
+
+	var tpl exprType = invalidType
+	var tph exprType = invalidType
+	tpl, err = opTypeFromSpec(n.name, 0)
+	if err != nil {
+		return tph, tpl, err
+	}
+	tph, err = opTypeFromSpec(n.name, 1)
+	return tph, tpl, err
 }
 
 func (n *funCallNode) resolveArgs(definitionNode *funDefNode) error {
@@ -775,10 +803,20 @@ func (n *funCallNode) checkBuiltinArgs() (err error) {
 		if err != nil {
 			return err
 		}
-		if actualType != tp {
+		if tp != unknownType && actualType != tp {
 			return fmt.Errorf("incompatible types: (exp) %s vs %s (actual) in expr '%s'", tp, actualType, n)
 		}
 	}
+	return
+}
+
+func (n *funCallNode) resolveFieldArg(field string) (err error) {
+	tp, err := runtimeFieldTypeFromSpec(n.name, field)
+	if err != nil {
+		return
+	}
+	n.field = field
+	n.funType = tp
 	return
 }
 
@@ -801,7 +839,7 @@ func (n *runtimeArgNode) getType() (exprType, error) {
 		return n.exprType, nil
 	}
 
-	tp, err := opTypeFromSpec(n.op)
+	tp, err := opTypeFromSpec(n.op, 0)
 	if err != nil {
 		return invalidType, fmt.Errorf("lookup failed: %s", err.Error())
 	}

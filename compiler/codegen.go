@@ -213,7 +213,11 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 		for _, ch := range n.children() {
 			ch.Codegen(ostream)
 		}
-		fmt.Fprintf(ostream, "%s\n", n.name)
+		field := ""
+		if len(n.field) > 0 {
+			field = fmt.Sprintf(" %s", n.field)
+		}
+		fmt.Fprintf(ostream, "%s%s\n", n.name, field)
 	} else {
 		definitionNode := n.definition
 
