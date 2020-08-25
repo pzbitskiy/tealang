@@ -509,3 +509,65 @@ function approval() {
 	a.Equal("bnz end_main", lines[12])
 	a.Equal("end_main:", lines[13])
 }
+
+func TestCodegenConcat(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let a1 = "abc"
+	let a2 = "def"
+	let result = concat(a1, a2)
+	return len(result)
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1", lines[0])
+	a.Equal("bytecblock 0x616263 0x646566", lines[1])
+	a.Equal("bytec 0", lines[2])
+	a.Equal("store 0", lines[3])
+	a.Equal("bytec 1", lines[4])
+	a.Equal("store 1", lines[5])
+	a.Equal("load 0", lines[6])
+	a.Equal("load 1", lines[7])
+	a.Equal("concat", lines[8])
+	a.Equal("store 2", lines[9])
+	a.Equal("load 2", lines[10])
+	a.Equal("len", lines[11])
+	a.Equal("intc 1", lines[12])
+	a.Equal("bnz end_main", lines[13])
+	a.Equal("end_main:", lines[14])
+}
+
+func TestCodegenSubstring(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let result = substring3("abc", 1, 2)
+	return len(result)
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	prog := Codegen(result)
+	fmt.Print(prog)
+	lines := strings.Split(prog, "\n")
+	a.Equal("intcblock 0 1 2", lines[0])
+	a.Equal("bytecblock 0x616263", lines[1])
+	a.Equal("bytec 0", lines[2])
+	a.Equal("intc 1", lines[3])
+	a.Equal("intc 2", lines[4])
+	a.Equal("substring3", lines[5])
+	a.Equal("store 0", lines[6])
+	a.Equal("load 0", lines[7])
+	a.Equal("len", lines[8])
+	a.Equal("intc 1", lines[9])
+	a.Equal("bnz end_main", lines[10])
+	a.Equal("end_main:", lines[11])
+}

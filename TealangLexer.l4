@@ -207,7 +207,7 @@ ED25519     : 'ed25519verify' ;
 LEN         : 'len';
 ITOB        : 'itob';
 BTOI        : 'btoi';
-SUBSTRING   : 'substring';
+SUBSTRING   : 'substring3';
 CONCAT      : 'concat';
 
 MULW        : 'mulw';
