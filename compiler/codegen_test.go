@@ -8,6 +8,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func CompareTEAL(a *require.Assertions, expected string, actual string) {
+	exp := strings.Split(expected, "\n")
+	act := strings.Split(actual, "\n")
+	n := len(exp)
+	if len(act) < n {
+		a.Fail(fmt.Sprintf("program expected to be at least %d lines long but got %d", n, len(act)))
+	}
+	for i := 0; i < n; i++ {
+		if len(exp[i]) == 0 {
+			a.Empty(act[i], fmt.Sprintf("line %d not empty: %s", i+1, act[i]))
+			continue
+		} else if exp[i][len(exp[i])-1] == '*' {
+			a.Equal(exp[i][:len(exp[i])-1], act[i][:len(exp[i])-1])
+		} else {
+			a.Equal(exp[i], act[i])
+		}
+	}
+	a.Equal("", act[len(act)-1])
+}
+
 func TestCodegenVariables(t *testing.T) {
 	a := require.New(t)
 
@@ -15,18 +35,24 @@ func TestCodegenVariables(t *testing.T) {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 5 6", lines[0]) // 0 and 1 are added internally
-	a.Equal("bytecblock 0x313233", lines[1])
-
-	lastLine := len(lines) - 1
-	a.Equal("intc 2", lines[lastLine-5])  // a = 5 (a's address is 0, 5's offset is 2)
-	a.Equal("store 0", lines[lastLine-4]) //
-	a.Equal("intc 3", lines[lastLine-3])  // ret 6 (6's offset is 3)
-	a.Equal("return", lines[lastLine-2])
-	a.Equal("end_main:", lines[lastLine-1])
-	a.Equal(fmt.Sprintf(""), lines[lastLine]) // import fmt
+	actual := Codegen(result)
+	fmt.Printf("|%s|", actual)
+	// 0 and 1 are added internally
+	// a = 5 (a's address is 0, 5's offset is 2)
+	// ret 6 (6's offset is 3)
+	expected := `intcblock 0 1 5 6
+bytecblock 0x313233
+intc 1
+store 0
+bytec 0
+store 1
+intc 2
+store 0
+intc 3
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenErr(t *testing.T) {
@@ -36,10 +62,10 @@ func TestCodegenErr(t *testing.T) {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1", lines[0]) // 0 and 1 are added internally
-	a.Equal("err", lines[1])
+	actual := Codegen(result)
+	expected := `intcblock 0 1
+err`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenBinOp(t *testing.T) {
@@ -49,17 +75,17 @@ func TestCodegenBinOp(t *testing.T) {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 10", lines[0]) // 0 and 1 are added internally
-	a.Equal("// const", lines[1])
-	a.Equal("intc 1", lines[2])
-	a.Equal("intc 2", lines[3])
-	a.Equal("+", lines[4])
-	a.Equal("store 0", lines[5])
-	a.Equal("load 0", lines[6])
-	a.Equal("!", lines[7])
-	a.Equal("store 1", lines[8])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 10
+// const
+intc 1
+intc 2
++
+store 0
+load 0
+!
+store 1`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenIfExpr(t *testing.T) {
@@ -69,19 +95,20 @@ func TestCodegenIfExpr(t *testing.T) {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("!", lines[2])
-	a.Equal("bnz if_expr_false_", lines[3][:len("bnz if_expr_false_")])
-	a.Equal("intc 2", lines[4])
-	a.Equal("intc 1", lines[5])
-	a.Equal("bnz if_expr_end_", lines[6][:len("bnz if_expr_end_")])
-	a.Equal("if_expr_false_", lines[7][:len("if_expr_false_")])
-	a.Equal("intc 3", lines[8])
-	a.Equal("if_expr_end_", lines[9][:len("if_expr_end_")])
-	a.Equal("store 0", lines[10])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 2 3
+intc 1
+!
+bnz if_expr_false_*
+intc 2
+intc 1
+bnz if_expr_end_*
+if_expr_false_*
+intc 3
+if_expr_end_*
+store 0`
+
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenIfStmt(t *testing.T) {
@@ -91,34 +118,36 @@ func TestCodegenIfStmt(t *testing.T) {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 10", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("!", lines[2])
-	a.Equal("bnz if_stmt_end_", lines[3][:len("bnz if_stmt_end_")])
-	a.Equal("intc 2", lines[4])
-	a.Equal("store 0", lines[5])
-	a.Equal("if_stmt_end_", lines[6][:len("if_stmt_end_")])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 10
+intc 1
+!
+bnz if_stmt_end_*
+intc 2
+store 0
+if_stmt_end_*`
+
+	CompareTEAL(a, expected, actual)
 
 	source = `function logic() { if 1 {let x=10;} else {let y=11;} return 1;}`
 	result, errors = Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog = Codegen(result)
-	lines = strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 10 11", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("!", lines[2])
-	a.Equal("bnz if_stmt_false_", lines[3][:len("bnz if_stmt_false_")])
-	a.Equal("intc 2", lines[4])
-	a.Equal("store 0", lines[5])
-	a.Equal("intc 1", lines[6])
-	a.Equal("bnz if_stmt_end_", lines[7][:len("bnz if_stmt_end_")])
-	a.Equal("if_stmt_false_", lines[8][:len("if_stmt_false_")])
-	a.Equal("intc 3", lines[9])
-	a.Equal("store 0", lines[10])
-	a.Equal("if_stmt_end_", lines[11][:len("if_stmt_end_")])
+	actual = Codegen(result)
+	expected = `intcblock 0 1 10 11
+intc 1
+!
+bnz if_stmt_false_*
+intc 2
+store 0
+intc 1
+bnz if_stmt_end_*
+if_stmt_false_*
+intc 3
+store 0
+if_stmt_end_*`
+
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenGlobals(t *testing.T) {
@@ -128,14 +157,15 @@ func TestCodegenGlobals(t *testing.T) {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("global MinTxnFee", lines[1])
-	a.Equal("store 0", lines[2])
-	a.Equal("gtxn 1 Sender", lines[3])
-	a.Equal("store 1", lines[4])
-	a.Equal("arg 0", lines[5])
-	a.Equal("store 2", lines[6])
+	actual := Codegen(result)
+	expected := `*
+global MinTxnFee
+store 0
+gtxn 1 Sender
+store 1
+arg 0
+store 2`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenFunCall(t *testing.T) {
@@ -153,27 +183,28 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("store 0", lines[2])
-	a.Equal("load 0", lines[3])
-	a.Equal("store 1", lines[4])
-	a.Equal("intc 2", lines[5])
-	a.Equal("store 2", lines[6])
-	a.Equal("load 1", lines[7])
-	a.Equal("load 2", lines[8])
-	a.Equal("+", lines[9])
-	a.Equal("intc 1", lines[10])
-	a.Equal("bnz end_sum", lines[11])
-	a.Equal("end_sum:", lines[12])
-	a.Equal("store 1", lines[13])
-	a.Equal("intc 3", lines[14])
-	a.Equal("store 2", lines[15])
-	a.Equal("intc 1", lines[16])
-	a.Equal("return", lines[17])
-	a.Equal("end_main:", lines[18])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 2 3
+intc 1
+store 0
+load 0
+store 1
+intc 2
+store 2
+load 1
+load 2
++
+intc 1
+bnz end_sum
+end_sum:
+store 1
+intc 3
+store 2
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenGeneric(t *testing.T) {
@@ -235,20 +266,21 @@ function logic() { return a; }
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3 4", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("intc 2", lines[2])
-	a.Equal("+", lines[3])
-	a.Equal("intc 3", lines[4])
-	a.Equal("intc 4", lines[5])
-	a.Equal("-", lines[6])
-	a.Equal("/", lines[7])
-	a.Equal("store 0", lines[8])
-	a.Equal("load 0", lines[9])
-	a.Equal("return", lines[10])
-	a.Equal("end_main:", lines[11])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 2 3 4
+intc 1
+intc 2
++
+intc 3
+intc 4
+-
+/
+store 0
+load 0
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenImportStdlib(t *testing.T) {
@@ -262,19 +294,20 @@ function logic() { let type = TxTypePayment; type = NoOp(); return 1;}
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3 4 5 6", lines[0])
-	a.Equal("intc 1", lines[1]) // TxTypePayment
-	a.Equal("store 0", lines[2])
-	a.Equal("intc 0", lines[3]) // NoOp -> ret 0
-	a.Equal("intc 1", lines[4])
-	a.Equal("bnz end_NoOp", lines[5])
-	a.Equal("end_NoOp:", lines[6])
-	a.Equal("store 0", lines[7])
-	a.Equal("intc 1", lines[8])
-	a.Equal("return", lines[9])
-	a.Equal("end_main:", lines[10])
+	expected := Codegen(result)
+	actual := `intcblock 0 1 2 3 4 5 6
+intc 1
+store 0
+intc 0
+intc 1
+bnz end_NoOp
+end_NoOp:
+store 0
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenOneLineCond(t *testing.T) {
@@ -283,19 +316,20 @@ func TestCodegenOneLineCond(t *testing.T) {
 	result, parserErrors := ParseOneLineCond(source)
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors, parserErrors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3", lines[0])
-	a.Equal("bytecblock 0x313233", lines[1])
-	a.Equal("intc 1", lines[2])
-	a.Equal("intc 2", lines[3]) // NoOp -> ret 0
-	a.Equal("+", lines[4])
-	a.Equal("intc 3", lines[5])
-	a.Equal(">=", lines[6])
-	a.Equal("txn Sender", lines[7])
-	a.Equal("bytec 0", lines[8])
-	a.Equal("==", lines[9])
-	a.Equal("&&", lines[10])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 2 3
+bytecblock 0x313233
+intc 1
+intc 2
++
+intc 3
+>=
+txn Sender
+bytec 0
+==
+&&
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenShadow(t *testing.T) {
@@ -314,22 +348,23 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("store 0", lines[2])
-	a.Equal("intc 2", lines[3])
-	a.Equal("store 1", lines[4])
-	a.Equal("intc 1", lines[5])
-	a.Equal("!", lines[6])
-	a.Equal("bnz if_stmt_end_", lines[7][:len("bnz if_stmt_end_")])
-	a.Equal("intc 3", lines[8])
-	a.Equal("store 2", lines[9])
-	a.Equal("if_stmt_end_", lines[10][:len("if_stmt_end_")])
-	a.Equal("load 1", lines[11])
-	a.Equal("return", lines[12])
-	a.Equal("end_main:", lines[13])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 2 3
+intc 1
+store 0
+intc 2
+store 1
+intc 1
+!
+bnz if_stmt_end_*
+intc 3
+store 2
+if_stmt_end_*
+load 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenNestedFun(t *testing.T) {
@@ -345,18 +380,19 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("intc 1", lines[2])
-	a.Equal("bnz end_test1", lines[3])
-	a.Equal("end_test1:", lines[4])
-	a.Equal("intc 1", lines[5])
-	a.Equal("bnz end_test2", lines[6])
-	a.Equal("end_test2:", lines[7])
-	a.Equal("return", lines[8])
-	a.Equal("end_main:", lines[9])
+	actual := Codegen(result)
+	expected := `intcblock 0 1
+intc 1
+intc 1
+bnz end_test1
+end_test1:
+intc 1
+bnz end_test2
+end_test2:
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestAddressStringLiteralDecoding(t *testing.T) {
@@ -371,15 +407,16 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1", lines[0])
-	a.Equal("bytecblock 0x"+strings.Repeat("00", 32), lines[1])
-	a.Equal("bytec 0", lines[2])
-	a.Equal("store 0", lines[3])
-	a.Equal("intc 0", lines[4])
-	a.Equal("return", lines[5])
-	a.Equal("end_main:", lines[6])
+	actual := Codegen(result)
+	expected := fmt.Sprintf(`intcblock 0 1
+bytecblock 0x%s
+bytec 0
+store 0
+intc 0
+return
+end_main:
+`, strings.Repeat("00", 32))
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenMulw(t *testing.T) {
@@ -396,27 +433,28 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2 3 4 5 6", lines[0])
-	a.Equal("intc 1", lines[1])
-	a.Equal("intc 2", lines[2])
-	a.Equal("mulw", lines[3])
-	a.Equal("store 0", lines[4]) // store low
-	a.Equal("store 1", lines[5]) // store high
-	a.Equal("intc 3", lines[6])
-	a.Equal("intc 4", lines[7])
-	a.Equal("mulw", lines[8])
-	a.Equal("store 0", lines[9])
-	a.Equal("store 1", lines[10])
-	a.Equal("intc 5", lines[11])
-	a.Equal("intc 6", lines[12])
-	a.Equal("addw", lines[13])
-	a.Equal("store 2", lines[14])
-	a.Equal("store 3", lines[15])
-	a.Equal("load 0", lines[16])
-	a.Equal("return", lines[17])
-	a.Equal("end_main:", lines[18])
+	expected := Codegen(result)
+	actual := `intcblock 0 1 2 3 4 5 6
+intc 1
+intc 2
+mulw
+store 0
+store 1
+intc 3
+intc 4
+mulw
+store 0
+store 1
+intc 5
+intc 6
+addw
+store 2
+store 3
+load 0
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenApp(t *testing.T) {
@@ -431,19 +469,20 @@ function approval() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1", lines[0])
-	a.Equal("bytecblock 0x6b6579", lines[1])
-	a.Equal("intc 1", lines[2])
-	a.Equal("intc 0", lines[3])
-	a.Equal("bytec 0", lines[4])
-	a.Equal("app_local_get_ex", lines[5])
-	a.Equal("store 0", lines[6])
-	a.Equal("store 1", lines[7])
-	a.Equal("load 0", lines[8])
-	a.Equal("return", lines[9])
-	a.Equal("end_main:", lines[10])
+	expected := Codegen(result)
+	actual := `intcblock 0 1
+bytecblock 0x6b6579
+intc 1
+intc 0
+bytec 0
+app_local_get_ex
+store 0
+store 1
+load 0
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 
 	source = `
 function approval() {
@@ -454,17 +493,18 @@ function approval() {
 	result, errors = Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog = Codegen(result)
-	lines = strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1", lines[0])
-	a.Equal("bytecblock 0x6b6579", lines[1])
-	a.Equal("intc 0", lines[2])
-	a.Equal("bytec 0", lines[3])
-	a.Equal("intc 1", lines[4])
-	a.Equal("app_local_put", lines[5])
-	a.Equal("intc 1", lines[6])
-	a.Equal("return", lines[7])
-	a.Equal("end_main:", lines[8])
+	actual = Codegen(result)
+	expected = `intcblock 0 1
+bytecblock 0x6b6579
+intc 0
+bytec 0
+intc 1
+app_local_put
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenAsset(t *testing.T) {
@@ -481,21 +521,22 @@ function approval() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 100", lines[0])
-	a.Equal("intc 2", lines[1])
-	a.Equal("store 0", lines[2])
-	a.Equal("intc 1", lines[3])
-	a.Equal("store 1", lines[4])
-	a.Equal("load 0", lines[5])
-	a.Equal("load 1", lines[6])
-	a.Equal("asset_holding_get AssetBalance", lines[7])
-	a.Equal("store 2", lines[8])
-	a.Equal("store 3", lines[9])
-	a.Equal("load 2", lines[10])
-	a.Equal("return", lines[11])
-	a.Equal("end_main:", lines[12])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 100
+intc 2
+store 0
+intc 1
+store 1
+load 0
+load 1
+asset_holding_get AssetBalance
+store 2
+store 3
+load 2
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenConcat(t *testing.T) {
@@ -512,22 +553,23 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1", lines[0])
-	a.Equal("bytecblock 0x616263 0x646566", lines[1])
-	a.Equal("bytec 0", lines[2])
-	a.Equal("store 0", lines[3])
-	a.Equal("bytec 1", lines[4])
-	a.Equal("store 1", lines[5])
-	a.Equal("load 0", lines[6])
-	a.Equal("load 1", lines[7])
-	a.Equal("concat", lines[8])
-	a.Equal("store 2", lines[9])
-	a.Equal("load 2", lines[10])
-	a.Equal("len", lines[11])
-	a.Equal("return", lines[12])
-	a.Equal("end_main:", lines[13])
+	actual := Codegen(result)
+	expected := `intcblock 0 1
+bytecblock 0x616263 0x646566
+bytec 0
+store 0
+bytec 1
+store 1
+load 0
+load 1
+concat
+store 2
+load 2
+len
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenSubstring(t *testing.T) {
@@ -542,17 +584,18 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	prog := Codegen(result)
-	lines := strings.Split(prog, "\n")
-	a.Equal("intcblock 0 1 2", lines[0])
-	a.Equal("bytecblock 0x616263", lines[1])
-	a.Equal("bytec 0", lines[2])
-	a.Equal("intc 1", lines[3])
-	a.Equal("intc 2", lines[4])
-	a.Equal("substring3", lines[5])
-	a.Equal("store 0", lines[6])
-	a.Equal("load 0", lines[7])
-	a.Equal("len", lines[8])
-	a.Equal("return", lines[9])
-	a.Equal("end_main:", lines[10])
+	actual := Codegen(result)
+	expected := `intcblock 0 1 2
+bytecblock 0x616263
+bytec 0
+intc 1
+intc 2
+substring3
+store 0
+load 0
+len
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
