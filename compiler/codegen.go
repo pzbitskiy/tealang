@@ -53,11 +53,6 @@ func (n *programNode) Codegen(ostream io.Writer) {
 	for _, ch := range n.children() {
 		ch.Codegen(ostream)
 	}
-
-	// Workaround for https://github.com/algorand/go-algorand/pull/611
-	// bnz to the end of program do not work, so simulate NOP command there
-	fmt.Fprintf(ostream, "dup\n")
-	fmt.Fprintf(ostream, "pop\n")
 }
 
 func (n *funDefNode) Codegen(ostream io.Writer) {
@@ -109,11 +104,15 @@ func (n *assignTupleNode) Codegen(ostream io.Writer) {
 
 func (n *returnNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
-	fmt.Fprintf(
-		ostream,
-		"intc %d\nbnz end_%s\n",
-		n.ctx.literals.literals[trueConstValue].offset, n.enclosingFun,
-	)
+	if n.enclosingFun == mainFuncName {
+		fmt.Fprintf(ostream, "return\n")
+	} else {
+		fmt.Fprintf(
+			ostream,
+			"intc %d\nbnz end_%s\n",
+			n.ctx.literals.literals[trueConstValue].offset, n.enclosingFun,
+		)
+	}
 }
 
 func (n *errorNode) Codegen(ostream io.Writer) {
