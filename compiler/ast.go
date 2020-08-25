@@ -186,6 +186,8 @@ var builtinFun = map[string]bool{
 	"len":               true,
 	"itob":              true,
 	"btoi":              true,
+	"concat":            true,
+	"substring3":        true,
 	"mulw":              true,
 	"addw":              true,
 	"balance":           true,
