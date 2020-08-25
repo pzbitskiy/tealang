@@ -700,5 +700,44 @@ function logic() {return test();}
 	result, parserErrors = Parse(source)
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors)
+}
 
+func TestBuiltinApp(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function approval() {
+	let b = balance(0);
+	let exist = app_opted_in(1);
+	let val = app_local_get(1, "key");
+	val, exist = app_local_get_ex(1, 0, "key");
+	if exist == 0 {
+		return 0;
+	}
+	val = app_global_get("key");
+	val, exist = app_global_get_ex(0, "key");
+	if exist == 0 {
+		return 0;
+	}
+
+	let app = 0;
+	app_local_put(app, "key", 1);
+	let value = "value";
+	let key = "key";
+	app_global_put(key, value);
+
+	app_local_del(app, key);
+	app_global_del(key);
+
+	let asset = 100;
+	let acc = 1;
+	let amount, isok = asset_holding_get(AssetBalance, asset, acc);
+	let assetIdx = 0;
+	amount, exist = asset_params_get(AssetTotal, assetIdx);
+	return 1;
+}
+`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
 }

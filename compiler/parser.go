@@ -310,7 +310,7 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 	ctx.TupleExpr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
-	varType, err := exprNode.getType()
+	hType, lType, err := exprNode.(*funCallNode).getTypeTuple()
 	if err != nil {
 		reportError(
 			err.Error(), ctx.GetParser(),
@@ -319,12 +319,12 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 		return
 	}
 
-	err = l.ctx.newVar(identLow, varType)
+	err = l.ctx.newVar(identLow, lType)
 	if err != nil {
 		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext())
 		return
 	}
-	err = l.ctx.newVar(identHigh, varType)
+	err = l.ctx.newVar(identHigh, hType)
 	if err != nil {
 		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
 		return
@@ -383,6 +383,8 @@ func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
 		ctx.Termination().EnterRule(l)
 	} else if ctx.Assignment() != nil {
 		ctx.Assignment().EnterRule(l)
+	} else if ctx.NoRetFunctionCall() != nil {
+		ctx.NoRetFunctionCall().EnterRule(l)
 	}
 }
 
@@ -519,7 +521,7 @@ func (l *treeNodeListener) EnterAssignTuple(ctx *gen.AssignTupleContext) {
 	ctx.TupleExpr().EnterRule(listener)
 	rhs := listener.getExpr()
 	node.value = rhs
-	rhsType, err := rhs.getType()
+	hType, lType, err := rhs.(*funCallNode).getTypeTuple()
 	if err != nil {
 		reportError(
 			fmt.Sprintf("failed type resolution type: %s", err.Error()),
@@ -527,16 +529,16 @@ func (l *treeNodeListener) EnterAssignTuple(ctx *gen.AssignTupleContext) {
 		)
 		return
 	}
-	if infoHigh.theType != rhsType {
+	if infoHigh.theType != hType {
 		reportError(
-			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoHigh.theType, rhsType),
+			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoHigh.theType, hType),
 			ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext(),
 		)
 		return
 	}
-	if infoLow.theType != rhsType {
+	if infoLow.theType != lType {
 		reportError(
-			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoLow.theType, rhsType),
+			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoLow.theType, lType),
 			ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext(),
 		)
 		return
@@ -710,6 +712,21 @@ func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
 	l.expr = exprNode
 }
 
+func (l *treeNodeListener) EnterBuiltinNoRetFunCall(ctx *gen.BuiltinNoRetFunCallContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	name := ctx.BUILTINNORETFUNC().GetText()
+	exprNode := listener.funCallEnterImpl(name, ctx.AllExpr())
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		token := ctx.BUILTINNORETFUNC().GetSymbol()
+		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+		return
+	}
+
+	l.node = exprNode
+}
+
 func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	name := ctx.IDENT().GetText()
 	parser := ctx.GetParser()
@@ -764,8 +781,8 @@ func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext)
 }
 
 func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
-	// var node antlr.TerminalNode
 	var name string
+	var fieldArgNode antlr.TerminalNode
 	if node := ctx.MULW(); node != nil {
 		name = node.GetText()
 	} else if node := ctx.ADDW(); node != nil {
@@ -775,6 +792,10 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 	} else if node := ctx.APPGLOBALGETEX(); node != nil {
 		name = node.GetText()
 	} else if node := ctx.ASSETHOLDINGGET(); node != nil {
+		fieldArgNode = ctx.ASSETHOLDINGFIELDS()
+		name = node.GetText()
+	} else if node := ctx.ASSETPARAMSGET(); node != nil {
+		fieldArgNode = ctx.ASSETPARAMSFIELDS()
 		name = node.GetText()
 	}
 
@@ -782,11 +803,16 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 
 	err := exprNode.checkBuiltinArgs()
 	if err != nil {
-		parser := ctx.GetParser()
 		token := ctx.GetParser().GetCurrentToken()
-		rule := ctx.GetRuleContext()
-		reportError(err.Error(), parser, token, rule)
+		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
+	}
+	if fieldArgNode != nil {
+		err = exprNode.resolveFieldArg(fieldArgNode.GetText())
+		if err != nil {
+			token := fieldArgNode.GetSymbol()
+			reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+		}
 	}
 
 	l.expr = exprNode

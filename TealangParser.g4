@@ -21,6 +21,7 @@ statement
     |   condition
     |   termination
     |   assignment
+    |   noRetFunctionCall
     |   NEWLINE|SEMICOLON
     ;
 
@@ -91,7 +92,12 @@ tupleExpr
     |   ADDW LEFTPARA ( expr COMMA expr ) RIGHTPARA
     |   APPLOCALGETEX LEFTPARA ( expr COMMA expr COMMA expr ) RIGHTPARA
     |   APPGLOBALGETEX LEFTPARA ( expr COMMA expr ) RIGHTPARA
-    |   ASSETHOLDINGGET LEFTPARA (expr COMMA expr COMMA expr ) RIGHTPARA
+    |   ASSETHOLDINGGET LEFTPARA ( ASSETHOLDINGFIELDS COMMA expr COMMA expr ) RIGHTPARA
+    |   ASSETPARAMSGET LEFTPARA ( ASSETPARAMSFIELDS COMMA expr ) RIGHTPARA
+    ;
+
+noRetFunctionCall
+    :   BUILTINNORETFUNC LEFTPARA (expr (COMMA expr)* )? RIGHTPARA    # BuiltinNoRetFunCall
     ;
 
 functionCall
