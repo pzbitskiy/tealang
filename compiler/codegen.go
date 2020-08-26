@@ -15,6 +15,7 @@ import (
 
 const trueConstValue = "1"
 const falseConstValue = "0"
+const tealVersion = 2
 
 // Codegen by default emits AST node as a comment
 func (n *TreeNode) Codegen(ostream io.Writer) {
@@ -24,6 +25,8 @@ func (n *TreeNode) Codegen(ostream io.Writer) {
 // Codegen of program node generates literals and runs code generation for children nodes
 func (n *programNode) Codegen(ostream io.Writer) {
 	ctx := n.ctx
+
+	fmt.Fprintf(ostream, "#pragma version %d\n", tealVersion)
 
 	// emit literals
 	if len(ctx.literals.intc) > 0 {
