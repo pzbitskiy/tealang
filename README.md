@@ -1,6 +1,6 @@
 # Tealang
 
-High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL** language.
+High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v2** language.
 The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
@@ -99,21 +99,19 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
 1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/)
 2. Install runtime for Go
     ```sh
-    go get github.com/antlr/antlr4/runtime/Go/antlr
+    go get -u github.com/antlr/antlr4/runtime/Go/antlr
     ```
 3. Install and setup **go-algorand**. Read [Algorand README](https://github.com/algorand/go-algorand/blob/master/README.md) if needed.
     ```sh
-    go get github.com/algorand/go-algorand
+    go get -u github.com/algorand/go-algorand
     pushd $(go env GOPATH)/src/github.com/algorand/go-algorand
-    make
-    cd $(go env GOPATH)/src/github.com/satori/go.uuid
-    git checkout v1.2.0
+    make build
     popd
     ```
 
 ### Build and test
 ```sh
-make go
+make
 ```
 
 ### Build and run Java AST visualizer
@@ -124,6 +122,7 @@ make java-gui
 ## Roadmap
 
 1. Constant folding.
-2. Strings concatenation.
-3. Code generation for return at the end of function.
-4. Improve errors reporting.
+2. Improve errors reporting.
+3. Code gen: do not use temp scratch in "assign and use" case.
+4. Code gen: keep track scratch slots and mark as available after freeing with `load`.
+5. Code gen: improve `if/else` using new TEAL v2 branching instructions.
