@@ -747,6 +747,7 @@ func (n *funCallNode) getType() (exprType, error) {
 	} else {
 		tp, err = determineBlockReturnType(n.definition, []exprType{})
 	}
+	n.funType = tp
 	return tp, err
 }
 
