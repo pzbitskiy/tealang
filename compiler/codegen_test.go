@@ -36,11 +36,11 @@ func TestCodegenVariables(t *testing.T) {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	fmt.Printf("|%s|", actual)
 	// 0 and 1 are added internally
 	// a = 5 (a's address is 0, 5's offset is 2)
 	// ret 6 (6's offset is 3)
-	expected := `intcblock 0 1 5 6
+	expected := `#pragma version *
+intcblock 0 1 5 6
 bytecblock 0x313233
 intc 1
 store 0
@@ -63,7 +63,8 @@ func TestCodegenErr(t *testing.T) {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1
+	expected := `#pragma version *
+intcblock 0 1
 err`
 	CompareTEAL(a, expected, actual)
 }
@@ -76,7 +77,8 @@ func TestCodegenBinOp(t *testing.T) {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 10
+	expected := `#pragma version *
+intcblock 0 1 10
 // const
 intc 1
 intc 2
@@ -96,7 +98,8 @@ func TestCodegenIfExpr(t *testing.T) {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 2 3
+	expected := `#pragma version *
+intcblock 0 1 2 3
 intc 1
 !
 bnz if_expr_false_*
@@ -119,7 +122,8 @@ func TestCodegenIfStmt(t *testing.T) {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 10
+	expected := `#pragma version *
+intcblock 0 1 10
 intc 1
 !
 bnz if_stmt_end_*
@@ -134,7 +138,8 @@ if_stmt_end_*`
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual = Codegen(result)
-	expected = `intcblock 0 1 10 11
+	expected = `#pragma version *
+intcblock 0 1 10 11
 intc 1
 !
 bnz if_stmt_false_*
@@ -158,7 +163,8 @@ func TestCodegenGlobals(t *testing.T) {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `*
+	expected := `#pragma version *
+*
 global MinTxnFee
 store 0
 gtxn 1 Sender
@@ -184,7 +190,8 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 2 3
+	expected := `#pragma version *
+intcblock 0 1 2 3
 intc 1
 store 0
 load 0
@@ -267,7 +274,8 @@ function logic() { return a; }
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 2 3 4
+	expected := `#pragma version *
+intcblock 0 1 2 3 4
 intc 1
 intc 2
 +
@@ -294,8 +302,9 @@ function logic() { let type = TxTypePayment; type = NoOp(); return 1;}
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	expected := Codegen(result)
-	actual := `intcblock 0 1 2 3 4 5 6
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 2 3 4 5 6
 intc 1
 store 0
 intc 0
@@ -317,7 +326,8 @@ func TestCodegenOneLineCond(t *testing.T) {
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors, parserErrors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 2 3
+	expected := `#pragma version *
+intcblock 0 1 2 3
 bytecblock 0x313233
 intc 1
 intc 2
@@ -349,7 +359,8 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 2 3
+	expected := `#pragma version *
+intcblock 0 1 2 3
 intc 1
 store 0
 intc 2
@@ -381,7 +392,8 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1
+	expected := `#pragma version *
+intcblock 0 1
 intc 1
 intc 1
 bnz end_test1
@@ -408,7 +420,8 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := fmt.Sprintf(`intcblock 0 1
+	expected := fmt.Sprintf(`#pragma version *
+intcblock 0 1
 bytecblock 0x%s
 bytec 0
 store 0
@@ -433,8 +446,9 @@ function logic() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	expected := Codegen(result)
-	actual := `intcblock 0 1 2 3 4 5 6
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 2 3 4 5 6
 intc 1
 intc 2
 mulw
@@ -469,8 +483,9 @@ function approval() {
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
-	expected := Codegen(result)
-	actual := `intcblock 0 1
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1
 bytecblock 0x6b6579
 intc 1
 intc 0
@@ -494,7 +509,8 @@ function approval() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual = Codegen(result)
-	expected = `intcblock 0 1
+	expected = `#pragma version *
+intcblock 0 1
 bytecblock 0x6b6579
 intc 0
 bytec 0
@@ -522,7 +538,8 @@ function approval() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 100
+	expected := `#pragma version *
+intcblock 0 1 100
 intc 2
 store 0
 intc 1
@@ -554,7 +571,8 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1
+	expected := `#pragma version *
+intcblock 0 1
 bytecblock 0x616263 0x646566
 bytec 0
 store 0
@@ -585,7 +603,8 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	expected := `intcblock 0 1 2
+	expected := `#pragma version *
+intcblock 0 1 2
 bytecblock 0x616263
 bytec 0
 intc 1
