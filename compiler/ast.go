@@ -345,7 +345,8 @@ type runtimeFieldNode struct {
 	*TreeNode
 	op       string
 	field    string
-	index    string
+	index1   string
+	index2   string
 	exprType exprType
 }
 
@@ -524,13 +525,18 @@ func newFunCallNode(ctx *context, parent TreeNodeIf, name string) (node *funCall
 	return
 }
 
-func newRuntimeFieldNode(ctx *context, parent TreeNodeIf, op string, field string, aux string) (node *runtimeFieldNode) {
+func newRuntimeFieldNode(ctx *context, parent TreeNodeIf, op string, field string, aux ...string) (node *runtimeFieldNode) {
 	node = new(runtimeFieldNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "runtime field"
 	node.op = op
 	node.field = field
-	node.index = aux
+	if len(aux) > 0 {
+		node.index1 = aux[0]
+	}
+	if len(aux) > 1 {
+		node.index2 = aux[1]
+	}
 	node.exprType = unknownType
 	return
 }
@@ -945,7 +951,12 @@ func (n *funCallNode) String() string {
 
 func (n *runtimeFieldNode) String() string {
 	if n.op == "gtxn" {
-		return fmt.Sprintf("%s[%s].%s", n.op, n.index, n.field)
+		return fmt.Sprintf("%s[%s].%s\n", n.op, n.index1, n.field)
+	} else if n.op == "gtxna" {
+		return fmt.Sprintf("%s[%s].%s[%s]\n", n.op, n.index1, n.field, n.index2)
+	} else if n.op == "txna" {
+		return fmt.Sprintf("%s.%s[%s]\n", n.op, n.field, n.index1)
+	} else {
+		return fmt.Sprintf("%s.%s\n", n.op, n.field)
 	}
-	return fmt.Sprintf("%s.%s", n.op, n.field)
 }

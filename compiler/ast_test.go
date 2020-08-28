@@ -236,11 +236,23 @@ function test(a) {
 	if a == txn.Sender {
 		return 0
 	}
-	if a == gtxn[0].Sender {
+	if a == txn.ApplicationArgs[0] {
 		return 0
 	}
 	const idx = 1
+	if a == txn.ApplicationArgs[idx] {
+		return 0
+	}
+	if a == gtxn[0].Sender {
+		return 0
+	}
 	if a == gtxn[idx].Sender {
+		return 0
+	}
+	if a == gtxn[0].ApplicationArgs[0] {
+		return 0
+	}
+	if a == gtxn[0].ApplicationArgs[idx] {
 		return 0
 	}
 	if global.MinTxnFee == 100 {

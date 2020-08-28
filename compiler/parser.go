@@ -826,13 +826,37 @@ func (l *exprListener) EnterBuiltinObject(ctx *gen.BuiltinObjectContext) {
 
 func (l *exprListener) EnterGlobalFieldExpr(ctx *gen.GlobalFieldExprContext) {
 	field := ctx.GLOBALFIELD().GetText()
-	node := newRuntimeFieldNode(l.ctx, l.parent, "global", field, "")
+	node := newRuntimeFieldNode(l.ctx, l.parent, "global", field)
 	l.expr = node
 }
 
 func (l *exprListener) EnterTxnFieldExpr(ctx *gen.TxnFieldExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Txn().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterTxnSingleFieldExpr(ctx *gen.TxnSingleFieldExprContext) {
 	field := ctx.TXNFIELD().GetText()
-	node := newRuntimeFieldNode(l.ctx, l.parent, "txn", field, "")
+	node := newRuntimeFieldNode(l.ctx, l.parent, "txn", field)
+	l.expr = node
+}
+
+func (l *exprListener) EnterTxnArrayFieldExpr(ctx *gen.TxnArrayFieldExprContext) {
+	field := ctx.TXNARRAYFIELD().GetText()
+	var arrayIndex string
+	if ctx.NUMBER() != nil {
+		arrayIndex = ctx.NUMBER().GetText()
+	} else {
+		ident := ctx.IDENT().GetText()
+		info, err := l.ctx.lookup(ident)
+		if err != nil || !info.constant {
+			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+			return
+		}
+		arrayIndex = *info.value
+	}
+	node := newRuntimeFieldNode(l.ctx, l.parent, "txna", field, arrayIndex)
 	l.expr = node
 }
 
@@ -842,24 +866,61 @@ func (l *exprListener) EnterGroupTxnFieldExpr(ctx *gen.GroupTxnFieldExprContext)
 	l.expr = listener.getExpr()
 }
 
-func (l *exprListener) EnterGroupNumberTxnFieldExpr(ctx *gen.GroupNumberTxnFieldExprContext) {
+func (l *exprListener) EnterGroupTxnSingleFieldExpr(ctx *gen.GroupTxnSingleFieldExprContext) {
 	field := ctx.TXNFIELD().GetText()
-	groupIndex := ctx.NUMBER().GetText()
+	var groupIndex string
+	if ctx.NUMBER() != nil {
+		groupIndex = ctx.NUMBER().GetText()
+	} else {
+		ident := ctx.IDENT().GetText()
+
+		info, err := l.ctx.lookup(ident)
+		if err != nil || !info.constant {
+			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+			return
+		}
+		groupIndex = *info.value
+	}
 	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxn", field, groupIndex)
 	l.expr = node
 }
 
-func (l *exprListener) EnterGroupIdentTxnFieldExpr(ctx *gen.GroupIdentTxnFieldExprContext) {
-	field := ctx.TXNFIELD().GetText()
-	ident := ctx.IDENT().GetText()
+func (l *exprListener) EnterGroupTxnArrayFieldExpr(ctx *gen.GroupTxnArrayFieldExprContext) {
+	field := ctx.TXNARRAYFIELD().GetText()
+	var groupIndex string
+	numberIndex := 0
+	identIndex := 0
+	if len(ctx.AllNUMBER()) > numberIndex && ctx.NUMBER(numberIndex) != nil {
+		groupIndex = ctx.NUMBER(0).GetText()
+		numberIndex++
+	} else {
+		ident := ctx.IDENT(identIndex).GetText()
 
-	info, err := l.ctx.lookup(ident)
-	if err != nil || !info.constant {
-		reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
-		return
+		info, err := l.ctx.lookup(ident)
+		if err != nil || !info.constant {
+			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT(identIndex).GetSymbol(), ctx.GetRuleContext())
+			return
+		}
+		groupIndex = *info.value
+		identIndex++
 	}
 
-	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxn", field, *info.value)
+	var arrayIndex string
+	if len(ctx.AllNUMBER()) > numberIndex && ctx.NUMBER(numberIndex) != nil {
+		arrayIndex = ctx.NUMBER(1).GetText()
+		numberIndex++
+	} else {
+		ident := ctx.IDENT(identIndex).GetText()
+		info, err := l.ctx.lookup(ident)
+		if err != nil || !info.constant {
+			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT(identIndex).GetSymbol(), ctx.GetRuleContext())
+			return
+		}
+		arrayIndex = *info.value
+		identIndex++
+	}
+
+	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxna", field, groupIndex, arrayIndex)
 	l.expr = node
 }
 
