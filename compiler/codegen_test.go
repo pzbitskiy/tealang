@@ -20,9 +20,9 @@ func CompareTEAL(a *require.Assertions, expected string, actual string) {
 			a.Empty(act[i], fmt.Sprintf("line %d not empty: %s", i+1, act[i]))
 			continue
 		} else if exp[i][len(exp[i])-1] == '*' {
-			a.Equal(exp[i][:len(exp[i])-1], act[i][:len(exp[i])-1])
+			a.Equal(exp[i][:len(exp[i])-1], act[i][:len(exp[i])-1], fmt.Sprintf("line %d: %s != %s", i+1, exp[i], act[i]))
 		} else {
-			a.Equal(exp[i], act[i])
+			a.Equal(exp[i], act[i], fmt.Sprintf("line %d: %s != %s", i+1, exp[i], act[i]))
 		}
 	}
 	a.Equal("", act[len(act)-1])
@@ -194,6 +194,7 @@ function logic() {
 	let a = 1
 	let b = sum (a, 2)
 	let x = 3
+	let c = sum (x, 1)
 	return 1
 }
 `
@@ -213,16 +214,36 @@ load 1
 load 2
 +
 intc 1
-bnz end_sum
-end_sum:
+bnz end_sum_*
+end_sum_*
 store 1
 intc 3
 store 2
+load 2
+store 3
+intc 1
+store 4
+load 3
+load 4
++
+intc 1
+bnz end_sum_*
+end_sum_*
+store 3
 intc 1
 return
 end_main:
 `
 	CompareTEAL(a, expected, actual)
+	lines := strings.Split(actual, "\n")
+	a.Contains(lines[12], "bnz end_sum_")
+	a.Contains(lines[13], "end_sum_")
+	a.Contains(lines[25], "bnz end_sum_")
+	a.Contains(lines[26], "end_sum_")
+	a.NotEqual(lines[12], lines[25])
+	a.NotEqual(lines[13], lines[26])
+	a.True(lines[13][len(lines[13])-1] == ':')
+	a.True(lines[13][len(lines[13])-1] == ':')
 }
 
 func TestCodegenGeneric(t *testing.T) {
@@ -320,8 +341,8 @@ intc 1
 store 0
 intc 0
 intc 1
-bnz end_NoOp
-end_NoOp:
+bnz end_NoOp_*
+end_NoOp_*
 store 0
 intc 1
 return
@@ -407,11 +428,11 @@ function logic() {
 intcblock 0 1
 intc 1
 intc 1
-bnz end_test1
-end_test1:
+bnz end_test1_*
+end_test1_*
 intc 1
-bnz end_test2
-end_test2:
+bnz end_test2_*
+end_test2_*
 return
 end_main:
 `
