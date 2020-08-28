@@ -158,7 +158,14 @@ if_stmt_end_*`
 func TestCodegenGlobals(t *testing.T) {
 	a := require.New(t)
 
-	source := `function logic() {let glob = global.MinTxnFee; let g = gtxn[1].Sender; let a = args[0]; return 1;}`
+	source := `function logic() {
+let glob = global.MinTxnFee;
+let g = gtxn[1].Sender;
+let a = args[0];
+let b = txn.ApplicationArgs[0]
+let c = gtxn[1].ApplicationArgs[0]
+return 1;
+}`
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
@@ -170,7 +177,11 @@ store 0
 gtxn 1 Sender
 store 1
 arg 0
-store 2`
+store 2
+txna ApplicationArgs 0
+store 3
+gtxna 1 ApplicationArgs 0
+store 4`
 	CompareTEAL(a, expected, actual)
 }
 

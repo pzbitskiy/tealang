@@ -107,14 +107,19 @@ functionCall
 
 builtinVarExpr
     :   GLOBAL DOT GLOBALFIELD                      # GlobalFieldExpr
-    |   TXN DOT TXNFIELD                            # TxnFieldExpr
+    |   txn                                         # TxnFieldExpr
     |   gtxn                                        # GroupTxnFieldExpr
     |   args                                        # ArgsExpr
     ;
 
+txn
+    :   TXN DOT TXNFIELD                                               # TxnSingleFieldExpr
+    |   TXN DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE    # TxnArrayFieldExpr
+    ;
+
 gtxn
-    :   GTXN LEFTSQUARE NUMBER RIGHTSQUARE DOT TXNFIELD  # GroupNumberTxnFieldExpr
-    |   GTXN LEFTSQUARE IDENT RIGHTSQUARE DOT TXNFIELD   # GroupIdentTxnFieldExpr
+    :   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNFIELD  # GroupTxnSingleFieldExpr
+    |   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE   # GroupTxnArrayFieldExpr
     ;
 
 args
