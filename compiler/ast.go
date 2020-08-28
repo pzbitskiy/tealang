@@ -245,8 +245,8 @@ type blockNode struct {
 
 type returnNode struct {
 	*TreeNode
-	value        ExprNodeIf
-	enclosingFun string
+	value      ExprNodeIf
+	definition *funDefNode
 }
 
 type errorNode struct {

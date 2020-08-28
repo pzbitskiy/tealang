@@ -396,24 +396,24 @@ func (l *treeNodeListener) EnterTermReturn(ctx *gen.TermReturnContext) {
 	l.node = node
 
 	parent := node.parent()
-	enclosingFun := ""
-	for parent != nil && enclosingFun == "" {
+	var definition *funDefNode
+	for parent != nil && definition == nil {
 		switch tt := parent.(type) {
 		case *funDefNode:
-			enclosingFun = tt.name
+			definition = tt
 			break
 		}
 		parent = parent.parent()
 	}
 
-	if enclosingFun == "" {
+	if definition == nil {
 		reportError(
 			"return without enclosing function",
 			ctx.GetParser(), ctx.RET().GetSymbol(), ctx.GetRuleContext(),
 		)
 		return
 	}
-	node.enclosingFun = enclosingFun
+	node.definition = definition
 }
 
 func (l *treeNodeListener) EnterTermError(ctx *gen.TermErrorContext) {

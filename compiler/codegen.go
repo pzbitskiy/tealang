@@ -107,13 +107,14 @@ func (n *assignTupleNode) Codegen(ostream io.Writer) {
 
 func (n *returnNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
-	if n.enclosingFun == mainFuncName {
+	if n.definition.name == mainFuncName {
 		fmt.Fprintf(ostream, "return\n")
 	} else {
 		fmt.Fprintf(
 			ostream,
-			"intc %d\nbnz end_%s\n",
-			n.ctx.literals.literals[trueConstValue].offset, n.enclosingFun,
+			"intc %d\nbnz end_%s_%d\n",
+			n.ctx.literals.literals[trueConstValue].offset, n.definition.name,
+			&n.definition.name,
 		)
 	}
 }
@@ -238,7 +239,7 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 		for _, ch := range definitionNode.children() {
 			ch.Codegen(ostream)
 		}
-		fmt.Fprintf(ostream, "end_%s:\n", n.name)
+		fmt.Fprintf(ostream, "end_%s_%d:\n", n.name, &n.definition.name)
 	}
 }
 
