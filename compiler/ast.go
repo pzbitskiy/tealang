@@ -812,7 +812,7 @@ func (n *funCallNode) checkBuiltinArgs() (err error) {
 		if err != nil {
 			return err
 		}
-		if tp != unknownType && actualType != tp {
+		if tp != unknownType && actualType != unknownType && actualType != tp {
 			return fmt.Errorf("incompatible types: (exp) %s vs %s (actual) in expr '%s'", tp, actualType, n)
 		}
 	}
