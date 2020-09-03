@@ -508,7 +508,7 @@ func TestCodegenApp(t *testing.T) {
 
 	source := `
 function approval() {
-	let val, exist = app_local_get_ex(1, 0, "key");
+	let val, exist = accounts[1].getEx(0, "key");
 	return exist;
 }
 `
@@ -533,7 +533,7 @@ end_main:
 
 	source = `
 function approval() {
-	app_local_put(0, "key", 1);
+	accounts[0].put("key", 1);
 	return 1;
 }
 `
@@ -562,7 +562,7 @@ func TestCodegenAsset(t *testing.T) {
 function approval() {
 	let asset = 100;
 	let acc = 1;
-	let amount, exist = asset_holding_get(AssetBalance, asset, acc);
+	let amount, exist = accounts[acc].assetBalance(asset);
 	return exist;
 }
 `
@@ -576,8 +576,8 @@ intc 2
 store 0
 intc 1
 store 1
-load 0
 load 1
+load 0
 asset_holding_get AssetBalance
 store 2
 store 3

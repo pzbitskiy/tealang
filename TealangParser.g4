@@ -21,7 +21,7 @@ statement
     |   condition
     |   termination
     |   assignment
-    |   noRetFunctionCall
+    |   builtinVarStatement
     |   NEWLINE|SEMICOLON
     ;
 
@@ -90,14 +90,18 @@ expr
 tupleExpr
     :   MULW LEFTPARA ( expr COMMA expr ) RIGHTPARA
     |   ADDW LEFTPARA ( expr COMMA expr ) RIGHTPARA
-    |   APPLOCALGETEX LEFTPARA ( expr COMMA expr COMMA expr ) RIGHTPARA
-    |   APPGLOBALGETEX LEFTPARA ( expr COMMA expr ) RIGHTPARA
-    |   ASSETHOLDINGGET LEFTPARA ( ASSETHOLDINGFIELDS COMMA expr COMMA expr ) RIGHTPARA
-    |   ASSETPARAMSGET LEFTPARA ( ASSETPARAMSFIELDS COMMA expr ) RIGHTPARA
+    |   builtinVarTupleExpr
     ;
 
-noRetFunctionCall
-    :   BUILTINNORETFUNC LEFTPARA (expr (COMMA expr)* )? RIGHTPARA    # BuiltinNoRetFunCall
+builtinVarTupleExpr
+    :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (APPGETEX|ASSETHLDBALANCE|ASSETHLDFROZEN) LEFTPARA expr (COMMA expr)? RIGHTPARA
+    |   APPS LEFTSQUARE expr RIGHTSQUARE DOT APPGETEX LEFTPARA expr RIGHTPARA
+    |   ASSETS LEFTSQUARE expr RIGHTSQUARE DOT ASSETPARAMSFIELDS
+    ;
+
+builtinVarStatement
+    :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (APPPUT|APPDEL) LEFTPARA expr (COMMA expr)? RIGHTPARA
+    |   APPS LEFTSQUARE expr RIGHTSQUARE DOT (APPPUT|APPDEL) LEFTPARA expr (COMMA expr)? RIGHTPARA
     ;
 
 functionCall
@@ -110,21 +114,32 @@ builtinVarExpr
     |   txn                                         # TxnFieldExpr
     |   gtxn                                        # GroupTxnFieldExpr
     |   args                                        # ArgsExpr
+    |   accounts                                    # AccountsExpr
+    |   apps                                        # AppsExpr
     ;
 
 txn
-    :   TXN DOT TXNFIELD                                               # TxnSingleFieldExpr
-    |   TXN DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE    # TxnArrayFieldExpr
+    :   TXN DOT TXNFIELD                                            # TxnSingleFieldExpr
+    |   TXN DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE # TxnArrayFieldExpr
     ;
 
 gtxn
-    :   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNFIELD  # GroupTxnSingleFieldExpr
-    |   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE   # GroupTxnArrayFieldExpr
+    :   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNFIELD                                             # GroupTxnSingleFieldExpr
+    |   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE  # GroupTxnArrayFieldExpr
     ;
 
 args
     :   ARGS LEFTSQUARE NUMBER RIGHTSQUARE          # ArgsNumberExpr
     |   ARGS LEFTSQUARE IDENT RIGHTSQUARE           # ArgsIdentExpr
+    ;
+
+accounts
+    :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT BALANCE                                  # AccountsBalanceExpr
+    |   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (OPTEDIN|APPGET) LEFTPARA expr RIGHTPARA # AccountsSingleMethodsExpr
+    ;
+
+apps
+    :   APPS LEFTSQUARE expr RIGHTSQUARE DOT APPGET LEFTPARA expr RIGHTPARA   # AppsSingleMethodsExpr
     ;
 
 compoundElem
