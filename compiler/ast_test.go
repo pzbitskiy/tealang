@@ -719,33 +719,36 @@ func TestBuiltinApp(t *testing.T) {
 
 	source := `
 function approval() {
-	let b = balance(0);
-	let exist = app_opted_in(1);
-	let val = app_local_get(1, "key");
-	val, exist = app_local_get_ex(1, 0, "key");
-	if exist == 0 {
-		return 0;
-	}
-	val = app_global_get("key");
-	val, exist = app_global_get_ex(0, "key");
+	let b = accounts[1].Balance;
+	let exist = accounts[0].optedIn(1);
+	let val = accounts[1].get("key")
+	val, exist = accounts[1].getEx(0, "key")
 	if exist == 0 {
 		return 0;
 	}
 
-	let app = 0;
-	app_local_put(app, "key", 1);
+	val = apps[0].get("key")
+	val, exist = apps[1].getEx("key");
+	if exist == 0 {
+		return 0;
+	}
+
+	let senderIdx = 0;
+	accounts[senderIdx].put("key", 1)
 	let value = "value";
 	let key = "key";
-	app_global_put(key, value);
+	apps[0].put(key, value)
 
-	app_local_del(app, key);
-	app_global_del(key);
+	const acc = 1;
+	accounts[acc].del(key)
+	apps[0].del(key)
 
 	let asset = 100;
-	let acc = 1;
-	let amount, isok = asset_holding_get(AssetBalance, asset, acc);
+	let account = 1;
+	let amount, isok = accounts[account].assetBalance(asset)
+	let frozen, isok2 = accounts[0].assetIsFrozen(1)
 	let assetIdx = 0;
-	amount, exist = asset_params_get(AssetTotal, assetIdx);
+	amount, exist = assets[assetIdx].AssetTotal
 	return 1;
 }
 `

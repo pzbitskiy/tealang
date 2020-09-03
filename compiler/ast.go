@@ -196,10 +196,10 @@ var builtinFun = map[string]bool{
 	"app_local_get_ex":  true,
 	"app_global_get":    true,
 	"app_global_get_ex": true,
-	"app_local_put":     true,
-	"app_global_put":    true,
-	"app_local_del":     true,
-	"app_global_del":    true,
+	"app_local_put":     true, // accounts[x].put
+	"app_global_put":    true, // apps[0].put
+	"app_local_del":     true, // accounts[x].del
+	"app_global_del":    true, // apps[0].del
 	"asset_holding_get": true,
 	"asset_params_get":  true,
 }

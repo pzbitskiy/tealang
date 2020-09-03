@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
+	"strconv"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
@@ -383,8 +384,8 @@ func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
 		ctx.Termination().EnterRule(l)
 	} else if ctx.Assignment() != nil {
 		ctx.Assignment().EnterRule(l)
-	} else if ctx.NoRetFunctionCall() != nil {
-		ctx.NoRetFunctionCall().EnterRule(l)
+	} else if ctx.BuiltinVarStatement() != nil {
+		ctx.BuiltinVarStatement().EnterRule(l)
 	}
 }
 
@@ -712,14 +713,81 @@ func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
 	l.expr = exprNode
 }
 
-func (l *treeNodeListener) EnterBuiltinNoRetFunCall(ctx *gen.BuiltinNoRetFunCallContext) {
+func validateAppsIndex(ctx *context, exprNode ExprNodeIf) (err error) {
+	indexType, err := exprNode.getType()
+	if err != nil {
+		return
+	}
+	if indexType != intType {
+		err = fmt.Errorf("apps index must be int type")
+		return
+	}
+
+	var value string
+	switch tt := exprNode.(type) {
+	case *exprIdentNode:
+		ident := tt.name
+		var info varInfo
+		info, err = ctx.lookup(ident)
+		if err != nil || !info.constant {
+			err = fmt.Errorf("%s not a constant", ident)
+			return
+		}
+		value = *info.value
+	case *exprLiteralNode:
+		value = tt.value
+	default:
+		err = fmt.Errorf("apps[%s] must be a literal number or a constant", value)
+		return
+	}
+
+	val, err := strconv.Atoi(value)
+	if err != nil {
+		err = fmt.Errorf("%s not a number", value)
+		return
+	}
+	if val != 0 {
+		err = fmt.Errorf("apps[%s] must be a zero literal number or a constant", value)
+		return
+	}
+
+	return
+}
+
+func (l *treeNodeListener) EnterBuiltinVarStatement(ctx *gen.BuiltinVarStatementContext) {
+	exprs := ctx.AllExpr()
+	fmt.Println("EnterBuiltinVarStatement")
+
+	var tealOpName string
+	if ctx.ACCOUNTS() != nil {
+		tealOpName = "app_local"
+	} else {
+		tealOpName = "app_global"
+		// currently only 'this app = 0' supported for apps, ensure this fact
+		listener := newExprListener(l.ctx, l.parent)
+		exprs[0].EnterRule(listener)
+		exprNode := listener.getExpr()
+		token := exprs[0].GetParser().GetCurrentToken()
+		if err := validateAppsIndex(l.ctx, exprNode); err != nil {
+			reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+			return
+		}
+		exprs = exprs[1:]
+	}
+
+	var token antlr.Token
+	if ctx.APPPUT() != nil {
+		token = ctx.APPPUT().GetSymbol()
+	} else {
+		token = ctx.APPDEL().GetSymbol()
+	}
+	tealOpName = fmt.Sprintf("%s_%s", tealOpName, token.GetText())
+
 	listener := newExprListener(l.ctx, l.parent)
-	name := ctx.BUILTINNORETFUNC().GetText()
-	exprNode := listener.funCallEnterImpl(name, ctx.AllExpr())
+	exprNode := listener.funCallEnterImpl(tealOpName, exprs)
 
 	err := exprNode.checkBuiltinArgs()
 	if err != nil {
-		token := ctx.BUILTINNORETFUNC().GetSymbol()
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
@@ -781,22 +849,19 @@ func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext)
 }
 
 func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
+	if node := ctx.BuiltinVarTupleExpr(); node != nil {
+		listener := newExprListener(l.ctx, l.parent)
+		node.EnterRule(listener)
+		exprNode := listener.getExpr()
+		l.expr = exprNode
+		return
+	}
+
 	var name string
-	var fieldArgNode antlr.TerminalNode
-	if node := ctx.MULW(); node != nil {
-		name = node.GetText()
-	} else if node := ctx.ADDW(); node != nil {
-		name = node.GetText()
-	} else if node := ctx.APPLOCALGETEX(); node != nil {
-		name = node.GetText()
-	} else if node := ctx.APPGLOBALGETEX(); node != nil {
-		name = node.GetText()
-	} else if node := ctx.ASSETHOLDINGGET(); node != nil {
-		fieldArgNode = ctx.ASSETHOLDINGFIELDS()
-		name = node.GetText()
-	} else if node := ctx.ASSETPARAMSGET(); node != nil {
-		fieldArgNode = ctx.ASSETPARAMSFIELDS()
-		name = node.GetText()
+	if ctx.MULW() != nil {
+		name = ctx.MULW().GetText()
+	} else {
+		name = ctx.ADDW().GetText()
 	}
 
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
@@ -807,15 +872,114 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
-	if fieldArgNode != nil {
-		err = exprNode.resolveFieldArg(fieldArgNode.GetText())
+
+	l.expr = exprNode
+}
+
+func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprContext) {
+	var name string
+	var fieldArgToken antlr.Token
+	if node := ctx.ACCOUNTS(); node != nil {
+		name = node.GetText()
+		if ctx.ASSETHLDBALANCE() != nil {
+			fieldArgToken = ctx.ASSETHLDBALANCE().GetSymbol()
+			fieldArgToken.SetText("AssetBalance")
+			name = "asset_holding_get"
+		} else if ctx.ASSETHLDFROZEN() != nil {
+			fieldArgToken = ctx.ASSETHLDFROZEN().GetSymbol()
+			fieldArgToken.SetText("AssetFrozen")
+			name = "asset_holding_get"
+		} else {
+			name = "app_local_get_ex"
+		}
+	} else if node := ctx.APPS(); node != nil {
+		name = "app_global_get_ex"
+	} else if node := ctx.ASSETS(); node != nil {
+		fieldArgToken = ctx.ASSETPARAMSFIELDS().GetSymbol()
+		name = "asset_params_get"
+	}
+
+	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		token := ctx.GetParser().GetCurrentToken()
+		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+		return
+	}
+
+	if fieldArgToken != nil {
+		err = exprNode.resolveFieldArg(fieldArgToken.GetText())
 		if err != nil {
-			token := fieldArgNode.GetSymbol()
-			reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+			reportError(err.Error(), ctx.GetParser(), fieldArgToken, ctx.GetRuleContext())
 		}
 	}
 
 	l.expr = exprNode
+}
+
+func (l *exprListener) EnterAccountsBalanceExpr(ctx *gen.AccountsBalanceExprContext) {
+	name := "balance"
+	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		token := ctx.GetParser().GetCurrentToken()
+		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+		return
+	}
+	l.expr = exprNode
+}
+
+func (l *exprListener) EnterAccountsSingleMethodsExpr(ctx *gen.AccountsSingleMethodsExprContext) {
+	var name string
+	if ctx.OPTEDIN() != nil {
+		name = "app_opted_in"
+	} else {
+		name = "app_local_get"
+	}
+	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		token := ctx.GetParser().GetCurrentToken()
+		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+		return
+	}
+	l.expr = exprNode
+}
+
+func (l *exprListener) EnterAppsSingleMethodsExpr(ctx *gen.AppsSingleMethodsExprContext) {
+	name := "app_global_get"
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr(0).EnterRule(listener)
+	if err := validateAppsIndex(l.ctx, listener.getExpr()); err != nil {
+		token := ctx.Expr(0).GetParser().GetCurrentToken()
+		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+		return
+	}
+
+	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr(1)})
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		token := ctx.GetParser().GetCurrentToken()
+		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
+		return
+	}
+	l.expr = exprNode
+}
+
+func (l *exprListener) EnterAccountsExpr(ctx *gen.AccountsExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Accounts().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterAppsExpr(ctx *gen.AppsExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Apps().EnterRule(listener)
+	l.expr = listener.getExpr()
 }
 
 func (l *exprListener) EnterBuiltinObject(ctx *gen.BuiltinObjectContext) {
