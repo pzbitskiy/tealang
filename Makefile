@@ -3,7 +3,7 @@ default: build
 all: go test grammar-java
 build: go
 
-ANTLR4_JAR := /usr/local/lib/antlr-4.7.2-complete.jar
+ANTLR4_JAR := /usr/local/lib/antlr-4.8-complete.jar
 
 grammar-all: grammar-go
 
@@ -24,7 +24,7 @@ test:
 	go test ./...
 
 java-trace: grammar-java
-	java -classpath "gen/java:$(ANTLR4_JAR)" org.antlr.v4.gui.TestRig Tealang program -diagnostics -trace examples/ex.tl
+	java -classpath "gen/java:$(ANTLR4_JAR)" org.antlr.v4.gui.TestRig Tealang program -diagnostics -trace $(ARGS)
 
 java-gui: grammar-java
-	java -classpath "gen/java:$(ANTLR4_JAR)" org.antlr.v4.gui.TestRig Tealang program -diagnostics examples/w.tl -gui
+	java -classpath "gen/java:$(ANTLR4_JAR)" org.antlr.v4.gui.TestRig Tealang program -diagnostics -gui $(ARGS)
