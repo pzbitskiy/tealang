@@ -174,9 +174,9 @@ func (n *runtimeArgNode) Codegen(ostream io.Writer) {
 
 func (n *ifExprNode) Codegen(ostream io.Writer) {
 	n.condExpr.Codegen(ostream)
-	fmt.Fprintf(ostream, "!\nbnz if_expr_false_%d\n", &n)
+	fmt.Fprintf(ostream, "bz if_expr_false_%d\n", &n)
 	n.condTrueExpr.Codegen(ostream)
-	fmt.Fprintf(ostream, "intc %d\nbnz if_expr_end_%d\n", n.ctx.literals.literals[trueConstValue].offset, &n)
+	fmt.Fprintf(ostream, "b if_expr_end_%d\n", &n)
 	fmt.Fprintf(ostream, "if_expr_false_%d:\n", &n)
 	n.condFalseExpr.Codegen(ostream)
 	fmt.Fprintf(ostream, "if_expr_end_%d:\n", &n)
@@ -191,15 +191,15 @@ func (n *ifStatementNode) Codegen(ostream io.Writer) {
 	}
 
 	if hasFalse {
-		fmt.Fprintf(ostream, "!\nbnz if_stmt_false_%d\n", &n)
+		fmt.Fprintf(ostream, "bz if_stmt_false_%d\n", &n)
 	} else {
-		fmt.Fprintf(ostream, "!\nbnz if_stmt_end_%d\n", &n)
+		fmt.Fprintf(ostream, "bz if_stmt_end_%d\n", &n)
 	}
 
 	ch[0].Codegen(ostream)
 
 	if hasFalse {
-		fmt.Fprintf(ostream, "intc %d\nbnz if_stmt_end_%d\n", n.ctx.literals.literals[trueConstValue].offset, &n)
+		fmt.Fprintf(ostream, "b if_stmt_end_%d\n", &n)
 		fmt.Fprintf(ostream, "if_stmt_false_%d:\n", &n)
 		ch[1].Codegen(ostream)
 	}
