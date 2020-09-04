@@ -101,11 +101,9 @@ func TestCodegenIfExpr(t *testing.T) {
 	expected := `#pragma version *
 intcblock 0 1 2 3
 intc 1
-!
-bnz if_expr_false_*
+bz if_expr_false_*
 intc 2
-intc 1
-bnz if_expr_end_*
+b if_expr_end_*
 if_expr_false_*
 intc 3
 if_expr_end_*
@@ -125,8 +123,7 @@ func TestCodegenIfStmt(t *testing.T) {
 	expected := `#pragma version *
 intcblock 0 1 10
 intc 1
-!
-bnz if_stmt_end_*
+bz if_stmt_end_*
 intc 2
 store 0
 if_stmt_end_*`
@@ -141,12 +138,10 @@ if_stmt_end_*`
 	expected = `#pragma version *
 intcblock 0 1 10 11
 intc 1
-!
-bnz if_stmt_false_*
+bz if_stmt_false_*
 intc 2
 store 0
-intc 1
-bnz if_stmt_end_*
+b if_stmt_end_*
 if_stmt_false_*
 intc 3
 store 0
@@ -398,8 +393,7 @@ store 0
 intc 2
 store 1
 intc 1
-!
-bnz if_stmt_end_*
+bz if_stmt_end_*
 intc 3
 store 2
 if_stmt_end_*
