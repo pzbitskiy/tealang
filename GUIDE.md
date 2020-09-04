@@ -3,7 +3,7 @@
 Tealang translates all own constructions to corresponding **TEAL** instructions
 so that there is almost one-to-one mapping between statements in both languages.
 
-Refer to [TEAL documentation](https://developer.algorand.org/docs/teal) for details.
+Refer to [TEAL documentation](https://developer.algorand.org/docs/reference/teal/specification) for details.
 
 *Note, all code snippets below only for Tealang features demonstration.*
 
@@ -118,8 +118,8 @@ See [TEAL documentation](https://github.com/algorand/go-algorand/blob/master/dat
 
 ## Builtin functions
 
-`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw` are supported.
-The latter is a special one - it returns two values, high and low.
+`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3` are supported.
+`mulw`, `addw` are special - they return two values, high and low.
 
 ```
 let h = len("123")
@@ -129,14 +129,18 @@ h, l = mulw(l, h)
 
 ## Builtin objects
 
-There are 4 builtin objects: `txn`, `gtxn`, `global`, `args`. Accessing them is an expression.
+There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `accounts`, `apps`.
 
 | Object and Syntax | Description |
 | --- | --- |
-| `args[N]` | returns Args[N] value as []byte |
+| `args[N]` | returns LogicSig Args[N] value as []byte |
 | `txn.FIELD` | retrieves field from current transaction (see below) |
 | `gtxn[N].FIELD` | retrieves field from a transaction N in the current transaction group |
 | `global.FIELD` | returns globals (see below) |
+| `assets[N].FIELD` | returns asset information for an asset specified by `txn.ForeignAssets[N]` (see below) |
+| `accounts[N].Balance` | returns balance of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender |
+| `accounts[N].method` | returns state data of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender (see below) |
+| `apps[N].method` | returns application global state data for an app specified by `txn.ForeignApps[N-1]`, N=0 means this app (see below) |
 
 #### Transaction fields
 | Index | Name | Type | Notes |
@@ -175,6 +179,43 @@ There are 4 builtin objects: `txn`, `gtxn`, `global`, `args`. Accessing them is 
 | 2 | MaxTxnLife | uint64 | rounds |
 | 3 | ZeroAddress | []byte | 32 byte address of all zero bytes |
 | 4 | GroupSize | uint64 | Number of transactions in this atomic transaction group. At least 1. |
+
+#### Asset fields
+
+| Index | Name | Type | Notes |
+| --- | --- | --- | --- |
+| 0 | AssetTotal | uint64 | Total number of units of this asset |
+| 1 | AssetDecimals | uint64 | See AssetParams.Decimals |
+| 2 | AssetDefaultFrozen | uint64 | Frozen by default or not |
+| 3 | AssetUnitName | []byte | Asset unit name |
+| 4 | AssetName | []byte | Asset name |
+| 5 | AssetURL | []byte | URL with additional info about the asset |
+| 6 | AssetMetadataHash | []byte | Arbitrary commitment |
+| 7 | AssetManager | []byte | Manager commitment |
+| 8 | AssetReserve | []byte | Reserve address |
+| 9 | AssetFreeze | []byte | Freeze address |
+| 10 | AssetClawback | []byte | Clawback address |
+
+#### Accounts methods
+
+| Signature | Param Types | Return Types | Notes |
+| --- | --- | --- | --- |
+| assetBalance(assetId) | uint64 | uint64 | Amount of the asset unit held by this account |
+| assetIsFrozen(assetId) | uint64 | uint64 | Is the asset frozen or not |
+| optedIn(appId) | uint64 | uint64 | Returns 1 if opted in the app, and 0 otherwise, see [`app_opted_in` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| getEx(appIdx, key) | uint64, []byte | any, uint64 (top) | Returns value and isOk flag, see [`app_local_get_ex` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| get(key) | []byte | any | Returns value or 0 if does not exist, see [`app_local_get` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| put(key, value) | []byte, any | - | Stores key-value pair in app's local store, does not return. See [`app_local_put` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| del(key) | []byte | - | Deletes from app's local store, does not return. See [`app_local_del` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+
+#### Apps methods
+
+| Signature | Param Types | Return Types | Notes |
+| --- | --- | --- | --- |
+| getEx(appIdx, key) | uint64, []byte | any, uint64 (top) | Returns value and isOk flag, see [`app_global_get_ex` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| get(key) | []byte | any | Returns value or 0 if does not exist, see [`app_global_get` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| put(key, value) | []byte, any | - | Stores key-value pair in app's global store, does not return. See [`app_global_put` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| del(key) | []byte | - | Deletes from app's local store, does not return. See [`app_global_del` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
 
 ## Scopes
 
