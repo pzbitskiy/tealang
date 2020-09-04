@@ -147,7 +147,7 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 		)
 		return
 	}
-	if tp != intType {
+	if tp != unknownType && tp != intType {
 		reportError(
 			fmt.Sprintf("main function must return int but got %s", tp),
 			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
@@ -756,7 +756,6 @@ func validateAppsIndex(ctx *context, exprNode ExprNodeIf) (err error) {
 
 func (l *treeNodeListener) EnterBuiltinVarStatement(ctx *gen.BuiltinVarStatementContext) {
 	exprs := ctx.AllExpr()
-	fmt.Println("EnterBuiltinVarStatement")
 
 	var tealOpName string
 	if ctx.ACCOUNTS() != nil {

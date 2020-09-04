@@ -533,6 +533,26 @@ end_main:
 
 	source = `
 function approval() {
+	return accounts[2].get("key");
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1 2
+bytecblock 0x6b6579
+intc 2
+bytec 0
+app_local_get
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
 	accounts[0].put("key", 1);
 	return 1;
 }
@@ -549,6 +569,111 @@ bytec 0
 intc 1
 app_local_put
 intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	return apps[0].get("key")
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1
+bytecblock 0x6b6579
+bytec 0
+app_global_get
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	apps[0].put("key", 2)
+	return 1
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1 2
+bytecblock 0x6b6579
+bytec 0
+intc 2
+app_global_put
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	let val, exist = apps[2].getEx("key")
+	return val
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1 2
+bytecblock 0x6b6579
+intc 2
+bytec 0
+app_global_get_ex
+store 0
+store 1
+load 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	let val = accounts[1].Balance
+	return val
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1
+intc 1
+balance
+store 0
+load 0
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	return accounts[2].optedIn(101)
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1 2 101
+intc 2
+intc 3
+app_opted_in
 return
 end_main:
 `
@@ -582,6 +707,51 @@ asset_holding_get AssetBalance
 store 2
 store 3
 load 2
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	let amount, exist = accounts[2].assetIsFrozen(101);
+	return exist;
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1 2 101
+intc 2
+intc 3
+asset_holding_get AssetFrozen
+store 0
+store 1
+load 0
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	let amount, exist = assets[0].AssetTotal
+	return amount;
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1
+intc 0
+asset_params_get AssetTotal
+store 0
+store 1
+load 1
 return
 end_main:
 `

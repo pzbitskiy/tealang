@@ -65,11 +65,6 @@ TXNARRAYFIELD
     |   NUMACCOUNTS
     ;
 
-ASSETHOLDINGFIELDS
-    :   ASSETBALANCE
-    |   ASSETFROZEN
-    ;
-
 ASSETPARAMSFIELDS
     :   ASSETTOTAL
     |   ASSETDECIMALS
@@ -180,8 +175,6 @@ FREEZEASSET          : 'FreezeAsset' ;
 FREEZEASSETACCOUNT   : 'FreezeAssetAccount' ;
 FREEZEAZZETFROZEN    : 'FreezeAssetFrozen' ;
 
-ASSETBALANCE       : 'AssetBalance' ;
-ASSETFROZEN        : 'AssetFrozen' ;
 ASSETTOTAL         : 'AssetTotal' ;
 ASSETDECIMALS      : 'AssetDecimals' ;
 ASSETDEFAULTFROZEN : 'AssetDefaultFrozen' ;
