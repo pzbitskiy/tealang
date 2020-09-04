@@ -187,6 +187,7 @@ var builtinFun = map[string]bool{
 	"itob":              true,
 	"btoi":              true,
 	"concat":            true,
+	"substring":         true,
 	"substring3":        true,
 	"mulw":              true,
 	"addw":              true,
@@ -337,6 +338,8 @@ type funCallNode struct {
 	*TreeNode
 	name       string
 	field      string
+	index1     string
+	index2     string
 	funType    exprType
 	definition *funDefNode
 }

@@ -791,7 +791,8 @@ func TestCodegenSubstring(t *testing.T) {
 
 	source := `
 function logic() {
-	let result = substring3("abc", 1, 2)
+	let start = 1
+	let result = substring("abc", start, 2)
 	return len(result)
 }
 `
@@ -802,10 +803,35 @@ function logic() {
 	expected := `#pragma version *
 intcblock 0 1 2
 bytecblock 0x616263
-bytec 0
 intc 1
+store 0
+bytec 0
+load 0
 intc 2
 substring3
+store 1
+load 1
+len
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function logic() {
+	let result = substring("abc", 1, 2)
+	return len(result)
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1 2
+bytecblock 0x616263
+bytec 0
+substring 1 2
 store 0
 load 0
 len
@@ -813,4 +839,5 @@ return
 end_main:
 `
 	CompareTEAL(a, expected, actual)
+
 }
