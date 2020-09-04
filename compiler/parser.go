@@ -697,9 +697,68 @@ func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
 	l.expr = listener.getExpr()
 }
 
+func handleSubstring(exprNode *funCallNode, ctx *gen.BuiltinFunCallContext) (errToken antlr.Token, err error) {
+	var arg1Val, arg2Val string
+	switch arg1 := exprNode.childrenNodes[1].(type) {
+	case *constNode:
+		if arg1.exprType != intType {
+			errToken = ctx.Expr(1).GetStart()
+		} else {
+			arg1Val = arg1.value
+		}
+	case *exprLiteralNode:
+		if arg1.exprType != intType {
+			errToken = ctx.Expr(1).GetStart()
+		} else {
+			arg1Val = arg1.value
+		}
+	}
+	if errToken != nil {
+		err = fmt.Errorf("arg #1 must be int")
+		return
+	}
+	switch arg2 := exprNode.childrenNodes[2].(type) {
+	case *constNode:
+		if arg2.exprType != intType {
+			errToken = ctx.Expr(2).GetStart()
+		} else {
+			arg2Val = arg2.value
+		}
+	case *exprLiteralNode:
+		if arg2.exprType != intType {
+			errToken = ctx.Expr(2).GetStart()
+		} else {
+			arg2Val = arg2.value
+		}
+	}
+	if errToken != nil {
+		err = fmt.Errorf("arg #2 must be int")
+		return
+	}
+
+	if len(arg1Val) > 0 && len(arg2Val) > 0 {
+		exprNode.childrenNodes = exprNode.childrenNodes[:1]
+		exprNode.index1 = arg1Val
+		exprNode.index2 = arg2Val
+	} else {
+		exprNode.name = "substring3"
+	}
+	return
+}
+
 func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
 	name := ctx.BUILTINFUNC().GetText()
+	// special case for substring: generate substring or substring3 depending on arguments
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+	if exprNode.name == "substring" {
+		errToken, err := handleSubstring(exprNode, ctx)
+		if err != nil {
+			parser := ctx.GetParser()
+			rule := ctx.GetRuleContext()
+			reportError(err.Error(), parser, errToken, rule)
+			return
+		}
+	}
 
 	err := exprNode.checkBuiltinArgs()
 	if err != nil {

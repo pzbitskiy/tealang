@@ -125,4 +125,3 @@ make java-gui
 2. Improve errors reporting.
 3. Code gen: do not use temp scratch in "assign and use" case.
 4. Code gen: keep track scratch slots and mark as available after freeing with `load`.
-5. Support `substring` and generate either `substring` or `substring3`.
