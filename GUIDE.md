@@ -143,6 +143,7 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | `apps[N].method` | returns application global state data for an app specified by `txn.ForeignApps[N-1]`, N=0 means this app (see below) |
 
 #### Transaction fields
+
 | Index | Name | Type | Notes |
 | --- | --- | --- | --- |
 | 0 | Sender | []byte | 32 byte address |
@@ -169,6 +170,30 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | 21 | AssetCloseTo | []byte | 32 byte address |
 | 22 | GroupIndex | uint64 | Position of this transaction within an atomic transaction group. A stand-alone transaction is implicitly element 0 in a group of 1. |
 | 23 | TxID | []byte | The computed ID for this transaction. 32 bytes. |
+| 24 | ApplicationID | uint64 | ApplicationID from ApplicationCall transaction. LogicSigVersion >= 2. |
+| 25 | OnCompletion | uint64 | ApplicationCall transaction on completion action. LogicSigVersion >= 2. |
+| 26 | ApplicationArgs | []byte | Arguments passed to the application in the ApplicationCall transaction. LogicSigVersion >= 2. |
+| 27 | NumAppArgs | uint64 | Number of ApplicationArgs. LogicSigVersion >= 2. |
+| 28 | Accounts | []byte | Accounts listed in the ApplicationCall transaction. LogicSigVersion >= 2. |
+| 29 | NumAccounts | uint64 | Number of Accounts. LogicSigVersion >= 2. |
+| 30 | ApprovalProgram | []byte | Approval program. LogicSigVersion >= 2. |
+| 31 | ClearStateProgram | []byte | Clear state program. LogicSigVersion >= 2. |
+| 32 | RekeyTo | []byte | 32 byte Sender's new AuthAddr. LogicSigVersion >= 2. |
+| 33 | ConfigAsset | uint64 | Asset ID in asset config transaction. LogicSigVersion >= 2. |
+| 34 | ConfigAssetTotal | uint64 | Total number of units of this asset created. LogicSigVersion >= 2. |
+| 35 | ConfigAssetDecimals | uint64 | Number of digits to display after the decimal place when displaying the asset. LogicSigVersion >= 2. |
+| 36 | ConfigAssetDefaultFrozen | uint64 | Whether the asset's slots are frozen by default or not, 0 or 1. LogicSigVersion >= 2. |
+| 37 | ConfigAssetUnitName | []byte | Unit name of the asset. LogicSigVersion >= 2. |
+| 38 | ConfigAssetName | []byte | The asset name. LogicSigVersion >= 2. |
+| 39 | ConfigAssetURL | []byte | URL. LogicSigVersion >= 2. |
+| 40 | ConfigAssetMetadataHash | []byte | 32 byte commitment to some unspecified asset metadata. LogicSigVersion >= 2. |
+| 41 | ConfigAssetManager | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 42 | ConfigAssetReserve | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 43 | ConfigAssetFreeze | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 44 | ConfigAssetClawback | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 45 | FreezeAsset | uint64 | Asset ID being frozen or un-frozen. LogicSigVersion >= 2. |
+| 46 | FreezeAssetAccount | []byte | 32 byte address of the account whose asset slot is being frozen or un-frozen. LogicSigVersion >= 2. |
+| 47 | FreezeAssetFrozen | uint64 | The new frozen value, 0 or 1. LogicSigVersion >= 2. |
 
 #### Global fields
 
@@ -179,6 +204,10 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | 2 | MaxTxnLife | uint64 | rounds |
 | 3 | ZeroAddress | []byte | 32 byte address of all zero bytes |
 | 4 | GroupSize | uint64 | Number of transactions in this atomic transaction group. At least 1. |
+| 5 | LogicSigVersion | uint64 | Maximum supported TEAL version. LogicSigVersion >= 2. |
+| 6 | Round | uint64 | Current round number. LogicSigVersion >= 2. |
+| 7 | LatestTimestamp | uint64 | Last confirmed block UNIX timestamp. Fails if negative. LogicSigVersion >= 2. |
+| 8 | CurrentApplicationID | uint64 | ID of current application executing. Fails if no such application is executing. LogicSigVersion >= 2. |
 
 #### Asset fields
 
