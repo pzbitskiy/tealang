@@ -15,7 +15,7 @@ import (
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
-	gen "../gen/go"
+	gen "tealang/gen/go"
 )
 
 //go:generate sh ./bundle_langspec_json.sh

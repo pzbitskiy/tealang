@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"./compiler"
-	dr "./dryrun"
+	"tealang/compiler"
+	dr "tealang/dryrun"
 
 	"github.com/algorand/go-algorand/data/transactions/logic"
 	"github.com/spf13/cobra"

@@ -58,6 +58,7 @@ TXNFIELD
     |   FREEZEASSET
     |   FREEZEASSETACCOUNT
     |   FREEZEAZZETFROZEN
+    |   EXTRAPROGRAMPAGES
     ;
 
 TXNARRAYFIELD
@@ -174,6 +175,7 @@ CONFIGASSETCLAWBACK  : 'ConfigAssetClawback' ;
 FREEZEASSET          : 'FreezeAsset' ;
 FREEZEASSETACCOUNT   : 'FreezeAssetAccount' ;
 FREEZEAZZETFROZEN    : 'FreezeAssetFrozen' ;
+EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
 
 ASSETTOTAL         : 'AssetTotal' ;
 ASSETDECIMALS      : 'AssetDecimals' ;
