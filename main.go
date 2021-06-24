@@ -92,6 +92,7 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 		var teal string
 		var bytecode []byte
 		var err error
+		var op *logic.OpStream
 		if len(oneliner) > 0 {
 			prog, parseErrors = compiler.ParseOneLineCond(source)
 			if len(parseErrors) > 0 {
@@ -118,12 +119,14 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 		teal = compiler.Codegen(prog)
 
 		if !compileOnly {
-			bytecode, err = logic.AssembleString(teal)
+			op, err = logic.AssembleString(teal)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
 		}
+
+		bytecode = op.Program
 
 		if stdout {
 			output := teal
@@ -157,15 +160,16 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 
 		if cmd.Flags().Changed("dryrun") {
 			if bytecode == nil {
-				bytecode, err = logic.AssembleString(teal)
+				op, err = logic.AssembleString(teal)
 				if err != nil {
 					fmt.Println(err.Error())
 					os.Exit(1)
 				}
+				bytecode = op.Program
 			}
 			sb := strings.Builder{}
-			cost, pass, err := dr.Run(bytecode, dryrun, &sb)
-			fmt.Printf("cost=%d trace:\n%s\n", cost, sb.String())
+			pass, err := dr.Run(bytecode, dryrun, &sb)
+			fmt.Printf("trace:\n%s\n", sb.String())
 			if pass {
 				fmt.Printf(" - pass -\n")
 			} else {

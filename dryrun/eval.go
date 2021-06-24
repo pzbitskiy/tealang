@@ -16,10 +16,10 @@ import (
 //go:generate sh ./bundle_sampletxn_json.sh
 
 // Run bytecode using transaction data from txnFile file
-func Run(bytecode []byte, txnFile string, sb *strings.Builder) (int, bool, error) {
+func Run(bytecode []byte, txnFile string, sb *strings.Builder) (bool, error) {
 	txn, err := loadTxn(txnFile)
 	if err != nil {
-		return 0, false, err
+		return false, err
 	}
 
 	stxn := transactions.SignedTxn{}
@@ -27,9 +27,9 @@ func Run(bytecode []byte, txnFile string, sb *strings.Builder) (int, bool, error
 	proto := config.Consensus[protocol.ConsensusCurrentVersion]
 
 	ep := logic.EvalParams{Txn: &stxn, Proto: &proto}
-	cost, err := logic.Check(bytecode, ep)
+	err = logic.Check(bytecode, ep)
 	if err != nil {
-		return 0, false, err
+		return false, err
 	}
 
 	txgroup := make([]transactions.SignedTxn, 1)
@@ -44,7 +44,7 @@ func Run(bytecode []byte, txnFile string, sb *strings.Builder) (int, bool, error
 	}
 
 	pass, err := logic.Eval(bytecode, ep)
-	return cost, pass, err
+	return pass, err
 }
 
 func loadTxn(txnFile string) (txn transactions.Transaction, err error) {
