@@ -53,7 +53,7 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 		if inFile == "-" {
 			data, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
-				fmt.Printf(err.Error())
+				fmt.Println(err.Error())
 				os.Exit(1)
 			}
 			source = string(data)
@@ -124,9 +124,8 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}
+			bytecode = op.Program
 		}
-
-		bytecode = op.Program
 
 		if stdout {
 			output := teal
@@ -183,7 +182,7 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 	},
 }
 
-func main() {
+func setRootCmdFlags() {
 	rootCmd.Flags().StringVarP(&outFile, "output", "o", "", "write output to this file")
 	rootCmd.Flags().BoolVarP(&compileOnly, "compile", "c", false, "compile to TEAL assembler, do not produce bytecode")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
@@ -191,6 +190,10 @@ func main() {
 	rootCmd.Flags().BoolVarP(&stdout, "stdout", "s", false, "write output to stdout instead of a file")
 	rootCmd.Flags().BoolVarP(&raw, "raw", "r", false, "do not hex-encode bytecode when outputting to stdout")
 	rootCmd.Flags().StringVarP(&dryrun, "dryrun", "d", "", "dry run program with transaction data from the file provided")
+}
+
+func main() {
+	setRootCmdFlags()
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
