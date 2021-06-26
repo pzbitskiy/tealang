@@ -108,6 +108,16 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
     make build
     popd
     ```
+4. If you see the error
+   ```
+   ../../go/src/github.com/algorand/go-algorand/logging/telemetry.go:78:32: multiple-value uuid.NewV4() in single-value context
+   ```
+   then
+   ```sh
+   pushd $(go env GOPATH)/src/github.com/satori/go.uuid
+   git checkout v1.2.0
+   popd
+   ```
 
 ### Build and test
 ```sh
