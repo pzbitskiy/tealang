@@ -180,6 +180,38 @@ store 4`
 	CompareTEAL(a, expected, actual)
 }
 
+func TestCodegenGtxn(t *testing.T) {
+	a := require.New(t)
+
+	source := `function logic() {
+let a = gtxn[0].Sender;
+let idx = 1;
+let b = gtxn[idx].Sender;
+let c = gtxn[idx+1].Sender;
+return 1;
+}`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+*
+gtxn 0 Sender
+store 0
+intc 1
+store 1
+load 1
+gtxns Sender
+store 2
+load 1
+intc 1
++
+gtxns Sender
+store 3
+intc 1`
+	CompareTEAL(a, expected, actual)
+}
+
 func TestCodegenFunCall(t *testing.T) {
 	a := require.New(t)
 

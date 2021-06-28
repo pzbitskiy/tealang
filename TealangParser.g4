@@ -124,7 +124,7 @@ txn
     ;
 
 gtxn
-    :   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNFIELD                                             # GroupTxnSingleFieldExpr
+    :   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNFIELD                                             # GroupTxnSingleFieldExpr
     |   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE  # GroupTxnArrayFieldExpr
     ;
 
