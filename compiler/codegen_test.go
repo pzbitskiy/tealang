@@ -210,6 +210,29 @@ gtxns Sender
 store 3
 intc 1`
 	CompareTEAL(a, expected, actual)
+
+	source = `function logic() {
+let a = gtxn[0].ApplicationArgs[1];
+let idx = 1;
+let b = gtxn[idx].ApplicationArgs[1];
+return 1;
+}`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+*
+gtxna 0 ApplicationArgs 1
+store 0
+intc 1
+store 1
+load 1
+gtxnsa ApplicationArgs 1
+store 2
+intc 1`
+	CompareTEAL(a, expected, actual)
+
 }
 
 func TestCodegenFunCall(t *testing.T) {
