@@ -43,6 +43,7 @@ declaration
 // named rules for tree-walking only
 condition
     :   IF condIfExpr condTrueBlock (NEWLINE? ELSE condFalseBlock)?   # IfStatement
+    |   FOR condForExpr condTrueBlock   #ForStatement
     ;
 
 condTrueBlock
@@ -79,7 +80,7 @@ expr
     |   builtinVarExpr                              # BuiltinObject
     |   op=LNOT expr                                # Not
     |   op=BNOT expr                                # BitNot
-    |	expr op=(MUL|DIV|MOD) expr                  # MulDivMod
+    |	expr op=(MUL|DIV|MOD|DIVMODW) expr          # MulDivMod
     |	expr op=(PLUS|MINUS) expr                   # AddSub
     |   expr op=(LESS|LE|GREATER|GE|EE|NE) expr     # Relation
     |   expr op=(BOR|BXOR|BAND) expr                # BitOp
@@ -116,6 +117,8 @@ builtinVarExpr
     |   args                                        # ArgsExpr
     |   accounts                                    # AccountsExpr
     |   apps                                        # AppsExpr
+    |   gload                                       # GloadExpr
+    |   gloads                                      # GloadsExpr
     ;
 
 txn
@@ -153,7 +156,8 @@ arrayElem
 
 // named rules for tree-walking only
 condExpr
-    : IF condIfExpr LEFTFIGURE condTrueExpr RIGHTFIGURE ELSE LEFTFIGURE condFalseExpr RIGHTFIGURE
+    : IF condIfExpr LEFTFIGURE condTrueExpr RIGHTFIGURE ELSE LEFTFIGURE condFalseExpr RIGHTFIGURE   # If
+    | For condForExpr LEFTFIGURE condTrueExpr RIGHTFIGURE                                   # For
     ;
 
 condTrueExpr
@@ -166,4 +170,16 @@ condFalseExpr
 
 condIfExpr
     : expr                                          # IfExprCond
+    ;
+
+condForExpr
+    : expr                                          # ForExprCond
+    ;
+
+gload
+    : GLOAD LEFTPARA NUMBER COMMA NUMBER RIGHTPARA
+    ;
+
+gloads
+    : GLOADS LEFTSQUARE NUMBER LEFTSQUARE
     ;

@@ -269,6 +269,7 @@ function logic() {
 	let t = txn.Note
 	let g = gtxn[0].Sender
 	let r = args[0]
+	let p = txn.ExtraProgramPages
 	r = t
 
 	let z = sha256("test")
@@ -282,12 +283,12 @@ function logic() {
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
-	if len(errors) != 0 {
-		result.Print()
-	}
-	a.Empty(errors)
-	prog := Codegen(result)
-	a.Greater(len(prog), 0)
+	//if len(errors) != 0 {
+	//	result.Print()
+	//}
+	//a.Empty(errors)
+	//prog := Codegen(result)
+	//a.Greater(len(prog), 0)
 }
 
 func TestCodegenOpsPriority(t *testing.T) {
@@ -840,4 +841,37 @@ end_main:
 `
 	CompareTEAL(a, expected, actual)
 
+}
+
+func TestLoop(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let y= 2;
+	for y>0 { y=y-1 }
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	fmt.Println(actual)
+//	expected := `#pragma version *
+//intcblock 0 1 2
+//bytecblock 0x616263
+//intc 1
+//store 0
+//bytec 0
+//load 0
+//intc 2
+//substring3
+//store 1
+//load 1
+//len
+//return
+//end_main:
+//`
+//	CompareTEAL(a, expected, actual)
 }

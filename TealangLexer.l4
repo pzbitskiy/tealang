@@ -109,6 +109,7 @@ IMPORT      : 'import' -> pushMode(DOIMPORT);
 LOGIC       : 'logic';
 APPROVAL    : 'approval';
 CLEARSTATE  : 'clearstate';
+FOR         : 'for';
 
 GLOBAL      : 'global';
 TXN         : 'txn';
@@ -117,6 +118,8 @@ ARGS        : 'args';
 ACCOUNTS    : 'accounts';
 APPS        : 'apps';
 ASSETS      : 'assets';
+GLOAD       : 'gload';
+GLOADS      : 'gloads';
 
 MINTXNFEE       : 'MinTxnFee' ;
 MINBALANCE      : 'MinBalance' ;
@@ -246,6 +249,8 @@ NE          : '!=';
 EE          : '==';
 LOR         : '||';
 LAND        : '&&';
+
+DIVMODW     : 'divmodw';
 
 fragment EncodingPrefix
     :   'b32'

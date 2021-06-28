@@ -215,11 +215,13 @@ type TreeNodeIf interface {
 	Codegen(ostream io.Writer)
 }
 
+
 // ExprNodeIf extends TreeNode and can be evaluated and typed
 type ExprNodeIf interface {
 	TreeNodeIf
 	getType() (exprType, error)
 }
+
 
 // TreeNode contains base info about an AST node
 type TreeNode struct {
@@ -228,6 +230,10 @@ type TreeNode struct {
 	nodeName      string
 	parentNode    TreeNodeIf
 	childrenNodes []TreeNodeIf
+}
+
+type forNode struct {
+	*TreeNode
 }
 
 type programNode struct {
@@ -327,6 +333,13 @@ type ifExprNode struct {
 	condExpr      ExprNodeIf
 	condTrueExpr  ExprNodeIf
 	condFalseExpr ExprNodeIf
+}
+
+
+type forStatementNode struct {
+	*TreeNode
+	condExpr      ExprNodeIf
+	condTrueExpr  ExprNodeIf
 }
 
 type ifStatementNode struct {
@@ -518,6 +531,14 @@ func newIfStatementNode(ctx *context, parent TreeNodeIf) (node *ifStatementNode)
 	node.nodeName = "if stmt"
 	return
 }
+
+func newForStatementNode(ctx *context, parent TreeNodeIf) (node *forStatementNode) {
+	node = new(forStatementNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "for stmt"
+	return
+}
+
 
 func newFunCallNode(ctx *context, parent TreeNodeIf, name string) (node *funCallNode) {
 	node = new(funCallNode)
@@ -934,6 +955,10 @@ func (n *exprGroupNode) String() string {
 
 func (n *ifExprNode) String() string {
 	return fmt.Sprintf("if %s { %s } else { %s }", n.condExpr, n.condTrueExpr, n.condFalseExpr)
+}
+
+func (n *forStatementNode) String() string {
+	return fmt.Sprintf("for %s { %s}", n.condExpr, n.condTrueExpr)
 }
 
 func (n *returnNode) String() string {

@@ -15,7 +15,7 @@ import (
 
 const trueConstValue = "1"
 const falseConstValue = "0"
-const tealVersion = 2
+const tealVersion = 4
 
 // Codegen by default emits AST node as a comment
 func (n *TreeNode) Codegen(ostream io.Writer) {
@@ -205,6 +205,12 @@ func (n *ifStatementNode) Codegen(ostream io.Writer) {
 	}
 
 	fmt.Fprintf(ostream, "if_stmt_end_%d:\n", &n)
+}
+
+func (n *forStatementNode) Codegen(ostream io.Writer) {
+	n.condExpr.Codegen(ostream)
+	n.children()
+	fmt.Println("codegen for statment")
 }
 
 func (n *blockNode) Codegen(ostream io.Writer) {
