@@ -770,11 +770,11 @@ func (n *funCallNode) getTypeTuple() (exprType, exprType, error) {
 
 	var tpl exprType = invalidType
 	var tph exprType = invalidType
-	tpl, err = opTypeFromSpec(n.name, 0)
+	tph, err = opTypeFromSpec(n.name, 0)
 	if err != nil {
 		return tph, tpl, err
 	}
-	tph, err = opTypeFromSpec(n.name, 1)
+	tpl, err = opTypeFromSpec(n.name, 1)
 	return tph, tpl, err
 }
 
@@ -858,6 +858,10 @@ func (n *runtimeArgNode) getType() (exprType, error) {
 
 	n.exprType = tp
 	return tp, err
+}
+
+func (n *constNode) getType() (exprType, error) {
+	return n.exprType, nil
 }
 
 //--------------------------------------------------------------------------------------------------
