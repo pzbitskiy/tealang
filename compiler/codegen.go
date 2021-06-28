@@ -157,16 +157,24 @@ func (n *varDeclTupleNode) Codegen(ostream io.Writer) {
 }
 
 func (n *runtimeFieldNode) Codegen(ostream io.Writer) {
-	if n.op == "gtxn" {
+	switch n.op {
+	case "gtxn":
 		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.index1, n.field)
-	} else if n.op == "gtxna" {
-		fmt.Fprintf(ostream, "%s %s %s %s\n", n.op, n.index1, n.field, n.index2)
-	} else if n.op == "txna" {
-		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.field, n.index1)
-	} else {
+	case "gtxns":
 		for i := 0; i < len(n.childrenNodes); i++ {
 			n.childrenNodes[i].Codegen(ostream)
 		}
+		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
+	case "gtxna":
+		fmt.Fprintf(ostream, "%s %s %s %s\n", n.op, n.index1, n.field, n.index2)
+	case "gtxnsa":
+		for i := 0; i < len(n.childrenNodes); i++ {
+			n.childrenNodes[i].Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.field, n.index2)
+	case "txna":
+		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.field, n.index1)
+	default:
 		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
 	}
 }
