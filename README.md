@@ -126,7 +126,7 @@ make
 
 ### Build and run Java AST visualizer
 ```sh
-make java-gui
+make java-gui ARGS=examples/basic.tl
 ```
 
 ## Roadmap
