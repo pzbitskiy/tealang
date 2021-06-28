@@ -203,6 +203,7 @@ var builtinFun = map[string]bool{
 	"app_global_del":    true, // apps[0].del
 	"asset_holding_get": true,
 	"asset_params_get":  true,
+	"assert":            true,
 }
 
 // TreeNodeIf represents a node in AST
