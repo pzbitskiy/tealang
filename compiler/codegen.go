@@ -164,6 +164,9 @@ func (n *runtimeFieldNode) Codegen(ostream io.Writer) {
 	} else if n.op == "txna" {
 		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.field, n.index1)
 	} else {
+		for i := 0; i < len(n.childrenNodes); i++ {
+			n.childrenNodes[i].Codegen(ostream)
+		}
 		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
 	}
 }

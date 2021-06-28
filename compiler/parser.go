@@ -1090,20 +1090,43 @@ func (l *exprListener) EnterGroupTxnFieldExpr(ctx *gen.GroupTxnFieldExprContext)
 
 func (l *exprListener) EnterGroupTxnSingleFieldExpr(ctx *gen.GroupTxnSingleFieldExprContext) {
 	field := ctx.TXNFIELD().GetText()
-	var groupIndex string
-	if ctx.NUMBER() != nil {
-		groupIndex = ctx.NUMBER().GetText()
-	} else {
-		ident := ctx.IDENT().GetText()
+	var node ExprNodeIf
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	exprNode := listener.getExpr()
 
-		info, err := l.ctx.lookup(ident)
-		if err != nil || !info.constant {
-			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
-			return
+	var op string
+	var groupIndex string
+	var errToken antlr.Token
+	switch expr := exprNode.(type) {
+	case *constNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex = expr.value
+			op = "gtxn"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+
 		}
-		groupIndex = *info.value
+	case *exprLiteralNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex = expr.value
+			op = "gtxn"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+		}
+	default:
+		op = "gtxns"
+		node = newRuntimeFieldNode(l.ctx, l.parent, op, field)
+		node.append(exprNode)
 	}
-	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxn", field, groupIndex)
+
+	if errToken != nil {
+		reportError(fmt.Sprintf("not an integer"), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
 	l.expr = node
 }
 
