@@ -421,6 +421,24 @@ func (l *treeNodeListener) EnterTermError(ctx *gen.TermErrorContext) {
 	l.node = newErorrNode(l.ctx, l.parent)
 }
 
+func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
+	name := ctx.ASSERT().GetText()
+
+	listener := newExprListener(l.ctx, l.parent)
+	exprNode := listener.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		parser := ctx.GetParser()
+		token := ctx.ASSERT().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError(err.Error(), parser, token, rule)
+		return
+	}
+
+	l.node = exprNode
+}
+
 func (l *treeNodeListener) EnterIfStatement(ctx *gen.IfStatementContext) {
 	node := newIfStatementNode(l.ctx, l.parent)
 

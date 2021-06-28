@@ -56,6 +56,7 @@ condFalseBlock
 termination
     :   ERR (NEWLINE|SEMICOLON)                     # TermError
     |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
+    |   ASSERT LEFTPARA expr RIGHTPARA              # TermAssert
     ;
 
 decl

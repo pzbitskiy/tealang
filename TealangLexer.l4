@@ -196,6 +196,7 @@ ITOB        : 'itob';
 BTOI        : 'btoi';
 SUBSTRING   : 'substring';
 CONCAT      : 'concat';
+ASSERT      : 'assert';
 
 MULW        : 'mulw';
 ADDW        : 'addw';
