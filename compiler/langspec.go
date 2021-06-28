@@ -2,8 +2,8 @@ package compiler
 
 import "fmt"
 
-func opTypeFromSpec(op string, ret int) (exprType, error) {
-	if op, ok := langOps[op]; ok && len(op.Returns) != 0 {
+func opTypeFromSpec(name string, ret int) (exprType, error) {
+	if op, ok := langOps[name]; ok && len(op.Returns) != 0 {
 		switch op.Returns[ret] {
 		case 'U':
 			return intType, nil
@@ -13,11 +13,11 @@ func opTypeFromSpec(op string, ret int) (exprType, error) {
 			return unknownType, nil
 		}
 	}
-	return invalidType, fmt.Errorf("can't get type for %s ret #%d", op, ret+1)
+	return invalidType, fmt.Errorf("can't get type for %s ret #%d", name, ret+1)
 }
 
-func argOpTypeFromSpec(op string, arg int) (exprType, error) {
-	if op, ok := langOps[op]; ok && len(op.Args) > arg {
+func argOpTypeFromSpec(name string, arg int) (exprType, error) {
+	if op, ok := langOps[name]; ok && len(op.Args) > arg {
 		switch op.Args[arg] {
 		case 'U':
 			return intType, nil
@@ -27,11 +27,11 @@ func argOpTypeFromSpec(op string, arg int) (exprType, error) {
 			return unknownType, nil
 		}
 	}
-	return invalidType, fmt.Errorf("can't get type for %s arg #%d", op, arg+1)
+	return invalidType, fmt.Errorf("can't get type for %s arg #%d", name, arg+1)
 }
 
-func runtimeFieldTypeFromSpec(op string, field string) (exprType, error) {
-	if op, ok := langOps[op]; ok && len(op.ArgEnum) != 0 {
+func runtimeFieldTypeFromSpec(name string, field string) (exprType, error) {
+	if op, ok := langOps[name]; ok && len(op.ArgEnum) != 0 {
 		for idx, entry := range op.ArgEnum {
 			if entry == field {
 				switch op.ArgEnumTypes[idx] {
@@ -44,6 +44,9 @@ func runtimeFieldTypeFromSpec(op string, field string) (exprType, error) {
 				}
 			}
 		}
+	} else {
+		// gtxns does not have ArgEnum
+		return opTypeFromSpec(name, 0)
 	}
-	return invalidType, fmt.Errorf("can't get type for %s.%s", op, field)
+	return invalidType, fmt.Errorf("can't get type for %s.%s", name, field)
 }
