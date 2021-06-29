@@ -493,6 +493,21 @@ func getVarInfoForAssignment(ident string, ctx *context) (varInfo, error) {
 	return info, nil
 }
 
+func (l *treeNodeListener) EnterForStatement(ctx *gen.ForStatementContext) {
+	node := newForStatementNode(l.ctx, l.parent)
+
+	exprlistener := newExprListener(l.ctx, node)
+	ctx.CondForExpr().EnterRule(exprlistener)
+	node.condExpr = exprlistener.getExpr()
+
+	scopedContextTrue := newContext(l.ctx)
+
+	listener := newTreeNodeListener(scopedContextTrue, node)
+	ctx.CondTrueBlock().EnterRule(listener)
+	node.append(listener.getNode())
+	l.node = node
+}
+
 func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 	ident := ctx.IDENT().GetSymbol().GetText()
 	info, err := getVarInfoForAssignment(ident, l.ctx)
@@ -675,24 +690,6 @@ func (l *exprListener) EnterIfExpr(ctx *gen.IfExprContext) {
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.CondExpr().EnterRule(listener)
 	l.expr = listener.getExpr()
-}
-
-func (l *exprListener) EnterCondExpr(ctx *gen.CondExprContext) {
-	node := newIfExprNode(l.ctx, l.parent)
-
-	listener := newExprListener(l.ctx, node)
-	ctx.CondIfExpr().EnterRule(listener)
-	node.condExpr = listener.getExpr()
-
-	listener = newExprListener(l.ctx, node)
-	ctx.CondTrueExpr().EnterRule(listener)
-	node.condTrueExpr = listener.getExpr()
-
-	listener = newExprListener(l.ctx, node)
-	ctx.CondFalseExpr().EnterRule(listener)
-	node.condFalseExpr = listener.getExpr()
-
-	l.expr = node
 }
 
 func (l *exprListener) EnterIfExprCond(ctx *gen.IfExprCondContext) {

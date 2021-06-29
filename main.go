@@ -192,12 +192,3 @@ func main() {
 	rootCmd.Flags().BoolVarP(&raw, "raw", "r", false, "do not hex-encode bytecode when outputting to stdout")
 	rootCmd.Flags().StringVarP(&dryrun, "dryrun", "d", "", "dry run program with transaction data from the file provided")
 }
-
-func main() {
-	setRootCmdFlags()
-
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
