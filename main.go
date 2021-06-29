@@ -9,11 +9,11 @@ import (
 	"path"
 	"strings"
 
-	"github.com/pzbitskiy/tealang/compiler"
-	dr "github.com/pzbitskiy/tealang/dryrun"
-
 	"github.com/algorand/go-algorand/data/transactions/logic"
 	"github.com/spf13/cobra"
+
+	"github.com/pzbitskiy/tealang/compiler"
+	dr "github.com/pzbitskiy/tealang/dryrun"
 )
 
 var outFile string
