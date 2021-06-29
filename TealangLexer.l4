@@ -64,6 +64,7 @@ TXNFIELD
     |   NUMGLOBALBYTESLICES
     |   NUMLOCALINTS
     |   NUMLOCALBYTESLICES
+    |   EXTRAPROGRAMPAGES
     ;
 
 TXNARRAYFIELD
@@ -120,6 +121,8 @@ IMPORT      : 'import' -> pushMode(DOIMPORT);
 LOGIC       : 'logic';
 APPROVAL    : 'approval';
 CLEARSTATE  : 'clearstate';
+FOR         : 'for';
+BREAK       : 'break';
 
 GLOBAL      : 'global';
 TXN         : 'txn';
@@ -128,6 +131,8 @@ ARGS        : 'args';
 ACCOUNTS    : 'accounts';
 APPS        : 'apps';
 ASSETS      : 'assets';
+EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
+
 
 MINTXNFEE       : 'MinTxnFee' ;
 MINBALANCE      : 'MinBalance' ;
@@ -195,6 +200,7 @@ NUMGLOBALINTS        : 'GlobalNumUint' ;
 NUMGLOBALBYTESLICES  : 'GlobalNumByteSlice' ;
 NUMLOCALINTS         : 'LocalNumUint' ;
 NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
+
 
 
 ASSETTOTAL         : 'AssetTotal' ;

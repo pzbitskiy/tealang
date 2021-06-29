@@ -15,7 +15,9 @@ import (
 
 const trueConstValue = "1"
 const falseConstValue = "0"
-const tealVersion = 2
+const tealVersion = 4
+
+var ids []interface{}
 
 // Codegen by default emits AST node as a comment
 func (n *TreeNode) Codegen(ostream io.Writer) {
@@ -216,6 +218,30 @@ func (n *ifStatementNode) Codegen(ostream io.Writer) {
 	}
 
 	fmt.Fprintf(ostream, "if_stmt_end_%d:\n", &n)
+}
+
+func (n *forStatementNode) Codegen(ostream io.Writer) {
+	if ids == nil {
+		ids = make([]interface{}, 0)
+	}
+	ids = append(ids, &n)
+
+	fmt.Fprintf(ostream, "loop_start_%d:\n", &n)
+	n.condExpr.Codegen(ostream)
+	fmt.Fprintf(ostream, "bz loop_end_%d\n", &n)
+	ch := n.children()
+	ch[0].Codegen(ostream)
+	fmt.Fprintf(ostream, "b loop_start_%d\n", &n)
+	fmt.Fprintf(ostream, "loop_end_%d:\n", &n)
+}
+
+func (n *breakNode) Codegen(ostream io.Writer) {
+
+	id := ids[len(ids)-1]
+	ids = ids[:len(ids)-1]
+
+	fmt.Fprintf(ostream, "bz loop_end_%d\n", id)
+
 }
 
 func (n *blockNode) Codegen(ostream io.Writer) {

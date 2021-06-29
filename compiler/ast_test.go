@@ -46,6 +46,12 @@ function logic() {
 	if f + 2 < 10 {
 		error
 	}
+
+	let y= 0;
+	for 1 { 
+		if y==10 {break;}
+		y=y+1
+	}
 	return 1
 }
 `

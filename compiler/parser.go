@@ -439,6 +439,10 @@ func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
 	l.node = exprNode
 }
 
+func (l *treeNodeListener) EnterBreak(ctx *gen.BreakContext) {
+	l.node = newBreakNode(l.ctx, l.parent)
+}
+
 func (l *treeNodeListener) EnterIfStatement(ctx *gen.IfStatementContext) {
 	node := newIfStatementNode(l.ctx, l.parent)
 
@@ -487,6 +491,21 @@ func getVarInfoForAssignment(ident string, ctx *context) (varInfo, error) {
 	}
 
 	return info, nil
+}
+
+func (l *treeNodeListener) EnterForStatement(ctx *gen.ForStatementContext) {
+	node := newForStatementNode(l.ctx, l.parent)
+
+	exprlistener := newExprListener(l.ctx, node)
+	ctx.CondForExpr().EnterRule(exprlistener)
+	node.condExpr = exprlistener.getExpr()
+
+	scopedContextTrue := newContext(l.ctx)
+
+	listener := newTreeNodeListener(scopedContextTrue, node)
+	ctx.CondTrueBlock().EnterRule(listener)
+	node.append(listener.getNode())
+	l.node = node
 }
 
 func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
@@ -704,6 +723,12 @@ func (l *exprListener) EnterIfExprTrue(ctx *gen.IfExprTrueContext) {
 }
 
 func (l *exprListener) EnterIfExprFalse(ctx *gen.IfExprFalseContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterForExprCond(ctx *gen.ForExprCondContext) {
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.Expr().EnterRule(listener)
 	l.expr = listener.getExpr()

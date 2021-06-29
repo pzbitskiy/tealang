@@ -43,6 +43,7 @@ declaration
 // named rules for tree-walking only
 condition
     :   IF condIfExpr condTrueBlock (NEWLINE? ELSE condFalseBlock)?   # IfStatement
+    |   FOR condForExpr condTrueBlock   #ForStatement
     ;
 
 condTrueBlock
@@ -57,6 +58,7 @@ termination
     :   ERR (NEWLINE|SEMICOLON)                     # TermError
     |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
     |   ASSERT LEFTPARA expr RIGHTPARA              # TermAssert
+    |   BREAK (NEWLINE|SEMICOLON)                   # Break
     ;
 
 decl
@@ -167,4 +169,8 @@ condFalseExpr
 
 condIfExpr
     : expr                                          # IfExprCond
+    ;
+
+condForExpr
+    : expr                                          # ForExprCond
     ;

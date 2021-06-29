@@ -240,6 +240,10 @@ type TreeNode struct {
 	childrenNodes []TreeNodeIf
 }
 
+type forNode struct {
+	*TreeNode
+}
+
 type programNode struct {
 	*TreeNode
 }
@@ -262,6 +266,11 @@ type returnNode struct {
 
 type errorNode struct {
 	*TreeNode
+}
+
+type breakNode struct {
+	*TreeNode
+	value ExprNodeIf
 }
 
 type assignNode struct {
@@ -339,6 +348,12 @@ type ifExprNode struct {
 	condFalseExpr ExprNodeIf
 }
 
+type forStatementNode struct {
+	*TreeNode
+	condExpr     ExprNodeIf
+	condTrueExpr ExprNodeIf
+}
+
 type ifStatementNode struct {
 	*TreeNode
 	condExpr ExprNodeIf
@@ -410,6 +425,14 @@ func newErorrNode(ctx *context, parent TreeNodeIf) (node *errorNode) {
 	node = new(errorNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "error"
+	return
+}
+
+func newBreakNode(ctx *context, parent TreeNodeIf) (node *breakNode) {
+	node = new(breakNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "break"
+	node.value = nil
 	return
 }
 
@@ -526,6 +549,13 @@ func newIfStatementNode(ctx *context, parent TreeNodeIf) (node *ifStatementNode)
 	node = new(ifStatementNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "if stmt"
+	return
+}
+
+func newForStatementNode(ctx *context, parent TreeNodeIf) (node *forStatementNode) {
+	node = new(forStatementNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "for stmt"
 	return
 }
 
@@ -956,6 +986,10 @@ func (n *exprGroupNode) String() string {
 
 func (n *ifExprNode) String() string {
 	return fmt.Sprintf("if %s { %s } else { %s }", n.condExpr, n.condTrueExpr, n.condFalseExpr)
+}
+
+func (n *forStatementNode) String() string {
+	return fmt.Sprintf("for %s { %s}", n.condExpr, n.condTrueExpr)
 }
 
 func (n *returnNode) String() string {

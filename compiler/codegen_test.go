@@ -324,6 +324,7 @@ function logic() {
 	let t = txn.Note
 	let g = gtxn[0].Sender
 	let r = args[0]
+	let p = txn.ExtraProgramPages
 	r = t
 
 	let z = sha256("test")
@@ -905,6 +906,85 @@ end_main:
 `
 	CompareTEAL(a, expected, actual)
 
+}
+
+func TestLoop(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let y= 2;
+	for y>0 { y=y-1 }
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 2
+intc 2
+store 0
+loop_start_*
+load 0
+intc 0
+>
+bz loop_end_*
+load 0
+intc 1
+-
+store 0
+b loop_start_*
+loop_end_*
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
+
+func TestBreak(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let y= 0;
+	for 1 { 
+		if y==10 {break;}
+		y=y+1
+	}
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 10
+intc 0
+store 0
+loop_start_*
+intc 1
+bz loop_end_*
+load 0
+intc 2
+==
+bz if_stmt_end_*
+bz loop_end_*
+if_stmt_end_*
+load 0
+intc 1
++
+store 0
+b loop_start_*
+loop_end_*
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenGetSetBitByte(t *testing.T) {
