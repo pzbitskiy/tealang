@@ -3,7 +3,7 @@ default: build
 all: go test grammar-java
 build: go
 
-ANTLR4_JAR := /usr/local/lib/antlr-4.9.2-complete.jar
+ANTLR4_JAR := /usr/local/lib/antlr-4.8-complete.jar
 
 grammar-all: grammar-go
 

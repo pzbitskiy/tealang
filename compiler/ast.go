@@ -217,13 +217,11 @@ type TreeNodeIf interface {
 	Codegen(ostream io.Writer)
 }
 
-
 // ExprNodeIf extends TreeNode and can be evaluated and typed
 type ExprNodeIf interface {
 	TreeNodeIf
 	getType() (exprType, error)
 }
-
 
 // TreeNode contains base info about an AST node
 type TreeNode struct {
@@ -264,7 +262,7 @@ type errorNode struct {
 
 type breakNode struct {
 	*TreeNode
-	value      ExprNodeIf
+	value ExprNodeIf
 }
 
 type assignNode struct {
@@ -342,11 +340,10 @@ type ifExprNode struct {
 	condFalseExpr ExprNodeIf
 }
 
-
 type forStatementNode struct {
 	*TreeNode
-	condExpr      ExprNodeIf
-	condTrueExpr  ExprNodeIf
+	condExpr     ExprNodeIf
+	condTrueExpr ExprNodeIf
 }
 
 type ifStatementNode struct {
@@ -553,7 +550,6 @@ func newForStatementNode(ctx *context, parent TreeNodeIf) (node *forStatementNod
 	node.nodeName = "for stmt"
 	return
 }
-
 
 func newFunCallNode(ctx *context, parent TreeNodeIf, name string) (node *funCallNode) {
 	node = new(funCallNode)

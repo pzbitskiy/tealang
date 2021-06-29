@@ -439,11 +439,9 @@ func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
 	l.node = exprNode
 }
 
-
 func (l *treeNodeListener) EnterBreak(ctx *gen.BreakContext) {
 	l.node = newBreakNode(l.ctx, l.parent)
 }
-
 
 func (l *treeNodeListener) EnterIfStatement(ctx *gen.IfStatementContext) {
 	node := newIfStatementNode(l.ctx, l.parent)

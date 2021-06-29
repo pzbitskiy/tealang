@@ -16,6 +16,7 @@ import (
 const trueConstValue = "1"
 const falseConstValue = "0"
 const tealVersion = 4
+
 var ids []interface{}
 
 // Codegen by default emits AST node as a comment
@@ -220,10 +221,10 @@ func (n *ifStatementNode) Codegen(ostream io.Writer) {
 }
 
 func (n *forStatementNode) Codegen(ostream io.Writer) {
-	if ids==nil {
-		ids=make([]interface{},0)
+	if ids == nil {
+		ids = make([]interface{}, 0)
 	}
-	ids=append(ids,&n)
+	ids = append(ids, &n)
 
 	fmt.Fprintf(ostream, "loop_start_%d:\n", &n)
 	n.condExpr.Codegen(ostream)
@@ -236,13 +237,12 @@ func (n *forStatementNode) Codegen(ostream io.Writer) {
 
 func (n *breakNode) Codegen(ostream io.Writer) {
 
-	id:=ids[len(ids)-1]
-	ids=ids[:len(ids)-1]
+	id := ids[len(ids)-1]
+	ids = ids[:len(ids)-1]
 
 	fmt.Fprintf(ostream, "bz loop_end_%d\n", id)
 
 }
-
 
 func (n *blockNode) Codegen(ostream io.Writer) {
 	for _, ch := range n.children() {

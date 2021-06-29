@@ -338,12 +338,12 @@ function logic() {
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
-	//if len(errors) != 0 {
-	//	result.Print()
-	//}
-	//a.Empty(errors)
-	//prog := Codegen(result)
-	//a.Greater(len(prog), 0)
+	if len(errors) != 0 {
+		result.Print()
+	}
+	a.Empty(errors)
+	prog := Codegen(result)
+	a.Greater(len(prog), 0)
 }
 
 func TestCodegenOpsPriority(t *testing.T) {
@@ -944,7 +944,6 @@ end_main:
 	CompareTEAL(a, expected, actual)
 }
 
-
 func TestBreak(t *testing.T) {
 	a := require.New(t)
 
@@ -988,4 +987,3 @@ end_main:
 `
 	CompareTEAL(a, expected, actual)
 }
-
