@@ -232,6 +232,8 @@ SETBYTE     : 'setbyte' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
+DIVMODW     : 'divmodw';
+
 
 BALANCE         : 'Balance' ;
 MINIMUMBALANCE  : 'MinimumBalance' ;

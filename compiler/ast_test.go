@@ -575,6 +575,7 @@ function logic() {
 		return 0
 	}
 	a, b = addw(5, 6)
+	a, b, c, d = divmodw(1, 2, 3, 4)
 	return 1
 }
 `

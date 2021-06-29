@@ -1076,3 +1076,40 @@ end_main:
 	CompareTEAL(a, expected, actual)
 
 }
+
+func TestCodegenDivmodw(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let a, b, c, d = divmodw(1, 2, 3, 4)
+	let h, l = mulw(3, 4)
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 2 3 4
+intc 1
+intc 2
+intc 3
+intc 4
+divmodw
+store 0
+store 1
+store 2
+store 3
+intc 3
+intc 4
+mulw
+store 4
+store 5
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}

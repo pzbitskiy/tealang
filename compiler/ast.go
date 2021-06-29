@@ -191,6 +191,7 @@ var builtinFun = map[string]bool{
 	"substring3":        true,
 	"mulw":              true,
 	"addw":              true,
+	"divmodw":			 true,
 	"balance":           true,
 	"min_balance":       true,
 	"app_opted_in":      true,
@@ -299,6 +300,8 @@ type varDeclTupleNode struct {
 	*TreeNode
 	low      string
 	high     string
+	rlow	  string
+	rhigh	  string
 	exprType exprType
 	value    ExprNodeIf
 }
@@ -479,6 +482,20 @@ func newVarDeclTupleNode(ctx *context, parent TreeNodeIf, identLow string, ident
 	node.nodeName = "var, var"
 	node.low = identLow
 	node.high = identHigh
+	node.value = value
+	tp, _ := value.getType()
+	node.exprType = tp
+	return
+}
+
+func newVarDeclDivmodwTupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, remLow string, remHigh string, value ExprNodeIf) (node *varDeclTupleNode) {
+	node = new(varDeclTupleNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "divmodw"
+	node.low = identLow
+	node.high = identHigh
+	node.rlow = remLow
+	node.rhigh = remHigh
 	node.value = value
 	tp, _ := value.getType()
 	node.exprType = tp
