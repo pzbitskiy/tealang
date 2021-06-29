@@ -260,6 +260,11 @@ type errorNode struct {
 	*TreeNode
 }
 
+type breakNode struct {
+	*TreeNode
+	value      ExprNodeIf
+}
+
 type assignNode struct {
 	*TreeNode
 	name     string
@@ -413,6 +418,14 @@ func newErorrNode(ctx *context, parent TreeNodeIf) (node *errorNode) {
 	node = new(errorNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "error"
+	return
+}
+
+func newBreakNode(ctx *context, parent TreeNodeIf) (node *breakNode) {
+	node = new(breakNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "break"
+	node.value = nil
 	return
 }
 

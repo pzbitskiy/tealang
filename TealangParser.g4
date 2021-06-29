@@ -118,8 +118,6 @@ builtinVarExpr
     |   args                                        # ArgsExpr
     |   accounts                                    # AccountsExpr
     |   apps                                        # AppsExpr
-    |   gload                                       # GloadExpr
-    |   gloads                                      # GloadsExpr
     ;
 
 txn
@@ -174,12 +172,4 @@ condIfExpr
 
 condForExpr
     : expr                                          # ForExprCond
-    ;
-
-gload
-    : GLOAD LEFTPARA NUMBER COMMA NUMBER RIGHTPARA
-    ;
-
-gloads
-    : GLOADS LEFTSQUARE NUMBER LEFTSQUARE
     ;

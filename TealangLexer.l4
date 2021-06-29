@@ -110,6 +110,7 @@ LOGIC       : 'logic';
 APPROVAL    : 'approval';
 CLEARSTATE  : 'clearstate';
 FOR         : 'for';
+BREAK       : 'break';
 
 GLOBAL      : 'global';
 TXN         : 'txn';
@@ -118,8 +119,6 @@ ARGS        : 'args';
 ACCOUNTS    : 'accounts';
 APPS        : 'apps';
 ASSETS      : 'assets';
-GLOAD       : 'gload';
-GLOADS      : 'gloads';
 
 MINTXNFEE       : 'MinTxnFee' ;
 MINBALANCE      : 'MinBalance' ;
