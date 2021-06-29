@@ -10,6 +10,7 @@ GLOBALFIELD
     |   ROUND
     |   LATESTTIMESTAMP
     |   CURRENTAPPID
+    |   CREATORADDRESS
     ;
 
 TXNFIELD
@@ -39,7 +40,6 @@ TXNFIELD
     |   APPLICATIONID
     |   ONCOMPLETION
     |   NUMARGS
-    |   TXNACCOUNTS
     |   APPROVALPROGRAM
     |   CLEARSTATEPROGRAM
     |   REKEYTO
@@ -58,11 +58,19 @@ TXNFIELD
     |   FREEZEASSET
     |   FREEZEASSETACCOUNT
     |   FREEZEAZZETFROZEN
+    |   NUMASSETS
+    |   NUMAPPLICATIONS
+    |   NUMGLOBALINTS
+    |   NUMGLOBALBYTESLICES
+    |   NUMLOCALINTS
+    |   NUMLOCALBYTESLICES
     ;
 
 TXNARRAYFIELD
-    :   APPLICATIONARGS
-    |   NUMACCOUNTS
+    :   TXNACCOUNTS
+    |   APPLICATIONARGS
+    |   TXNASSETS
+    |   APPLICATIONS
     ;
 
 ASSETPARAMSFIELDS
@@ -122,10 +130,11 @@ MINBALANCE      : 'MinBalance' ;
 MAXTXNLIFE      : 'MaxTxnLife' ;
 ZEROADDRESS     : 'ZeroAddress' ;
 GROUPSIZE       : 'GroupSize' ;
-LOGICSIGVERSION : 'LogicSigVersion';
-ROUND           : 'Round';
-LATESTTIMESTAMP : 'LatestTimestamp';
-CURRENTAPPID    : 'CurrentApplicationID';
+LOGICSIGVERSION : 'LogicSigVersion' ;
+ROUND           : 'Round' ;
+LATESTTIMESTAMP : 'LatestTimestamp' ;
+CURRENTAPPID    : 'CurrentApplicationID' ;
+CREATORADDRESS  : 'CreatorAddress' ;
 
 SENDER               : 'Sender' ;
 FEE                  : 'Fee' ;
@@ -174,6 +183,15 @@ CONFIGASSETCLAWBACK  : 'ConfigAssetClawback' ;
 FREEZEASSET          : 'FreezeAsset' ;
 FREEZEASSETACCOUNT   : 'FreezeAssetAccount' ;
 FREEZEAZZETFROZEN    : 'FreezeAssetFrozen' ;
+TXNASSETS            : 'Assets' ;
+NUMASSETS            : 'NumAssets' ;
+APPLICATIONS         : 'Applications' ;
+NUMAPPLICATIONS      : 'NumApplications' ;
+NUMGLOBALINTS        : 'GlobalNumUint' ;
+NUMGLOBALBYTESLICES  : 'GlobalNumByteSlice' ;
+NUMLOCALINTS         : 'LocalNumUint' ;
+NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
+
 
 ASSETTOTAL         : 'AssetTotal' ;
 ASSETDECIMALS      : 'AssetDecimals' ;
@@ -191,24 +209,25 @@ SHA256      : 'sha256' ;
 KECCAK256   : 'keccak256' ;
 SHA512      : 'sha512_256' ;
 ED25519     : 'ed25519verify' ;
-LEN         : 'len';
-ITOB        : 'itob';
-BTOI        : 'btoi';
-SUBSTRING   : 'substring';
-CONCAT      : 'concat';
-ASSERT      : 'assert';
+LEN         : 'len' ;
+ITOB        : 'itob' ;
+BTOI        : 'btoi' ;
+SUBSTRING   : 'substring' ;
+CONCAT      : 'concat' ;
+ASSERT      : 'assert' ;
 
-MULW        : 'mulw';
-ADDW        : 'addw';
+MULW        : 'mulw' ;
+ADDW        : 'addw' ;
 
-BALANCE         : 'Balance';
-OPTEDIN         : 'optedIn';
-APPGET          : 'get';
-APPGETEX        : 'getEx';
-APPPUT          : 'put';
-APPDEL          : 'del';
-ASSETHLDBALANCE : 'assetBalance';
-ASSETHLDFROZEN  : 'assetIsFrozen';
+BALANCE         : 'Balance' ;
+MINIMUMBALANCE  : 'MinimumBalance' ;
+OPTEDIN         : 'optedIn' ;
+APPGET          : 'get' ;
+APPGETEX        : 'getEx' ;
+APPPUT          : 'put' ;
+APPDEL          : 'del' ;
+ASSETHLDBALANCE : 'assetBalance' ;
+ASSETHLDFROZEN  : 'assetIsFrozen' ;
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
 NUMBER      : [0-9]+ ;

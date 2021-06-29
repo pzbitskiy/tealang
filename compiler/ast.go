@@ -192,6 +192,7 @@ var builtinFun = map[string]bool{
 	"mulw":              true,
 	"addw":              true,
 	"balance":           true,
+	"min_balance":       true,
 	"app_opted_in":      true,
 	"app_local_get":     true,
 	"app_local_get_ex":  true,
