@@ -205,6 +205,14 @@ var builtinFun = map[string]bool{
 	"asset_holding_get": true,
 	"asset_params_get":  true,
 	"assert":            true,
+	"getbit":            true,
+	"getbyte":           true,
+	"setbit":            true,
+	"setbyte":           true,
+}
+
+var builtinFunDependantTypes = map[string]int{
+	"setbit": 0, // op type matches to first arg type
 }
 
 // TreeNodeIf represents a node in AST
@@ -755,6 +763,14 @@ func (n *funCallNode) getType() (exprType, error) {
 	var tp exprType
 	if builtin {
 		tp, err = opTypeFromSpec(n.name, 0)
+		if tp == unknownType {
+			if idx, ok := builtinFunDependantTypes[n.name]; ok {
+				tp, err = n.childrenNodes[idx].(ExprNodeIf).getType()
+				if err != nil {
+					return invalidType, fmt.Errorf("function %s type deduction failed: %s", n.name, err.Error())
+				}
+			}
+		}
 	} else {
 		tp, err = determineBlockReturnType(n.definition, []exprType{})
 	}
