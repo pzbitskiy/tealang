@@ -81,7 +81,7 @@ expr
     |   builtinVarExpr                              # BuiltinObject
     |   op=LNOT expr                                # Not
     |   op=BNOT expr                                # BitNot
-    |	expr op=(MUL|DIV|MOD|DIVMODW) expr          # MulDivMod
+    |	expr op=(MUL|DIV|MOD) expr          # MulDivMod
     |	expr op=(PLUS|MINUS) expr                   # AddSub
     |   expr op=(LESS|LE|GREATER|GE|EE|NE) expr     # Relation
     |   expr op=(BOR|BXOR|BAND) expr                # BitOp
