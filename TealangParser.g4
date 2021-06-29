@@ -57,6 +57,7 @@ condFalseBlock
 termination
     :   ERR (NEWLINE|SEMICOLON)                     # TermError
     |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
+    |   BREAK (NEWLINE|SEMICOLON)                   # Break
     ;
 
 decl
@@ -157,7 +158,6 @@ arrayElem
 // named rules for tree-walking only
 condExpr
     : IF condIfExpr LEFTFIGURE condTrueExpr RIGHTFIGURE ELSE LEFTFIGURE condFalseExpr RIGHTFIGURE   # If
-    | For condForExpr LEFTFIGURE condTrueExpr RIGHTFIGURE                                   # For
     ;
 
 condTrueExpr

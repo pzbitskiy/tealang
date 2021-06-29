@@ -208,9 +208,13 @@ func (n *ifStatementNode) Codegen(ostream io.Writer) {
 }
 
 func (n *forStatementNode) Codegen(ostream io.Writer) {
+	fmt.Fprintf(ostream, "loop_start_%d:\n", &n)
 	n.condExpr.Codegen(ostream)
-	n.children()
-	fmt.Println("codegen for statment")
+	fmt.Fprintf(ostream, "bz loop_end_%d\n", &n)
+	ch := n.children()
+	ch[0].Codegen(ostream)
+	fmt.Fprintf(ostream, "b loop_start_%d\n", &n)
+	fmt.Fprintf(ostream, "loop_end_%d:\n", &n)
 }
 
 func (n *blockNode) Codegen(ostream io.Writer) {
