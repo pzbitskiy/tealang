@@ -996,6 +996,9 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 
 func (l *exprListener) EnterAccountsBalanceExpr(ctx *gen.AccountsBalanceExprContext) {
 	name := "balance"
+	if ctx.MINIMUMBALANCE() != nil {
+		name = "min_balance"
+	}
 	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
 
 	err := exprNode.checkBuiltinArgs()

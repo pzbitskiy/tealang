@@ -118,7 +118,7 @@ See [TEAL documentation](https://github.com/algorand/go-algorand/blob/master/dat
 
 ## Builtin functions
 
-`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3` are supported.
+`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3`, `assert` are supported.
 `mulw`, `addw` are special - they return two values, high and low.
 
 ```
@@ -138,7 +138,7 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | `gtxn[N].FIELD` | retrieves field from a transaction N in the current transaction group |
 | `global.FIELD` | returns globals (see below) |
 | `assets[N].FIELD` | returns asset information for an asset specified by `txn.ForeignAssets[N]` (see below) |
-| `accounts[N].Balance` | returns balance of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender |
+| `accounts[N].Balance|MinBalance` | returns balance (min balance) of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender |
 | `accounts[N].method` | returns state data of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender (see below) |
 | `apps[N].method` | returns application global state data for an app specified by `txn.ForeignApps[N-1]`, N=0 means this app (see below) |
 
@@ -194,6 +194,14 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | 45 | FreezeAsset | uint64 | Asset ID being frozen or un-frozen. LogicSigVersion >= 2. |
 | 46 | FreezeAssetAccount | []byte | 32 byte address of the account whose asset slot is being frozen or un-frozen. LogicSigVersion >= 2. |
 | 47 | FreezeAssetFrozen | uint64 | The new frozen value, 0 or 1. LogicSigVersion >= 2. |
+| 48 | Assets | uint64 | Foreign Assets listed in the ApplicationCall transaction. LogicSigVersion >= 3. |
+| 49 | NumAssets | uint64 | Number of Assets. LogicSigVersion >= 3. |
+| 50 | Applications | uint64 | Foreign Apps listed in the ApplicationCall transaction. LogicSigVersion >= 3. |
+| 51 | NumApplications | uint64 | Number of Applications. LogicSigVersion >= 3. |
+| 52 | GlobalNumUint | uint64 | Number of global state integers in ApplicationCall. LogicSigVersion >= 3. |
+| 53 | GlobalNumByteSlice | uint64 | Number of global state byteslices in ApplicationCall. LogicSigVersion >= 3. |
+| 54 | LocalNumUint | uint64 | Number of local state integers in ApplicationCall. LogicSigVersion >= 3. |
+| 55 | LocalNumByteSlice | uint64 | Number of local state byteslices in ApplicationCall. LogicSigVersion >= 3. |
 
 #### Global fields
 
@@ -208,6 +216,7 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | 6 | Round | uint64 | Current round number. LogicSigVersion >= 2. |
 | 7 | LatestTimestamp | uint64 | Last confirmed block UNIX timestamp. Fails if negative. LogicSigVersion >= 2. |
 | 8 | CurrentApplicationID | uint64 | ID of current application executing. Fails if no such application is executing. LogicSigVersion >= 2. |
+| 9 | CreatorAddress | []byte | Address of the creator of the current application. Fails if no such application is executing. LogicSigVersion >= 3. |
 
 #### Asset fields
 

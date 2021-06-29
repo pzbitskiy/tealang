@@ -135,7 +135,7 @@ args
     ;
 
 accounts
-    :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT BALANCE                                  # AccountsBalanceExpr
+    :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (BALANCE|MINIMUMBALANCE)                 # AccountsBalanceExpr
     |   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (OPTEDIN|APPGET) LEFTPARA expr RIGHTPARA # AccountsSingleMethodsExpr
     ;
 
