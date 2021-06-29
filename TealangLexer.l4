@@ -97,6 +97,10 @@ BUILTINFUNC
     |   BTOI
     |   SUBSTRING
     |   CONCAT
+    |   GETBIT
+    |   GETBYTE
+    |   SETBIT
+    |   SETBYTE
     ;
 
 MAINFUNC
@@ -215,6 +219,10 @@ BTOI        : 'btoi' ;
 SUBSTRING   : 'substring' ;
 CONCAT      : 'concat' ;
 ASSERT      : 'assert' ;
+GETBIT      : 'getbit' ;
+GETBYTE     : 'getbyte' ;
+SETBIT      : 'setbit' ;
+SETBYTE     : 'setbyte' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
