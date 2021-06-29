@@ -103,6 +103,10 @@ BUILTINFUNC
     |   SETBIT
     |   SETBYTE
     |   EXP
+    |   SHL
+    |   SHR
+    |   SQRT
+    |   BITLEN
     ;
 
 MAINFUNC
@@ -231,6 +235,10 @@ GETBYTE     : 'getbyte' ;
 SETBIT      : 'setbit' ;
 SETBYTE     : 'setbyte' ;
 EXP         : 'exp' ;
+SHL         : 'shl' ;
+SHR         : 'shr' ;
+SQRT        : 'sqrt' ;
+BITLEN      : 'bitlen' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
