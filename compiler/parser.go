@@ -692,6 +692,24 @@ func (l *exprListener) EnterIfExpr(ctx *gen.IfExprContext) {
 	l.expr = listener.getExpr()
 }
 
+func (l *exprListener) EnterCondExpr(ctx *gen.CondExprContext) {
+	node := newIfExprNode(l.ctx, l.parent)
+
+	listener := newExprListener(l.ctx, node)
+	ctx.CondIfExpr().EnterRule(listener)
+	node.condExpr = listener.getExpr()
+
+	listener = newExprListener(l.ctx, node)
+	ctx.CondTrueExpr().EnterRule(listener)
+	node.condTrueExpr = listener.getExpr()
+
+	listener = newExprListener(l.ctx, node)
+	ctx.CondFalseExpr().EnterRule(listener)
+	node.condFalseExpr = listener.getExpr()
+
+	l.expr = node
+}
+
 func (l *exprListener) EnterIfExprCond(ctx *gen.IfExprCondContext) {
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.Expr().EnterRule(listener)
@@ -1003,6 +1021,9 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 
 func (l *exprListener) EnterAccountsBalanceExpr(ctx *gen.AccountsBalanceExprContext) {
 	name := "balance"
+	if ctx.MINIMUMBALANCE() != nil {
+		name = "min_balance"
+	}
 	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
 
 	err := exprNode.checkBuiltinArgs()
