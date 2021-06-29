@@ -249,8 +249,6 @@ EE          : '==';
 LOR         : '||';
 LAND        : '&&';
 
-DIVMODW     : 'divmodw';
-
 fragment EncodingPrefix
     :   'b32'
     |   'b64'
