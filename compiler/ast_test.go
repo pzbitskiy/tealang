@@ -48,10 +48,13 @@ function logic() {
 	}
 
 	let y= 0;
-	for 1 { 
+	for 1 {
 		if y==10 {break;}
 		y=y+1
 	}
+
+	x = shr(shl(9, 2), 2)
+	x = bitlen(sqrt(x))
 	return 1
 }
 `

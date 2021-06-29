@@ -211,6 +211,10 @@ var builtinFun = map[string]bool{
 	"getbyte":           true,
 	"setbit":            true,
 	"setbyte":           true,
+	"shl":               true,
+	"shr":               true,
+	"sqrt":              true,
+	"bitlen":            true,
 }
 
 var builtinFunDependantTypes = map[string]int{

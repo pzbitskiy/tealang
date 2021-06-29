@@ -118,7 +118,7 @@ See [TEAL documentation](https://github.com/algorand/go-algorand/blob/master/dat
 
 ## Builtin functions
 
-`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3`, `assert`, `expw`, `exp`, `getbit`, `getbyte`, `setbit`, `setbyte` are supported.
+`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3`, `assert`, `expw`, `exp`, `getbit`, `getbyte`, `setbit`, `setbyte`, `shl`, `shr`, `bitlen`, `sqrt` are supported.
 `mulw`, `addw`, `expw` are special - they return two values, high and low.
 
 ```
