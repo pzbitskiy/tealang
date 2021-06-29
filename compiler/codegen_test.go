@@ -986,3 +986,93 @@ end_main:
 `
 	CompareTEAL(a, expected, actual)
 }
+
+func TestCodegenGetSetBitByte(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function approval() {
+	let a = getbit(255, 1)
+	let b = getbit("\xFF", 2)
+	let c = getbyte("test", 0)
+	return a + b + c
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 255 2
+bytecblock 0xff 0x74657374
+intc 2
+intc 1
+getbit
+store 0
+bytec 0
+intc 3
+getbit
+store 1
+bytec 1
+intc 0
+getbyte
+store 2
+load 0
+load 1
++
+load 2
++
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function approval() {
+	let a = setbit(0, 1, 1)
+	let b = setbit("\xFF", 1, 0)
+	let c = setbyte("test", 0, 32)
+	let d = btoi(b)
+	let e = btoi(c)
+	return a + d + e
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1 32
+bytecblock 0xff 0x74657374
+intc 0
+intc 1
+intc 1
+setbit
+store 0
+bytec 0
+intc 1
+intc 0
+setbit
+store 1
+bytec 1
+intc 0
+intc 2
+setbyte
+store 2
+load 1
+btoi
+store 3
+load 2
+btoi
+store 4
+load 0
+load 3
++
+load 4
++
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+
+}
