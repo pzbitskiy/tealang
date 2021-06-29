@@ -961,7 +961,6 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	fmt.Println(actual)
 	expected := `#pragma version *
 intcblock 0 1 10
 intc 0

@@ -156,7 +156,7 @@ arrayElem
 
 // named rules for tree-walking only
 condExpr
-    : IF condIfExpr LEFTFIGURE condTrueExpr RIGHTFIGURE ELSE LEFTFIGURE condFalseExpr RIGHTFIGURE   # If
+    : IF condIfExpr LEFTFIGURE condTrueExpr RIGHTFIGURE ELSE LEFTFIGURE condFalseExpr RIGHTFIGURE
     ;
 
 condTrueExpr
