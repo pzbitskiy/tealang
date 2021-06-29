@@ -43,7 +43,7 @@ declaration
 // named rules for tree-walking only
 condition
     :   IF condIfExpr condTrueBlock (NEWLINE? ELSE condFalseBlock)?   # IfStatement
-    |   FOR condForExpr condTrueBlock   #ForStatement
+    |   FOR condForExpr condTrueBlock   # ForStatement
     ;
 
 condTrueBlock
@@ -93,6 +93,7 @@ expr
 tupleExpr
     :   MULW LEFTPARA ( expr COMMA expr ) RIGHTPARA
     |   ADDW LEFTPARA ( expr COMMA expr ) RIGHTPARA
+    |   EXPW LEFTPARA ( expr COMMA expr ) RIGHTPARA
     |   builtinVarTupleExpr
     ;
 

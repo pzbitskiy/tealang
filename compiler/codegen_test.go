@@ -332,6 +332,8 @@ function logic() {
 	let f = test(20+2, 30)
 	if f + 2 < 10 {
 		error
+	} else {
+		f = exp(2, 3)
 	}
 	return 1
 }
@@ -522,6 +524,7 @@ let h, l = mulw(1, 2)
 function logic() {
 	h, l = mulw(3, 4)
 	let a, b = addw(5, 6)
+	let c, d = expw(3, 4)
 	return l
 }
 `
@@ -546,6 +549,11 @@ intc 6
 addw
 store 2
 store 3
+intc 3
+intc 4
+expw
+store 4
+store 5
 load 0
 return
 end_main:
