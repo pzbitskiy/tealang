@@ -84,6 +84,7 @@ function logic() {
 	let h = len("123")
 	let l = btoi("1")
 	h, l = mulw(l, h)
+	assert(l > h)
 
 	let ret = TxTypePayment
 	return ret

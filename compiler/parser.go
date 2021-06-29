@@ -15,7 +15,7 @@ import (
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
-	gen "tealang/gen/go"
+	gen "github.com/pzbitskiy/tealang/gen/go"
 )
 
 //go:generate sh ./bundle_langspec_json.sh
@@ -421,6 +421,24 @@ func (l *treeNodeListener) EnterTermError(ctx *gen.TermErrorContext) {
 	l.node = newErorrNode(l.ctx, l.parent)
 }
 
+func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
+	name := ctx.ASSERT().GetText()
+
+	listener := newExprListener(l.ctx, l.parent)
+	exprNode := listener.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		parser := ctx.GetParser()
+		token := ctx.ASSERT().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError(err.Error(), parser, token, rule)
+		return
+	}
+
+	l.node = exprNode
+}
+
 
 func (l *treeNodeListener) EnterBreak(ctx *gen.BreakContext) {
 	l.node = newBreakNode(l.ctx, l.parent)
@@ -461,21 +479,6 @@ func (l *treeNodeListener) EnterIfStatementFalse(ctx *gen.IfStatementFalseContex
 	l.node = blockNode
 }
 
-func (l *treeNodeListener) EnterForStatement(ctx *gen.ForStatementContext) {
-	node := newForStatementNode(l.ctx, l.parent)
-
-	exprlistener := newExprListener(l.ctx, node)
-	ctx.CondForExpr().EnterRule(exprlistener)
-	node.condExpr = exprlistener.getExpr()
-
-	scopedContextTrue := newContext(l.ctx)
-
-	listener := newTreeNodeListener(scopedContextTrue, node)
-	ctx.CondTrueBlock().EnterRule(listener)
-	node.append(listener.getNode())
-	l.node = node
-}
-
 func getVarInfoForAssignment(ident string, ctx *context) (varInfo, error) {
 	info, err := ctx.lookup(ident)
 	if err != nil {
@@ -491,7 +494,6 @@ func getVarInfoForAssignment(ident string, ctx *context) (varInfo, error) {
 
 	return info, nil
 }
-
 
 func (l *treeNodeListener) EnterAssign(ctx *gen.AssignContext) {
 	ident := ctx.IDENT().GetSymbol().GetText()
@@ -677,6 +679,23 @@ func (l *exprListener) EnterIfExpr(ctx *gen.IfExprContext) {
 	l.expr = listener.getExpr()
 }
 
+func (l *exprListener) EnterCondExpr(ctx *gen.CondExprContext) {
+	node := newIfExprNode(l.ctx, l.parent)
+
+	listener := newExprListener(l.ctx, node)
+	ctx.CondIfExpr().EnterRule(listener)
+	node.condExpr = listener.getExpr()
+
+	listener = newExprListener(l.ctx, node)
+	ctx.CondTrueExpr().EnterRule(listener)
+	node.condTrueExpr = listener.getExpr()
+
+	listener = newExprListener(l.ctx, node)
+	ctx.CondFalseExpr().EnterRule(listener)
+	node.condFalseExpr = listener.getExpr()
+
+	l.expr = node
+}
 
 func (l *exprListener) EnterIfExprCond(ctx *gen.IfExprCondContext) {
 	listener := newExprListener(l.ctx, l.parent)
@@ -1101,59 +1120,100 @@ func (l *exprListener) EnterGroupTxnFieldExpr(ctx *gen.GroupTxnFieldExprContext)
 
 func (l *exprListener) EnterGroupTxnSingleFieldExpr(ctx *gen.GroupTxnSingleFieldExprContext) {
 	field := ctx.TXNFIELD().GetText()
-	var groupIndex string
-	if ctx.NUMBER() != nil {
-		groupIndex = ctx.NUMBER().GetText()
-	} else {
-		ident := ctx.IDENT().GetText()
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	exprNode := listener.getExpr()
 
-		info, err := l.ctx.lookup(ident)
-		if err != nil || !info.constant {
-			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
-			return
+	var op string
+	var groupIndex string
+	var errToken antlr.Token
+	var node ExprNodeIf
+
+	switch expr := exprNode.(type) {
+	case *constNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex = expr.value
+			op = "gtxn"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+
 		}
-		groupIndex = *info.value
+	case *exprLiteralNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex = expr.value
+			op = "gtxn"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+		}
+	default:
+		op = "gtxns"
+		node = newRuntimeFieldNode(l.ctx, l.parent, op, field)
+		node.append(exprNode)
 	}
-	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxn", field, groupIndex)
+
+	if errToken != nil {
+		reportError(fmt.Sprintf("not an integer"), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
 	l.expr = node
 }
 
 func (l *exprListener) EnterGroupTxnArrayFieldExpr(ctx *gen.GroupTxnArrayFieldExprContext) {
 	field := ctx.TXNARRAYFIELD().GetText()
-	var groupIndex string
-	numberIndex := 0
-	identIndex := 0
-	if len(ctx.AllNUMBER()) > numberIndex && ctx.NUMBER(numberIndex) != nil {
-		groupIndex = ctx.NUMBER(0).GetText()
-		numberIndex++
-	} else {
-		ident := ctx.IDENT(identIndex).GetText()
-
-		info, err := l.ctx.lookup(ident)
-		if err != nil || !info.constant {
-			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT(identIndex).GetSymbol(), ctx.GetRuleContext())
-			return
-		}
-		groupIndex = *info.value
-		identIndex++
-	}
 
 	var arrayIndex string
-	if len(ctx.AllNUMBER()) > numberIndex && ctx.NUMBER(numberIndex) != nil {
-		arrayIndex = ctx.NUMBER(1).GetText()
-		numberIndex++
+	if ctx.NUMBER() != nil {
+		arrayIndex = ctx.NUMBER().GetText()
 	} else {
-		ident := ctx.IDENT(identIndex).GetText()
+		ident := ctx.IDENT().GetText()
 		info, err := l.ctx.lookup(ident)
 		if err != nil || !info.constant {
-			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT(identIndex).GetSymbol(), ctx.GetRuleContext())
+			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 			return
 		}
 		arrayIndex = *info.value
-		identIndex++
 	}
 
-	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxna", field, groupIndex, arrayIndex)
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	exprNode := listener.getExpr()
+
+	var op string
+	var errToken antlr.Token
+	var node ExprNodeIf
+
+	switch expr := exprNode.(type) {
+	case *constNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex := expr.value
+			op = "gtxna"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex, arrayIndex)
+
+		}
+	case *exprLiteralNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex := expr.value
+			op = "gtxna"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex, arrayIndex)
+		}
+	default:
+		op = "gtxnsa"
+		node = newRuntimeFieldNode(l.ctx, l.parent, op, field, "", arrayIndex)
+		node.append(exprNode)
+	}
+
+	if errToken != nil {
+		reportError(fmt.Sprintf("not an integer"), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
 	l.expr = node
 }
 

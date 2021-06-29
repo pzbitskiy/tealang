@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"tealang/compiler"
-	dr "tealang/dryrun"
+	"github.com/pzbitskiy/tealang/compiler"
+	dr "github.com/pzbitskiy/tealang/dryrun"
 
 	"github.com/algorand/go-algorand/data/transactions/logic"
 	"github.com/spf13/cobra"
@@ -191,6 +191,10 @@ func main() {
 	rootCmd.Flags().BoolVarP(&stdout, "stdout", "s", false, "write output to stdout instead of a file")
 	rootCmd.Flags().BoolVarP(&raw, "raw", "r", false, "do not hex-encode bytecode when outputting to stdout")
 	rootCmd.Flags().StringVarP(&dryrun, "dryrun", "d", "", "dry run program with transaction data from the file provided")
+}
+
+func main() {
+	setRootCmdFlags()
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

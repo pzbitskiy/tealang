@@ -15,5 +15,5 @@ for file in "$THISDIR"/*.tl; do
     filename=`basename "${file%.*}"`
     assoc_array_entry="$filename:$content"
     LIB_CONTENT+=($assoc_array_entry)
-    echo "const stdlib_$filename string =\`$content\n\`\n" >> $THISDIR/stdlib_gen.go
+    printf "const stdlib_$filename string =\`$content\n\`\n" >> $THISDIR/stdlib_gen.go
 done

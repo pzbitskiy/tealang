@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"tealang/stdlib"
+	"github.com/pzbitskiy/tealang/stdlib"
 )
 
 func resolveModule(moduleName string, sourceDir string, currentDir string) (InputDesc, error) {

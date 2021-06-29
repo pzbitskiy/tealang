@@ -57,6 +57,7 @@ condFalseBlock
 termination
     :   ERR (NEWLINE|SEMICOLON)                     # TermError
     |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
+    |   ASSERT LEFTPARA expr RIGHTPARA              # TermAssert
     |   BREAK (NEWLINE|SEMICOLON)                   # Break
     ;
 
@@ -81,7 +82,7 @@ expr
     |   builtinVarExpr                              # BuiltinObject
     |   op=LNOT expr                                # Not
     |   op=BNOT expr                                # BitNot
-    |	expr op=(MUL|DIV|MOD) expr          # MulDivMod
+    |	expr op=(MUL|DIV|MOD) expr                  # MulDivMod
     |	expr op=(PLUS|MINUS) expr                   # AddSub
     |   expr op=(LESS|LE|GREATER|GE|EE|NE) expr     # Relation
     |   expr op=(BOR|BXOR|BAND) expr                # BitOp
@@ -126,8 +127,8 @@ txn
     ;
 
 gtxn
-    :   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNFIELD                                             # GroupTxnSingleFieldExpr
-    |   GTXN LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE  # GroupTxnArrayFieldExpr
+    :   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNFIELD                                             # GroupTxnSingleFieldExpr
+    |   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE  # GroupTxnArrayFieldExpr
     ;
 
 args
@@ -136,7 +137,7 @@ args
     ;
 
 accounts
-    :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT BALANCE                                  # AccountsBalanceExpr
+    :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (BALANCE|MINIMUMBALANCE)                 # AccountsBalanceExpr
     |   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (OPTEDIN|APPGET) LEFTPARA expr RIGHTPARA # AccountsSingleMethodsExpr
     ;
 
