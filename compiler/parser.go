@@ -961,8 +961,10 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 	var name string
 	if ctx.MULW() != nil {
 		name = ctx.MULW().GetText()
-	} else {
+	} else if ctx.ADDW() != nil {
 		name = ctx.ADDW().GetText()
+	} else if ctx.EXPW() != nil {
+		name = ctx.EXPW().GetText()
 	}
 
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())

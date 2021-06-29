@@ -102,6 +102,7 @@ BUILTINFUNC
     |   GETBYTE
     |   SETBIT
     |   SETBYTE
+    |   EXP
     ;
 
 MAINFUNC
@@ -229,9 +230,11 @@ GETBIT      : 'getbit' ;
 GETBYTE     : 'getbyte' ;
 SETBIT      : 'setbit' ;
 SETBYTE     : 'setbyte' ;
+EXP         : 'exp' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
+EXPW        : 'expw' ;
 
 BALANCE         : 'Balance' ;
 MINIMUMBALANCE  : 'MinimumBalance' ;

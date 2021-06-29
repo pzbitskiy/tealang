@@ -191,6 +191,8 @@ var builtinFun = map[string]bool{
 	"substring3":        true,
 	"mulw":              true,
 	"addw":              true,
+	"expw":              true,
+	"exp":               true,
 	"balance":           true,
 	"min_balance":       true,
 	"app_opted_in":      true,
@@ -238,10 +240,6 @@ type TreeNode struct {
 	nodeName      string
 	parentNode    TreeNodeIf
 	childrenNodes []TreeNodeIf
-}
-
-type forNode struct {
-	*TreeNode
 }
 
 type programNode struct {

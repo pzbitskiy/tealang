@@ -575,6 +575,7 @@ function logic() {
 		return 0
 	}
 	a, b = addw(5, 6)
+	a, b = expw(3, 2)
 	return 1
 }
 `
