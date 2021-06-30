@@ -233,6 +233,7 @@ var builtinFun = map[string]bool{
 	"shr":               true,
 	"sqrt":              true,
 	"bitlen":            true,
+	"gaids":             true,
 }
 
 var builtinFunDependantTypes = map[string]int{
@@ -407,6 +408,13 @@ type runtimeFieldNode struct {
 }
 
 type runtimeArgNode struct {
+	*TreeNode
+	op       string
+	number   string
+	exprType exprType
+}
+
+type runtimeGaidNode struct {
 	*TreeNode
 	op       string
 	number   string
@@ -630,6 +638,16 @@ func newRuntimeArgNode(ctx *context, parent TreeNodeIf, op string, number string
 	node = new(runtimeArgNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "runtime arg"
+	node.op = op
+	node.number = number
+	node.exprType = unknownType
+	return
+}
+
+func newRuntimeGaidNode(ctx *context, parent TreeNodeIf, op string, number string) (node *runtimeArgNode) {
+	node = new(runtimeArgNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "runtime Gaid"
 	node.op = op
 	node.number = number
 	node.exprType = unknownType

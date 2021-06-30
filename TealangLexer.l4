@@ -107,6 +107,7 @@ BUILTINFUNC
     |   SHR
     |   SQRT
     |   BITLEN
+    |   GAIDS
     ;
 
 MAINFUNC
@@ -137,7 +138,8 @@ ARGS        : 'args' ;
 ACCOUNTS    : 'accounts' ;
 APPS        : 'apps' ;
 ASSETS      : 'assets' ;
-EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
+GAID        : 'gaid';
+
 
 
 
@@ -207,6 +209,8 @@ NUMGLOBALINTS        : 'GlobalNumUint' ;
 NUMGLOBALBYTESLICES  : 'GlobalNumByteSlice' ;
 NUMLOCALINTS         : 'LocalNumUint' ;
 NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
+EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
+
 
 
 ASSETTOTAL         : 'AssetTotal' ;
@@ -240,6 +244,7 @@ SHL         : 'shl' ;
 SHR         : 'shr' ;
 SQRT        : 'sqrt' ;
 BITLEN      : 'bitlen' ;
+GAIDS       : 'gaids';
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
