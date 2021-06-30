@@ -52,6 +52,9 @@ function logic() {
 		if y==10 {break;}
 		y=y+1
 	}
+
+	x = shr(shl(9, 2), 2)
+	x = bitlen(sqrt(x))
 	return 1
 }
 `
@@ -576,6 +579,7 @@ function logic() {
 	}
 	a, b = addw(5, 6)
 	a, b, c, d = divmodw(1, 2, 3, 4)
+	a, b = expw(3, 2)
 	return 1
 }
 `

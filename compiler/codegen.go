@@ -17,6 +17,7 @@ const trueConstValue = "1"
 const falseConstValue = "0"
 const tealVersion = 4
 
+// TODO: switch from global var to recursive breakNode -> forNode lookup
 var ids []interface{}
 
 // Codegen by default emits AST node as a comment
@@ -58,15 +59,18 @@ func (n *programNode) Codegen(ostream io.Writer) {
 	for _, ch := range n.children() {
 		ch.Codegen(ostream)
 	}
+
+	for _, n := range n.nonInlineFunc {
+		n.Codegen(ostream)
+	}
 }
 
 func (n *funDefNode) Codegen(ostream io.Writer) {
-	if n.name == mainFuncName {
-		for _, ch := range n.children() {
-			ch.Codegen(ostream)
-		}
-		fmt.Fprintf(ostream, "end_%s:\n", n.name)
+	fmt.Fprintf(ostream, "fun_%s:\n", n.name)
+	for _, ch := range n.children() {
+		ch.Codegen(ostream)
 	}
+	fmt.Fprintf(ostream, "end_%s:\n", n.name)
 }
 
 func literalTypeToOpcode(theType exprType) string {
@@ -85,7 +89,7 @@ func (n *exprLiteralNode) Codegen(ostream io.Writer) {
 func (n *exprIdentNode) Codegen(ostream io.Writer) {
 	info, _ := n.ctx.lookup(n.name)
 	op := "load"
-	if info.constant {
+	if info.constant() {
 		op = literalTypeToOpcode(info.theType)
 	}
 	fmt.Fprintf(ostream, "%s %d\n", op, info.address)
@@ -111,13 +115,10 @@ func (n *returnNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
 	if n.definition.name == mainFuncName {
 		fmt.Fprintf(ostream, "return\n")
+	} else if !n.definition.inline {
+		fmt.Fprintf(ostream, "retsub\n")
 	} else {
-		fmt.Fprintf(
-			ostream,
-			"intc %d\nbnz end_%s_%d\n",
-			n.ctx.literals.literals[trueConstValue].offset, n.definition.name,
-			&n.definition.name,
-		)
+		fmt.Fprintf(ostream, "b end_%s_%d\n", n.definition.name, &n.definition.name)
 	}
 }
 
@@ -281,11 +282,16 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 			i, _ := definitionNode.ctx.lookup(argName)
 			fmt.Fprintf(ostream, "store %d\n", i.address)
 		}
-		// and now generate statements
-		for _, ch := range definitionNode.children() {
-			ch.Codegen(ostream)
+
+		if definitionNode.inline {
+			// and now generate statements
+			for _, ch := range definitionNode.children() {
+				ch.Codegen(ostream)
+			}
+			fmt.Fprintf(ostream, "end_%s_%d:\n", n.name, &n.definition.name)
+		} else {
+			fmt.Fprintf(ostream, "callsub fun_%s\n", n.name)
 		}
-		fmt.Fprintf(ostream, "end_%s_%d:\n", n.name, &n.definition.name)
 	}
 }
 

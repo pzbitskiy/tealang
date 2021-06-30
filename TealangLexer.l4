@@ -102,6 +102,11 @@ BUILTINFUNC
     |   GETBYTE
     |   SETBIT
     |   SETBYTE
+    |   EXP
+    |   SHL
+    |   SHR
+    |   SQRT
+    |   BITLEN
     ;
 
 MAINFUNC
@@ -117,21 +122,23 @@ RET         : 'return' ;
 IF          : 'if' ;
 ELSE        : 'else' ;
 FUNC        : 'function' ;
-IMPORT      : 'import' -> pushMode(DOIMPORT);
-LOGIC       : 'logic';
-APPROVAL    : 'approval';
-CLEARSTATE  : 'clearstate';
-FOR         : 'for';
-BREAK       : 'break';
+IMPORT      : 'import' -> pushMode(DOIMPORT) ;
+LOGIC       : 'logic' ;
+APPROVAL    : 'approval' ;
+CLEARSTATE  : 'clearstate' ;
+FOR         : 'for' ;
+BREAK       : 'break' ;
+INLINE      : 'inline' ;
 
-GLOBAL      : 'global';
-TXN         : 'txn';
-GTXN        : 'gtxn';
-ARGS        : 'args';
-ACCOUNTS    : 'accounts';
-APPS        : 'apps';
-ASSETS      : 'assets';
+GLOBAL      : 'global' ;
+TXN         : 'txn' ;
+GTXN        : 'gtxn' ;
+ARGS        : 'args' ;
+ACCOUNTS    : 'accounts' ;
+APPS        : 'apps' ;
+ASSETS      : 'assets' ;
 EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
+
 
 
 MINTXNFEE       : 'MinTxnFee' ;
@@ -202,7 +209,6 @@ NUMLOCALINTS         : 'LocalNumUint' ;
 NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
 
 
-
 ASSETTOTAL         : 'AssetTotal' ;
 ASSETDECIMALS      : 'AssetDecimals' ;
 ASSETDEFAULTFROZEN : 'AssetDefaultFrozen' ;
@@ -229,11 +235,16 @@ GETBIT      : 'getbit' ;
 GETBYTE     : 'getbyte' ;
 SETBIT      : 'setbit' ;
 SETBYTE     : 'setbyte' ;
+EXP         : 'exp' ;
+SHL         : 'shl' ;
+SHR         : 'shr' ;
+SQRT        : 'sqrt' ;
+BITLEN      : 'bitlen' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
 DIVMODW     : 'divmodw';
-
+EXPW        : 'expw' ;
 
 BALANCE         : 'Balance' ;
 MINIMUMBALANCE  : 'MinimumBalance' ;

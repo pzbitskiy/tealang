@@ -177,7 +177,7 @@ func (l *treeNodeListener) EnterModule(ctx *gen.ModuleContext) {
 	l.node = root
 }
 
-func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *gen.DeclarationContext) {
+func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *gen.DeclarationContext, inline bool) {
 	// start new scoped context
 	scopedContext := newContext(l.ctx)
 	name := ctx.IDENT(0).GetText()
@@ -211,6 +211,7 @@ func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *ge
 	node := newFunDefNode(scopedContext, l.parent)
 	node.name = name
 	node.args = args
+	node.inline = inline
 
 	// parse function body and add statements as children
 	listener := newTreeNodeListener(scopedContext, node)
@@ -228,9 +229,35 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 		decl.EnterRule(l)
 	} else if fun := ctx.FUNC(); fun != nil {
 		name := ctx.IDENT(0).GetText()
+		inline := false
+		if ctx.INLINE() != nil {
+			inline = true
+		}
 		// register now and parse it later just before the call
-		defParserCb := func(listener *treeNodeListener, callNode *funCallNode) {
-			parseFunDeclarationImpl(listener, callNode, ctx)
+		defParserCb := func(context *context, callNode *funCallNode, vi *varInfo) *funDefNode {
+			if inline || vi.node == nil {
+				listener := newTreeNodeListener(context, callNode)
+				parseFunDeclarationImpl(listener, callNode, ctx, inline)
+				node := listener.node
+				if node == nil {
+					return nil
+				}
+				vi.node = listener.node
+				return node.(*funDefNode)
+			}
+			// otherwise fixup internal variable indices
+			// the trick is to use scratch space slots that are not used yet
+			// in order to guarantee function args do not shadow main/global variables
+			lastAddress := callNode.ctx.addressNext
+			defNode := vi.node.(*funDefNode)
+			vars := make(map[string]varInfo, len(defNode.ctx.vars))
+			for name, info := range defNode.ctx.vars {
+				info.address = lastAddress
+				vars[name] = info
+				lastAddress++
+			}
+			defNode.ctx.vars = vars
+			return defNode
 		}
 		err := l.ctx.newFunc(name, unknownType, defParserCb)
 		if err != nil {
@@ -505,11 +532,11 @@ func getVarInfoForAssignment(ident string, ctx *context) (varInfo, error) {
 	if err != nil {
 		return varInfo{}, err
 	}
-	if info.constant {
+	if info.constant() {
 		return varInfo{}, fmt.Errorf("cannot assign to a constant")
 	}
 
-	if info.function {
+	if info.function() {
 		return varInfo{}, fmt.Errorf("cannot assign to a function")
 	}
 
@@ -854,7 +881,7 @@ func validateAppsIndex(ctx *context, exprNode ExprNodeIf) (err error) {
 		ident := tt.name
 		var info varInfo
 		info, err = ctx.lookup(ident)
-		if err != nil || !info.constant {
+		if err != nil || !info.constant() {
 			err = fmt.Errorf("%s not a constant", ident)
 			return
 		}
@@ -929,20 +956,20 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 		reportError(err.Error(), parser, token, rule)
 		return
 	}
-	if !info.function {
+	if !info.function() {
 		reportError("not a function", parser, token, rule)
 		return
 	}
 
 	argExprNodes := ctx.AllExpr()
 	funCallExprNode := l.funCallEnterImpl(name, argExprNodes)
-	listener := newTreeNodeListener(l.ctx, funCallExprNode)
-	info.parser(listener, funCallExprNode)
-	if listener.node == nil {
+	// lazy parse function body
+	defNode := info.parser(l.ctx, funCallExprNode, &info)
+	if defNode == nil {
 		reportError("function parsing failed", parser, token, rule)
 		return
 	}
-	defNode := listener.node.(*funDefNode)
+	l.ctx.update(name, info) // save reference to funNodeDef
 
 	if !ensureBlockReturns(defNode) {
 		reportError(
@@ -955,6 +982,25 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	if err != nil {
 		reportError(err.Error(), parser, token, rule)
 		return
+	}
+
+	if !defNode.inline {
+		var node TreeNodeIf = defNode
+		for ; node != nil; node = node.parent() {
+			if p, ok := node.(*programNode); ok {
+				found := false
+				for _, ch := range p.nonInlineFunc {
+					if ch.name == defNode.name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					p.nonInlineFunc = append(p.nonInlineFunc, defNode)
+				}
+				break
+			}
+		}
 	}
 
 	funCallExprNode.definition = defNode
@@ -984,8 +1030,10 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 	var name string
 	if ctx.MULW() != nil {
 		name = ctx.MULW().GetText()
-	} else if ctx.ADDW()!=nil {
+	} else if ctx.ADDW() != nil {
 		name = ctx.ADDW().GetText()
+	} else if ctx.EXPW() != nil {
+		name = ctx.EXPW().GetText()
 	}else{
 		name = ctx.DIVMODW().GetText()
 	}
@@ -1143,7 +1191,7 @@ func (l *exprListener) EnterTxnArrayFieldExpr(ctx *gen.TxnArrayFieldExprContext)
 	} else {
 		ident := ctx.IDENT().GetText()
 		info, err := l.ctx.lookup(ident)
-		if err != nil || !info.constant {
+		if err != nil || !info.constant() {
 			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 			return
 		}
@@ -1211,7 +1259,7 @@ func (l *exprListener) EnterGroupTxnArrayFieldExpr(ctx *gen.GroupTxnArrayFieldEx
 	} else {
 		ident := ctx.IDENT().GetText()
 		info, err := l.ctx.lookup(ident)
-		if err != nil || !info.constant {
+		if err != nil || !info.constant() {
 			reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 			return
 		}
@@ -1274,7 +1322,7 @@ func (l *exprListener) EnterArgsIdentExpr(ctx *gen.ArgsIdentExprContext) {
 	ident := ctx.IDENT().GetText()
 
 	info, err := l.ctx.lookup(ident)
-	if err != nil || !info.constant {
+	if err != nil || !info.constant() {
 		reportError(fmt.Sprintf("%s not a constant", ident), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
 		return
 	}

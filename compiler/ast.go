@@ -26,13 +26,21 @@ type context struct {
 	addressNext  uint
 }
 
-type varInfo struct {
-	name     string
-	theType  exprType
-	constant bool
-	function bool
+type varKind int
 
-	// for variables specifies allocated memory space
+const (
+	constantKind varKind = 1
+	functionKind varKind = 2
+)
+
+type callDefParser func(context *context, callNode *funCallNode, varInfo *varInfo) *funDefNode
+
+type varInfo struct {
+	name    string
+	theType exprType
+	kind    varKind
+
+	// for variables specifies allocated memory scratch space
 	// for constants sets index in intc/bytec arrays
 	address uint
 
@@ -40,7 +48,16 @@ type varInfo struct {
 	value *string
 
 	// function has reference lazy parser
-	parser func(listener *treeNodeListener, callNode *funCallNode)
+	parser callDefParser
+	node   TreeNodeIf
+}
+
+func (v varInfo) constant() bool {
+	return v.kind == constantKind
+}
+
+func (v varInfo) function() bool {
+	return v.kind == functionKind
 }
 
 func newLiteralInfo() (literals *literalInfo) {
@@ -100,7 +117,7 @@ func (ctx *context) newVar(name string, theType exprType) error {
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("variable '%s' already declared", name)
 	}
-	ctx.vars[name] = varInfo{name, theType, false, false, ctx.addressNext, nil, nil}
+	ctx.vars[name] = varInfo{name, theType, 0, ctx.addressNext, nil, nil, nil}
 	ctx.addressNext++
 	return nil
 }
@@ -113,16 +130,16 @@ func (ctx *context) newConst(name string, theType exprType, value *string) error
 	if err != nil {
 		return err
 	}
-	ctx.vars[name] = varInfo{name, theType, true, false, offset, value, nil}
+	ctx.vars[name] = varInfo{name, theType, constantKind, offset, value, nil, nil}
 	return nil
 }
 
-func (ctx *context) newFunc(name string, theType exprType, parser func(listener *treeNodeListener, callNode *funCallNode)) error {
+func (ctx *context) newFunc(name string, theType exprType, parser callDefParser) error {
 	if _, ok := ctx.vars[name]; ok {
 		return fmt.Errorf("function '%s' already defined", name)
 	}
 
-	ctx.vars[name] = varInfo{name, theType, false, true, 0, nil, parser}
+	ctx.vars[name] = varInfo{name, theType, functionKind, 0, nil, parser, nil}
 	return nil
 }
 
@@ -191,6 +208,8 @@ var builtinFun = map[string]bool{
 	"substring3":        true,
 	"mulw":              true,
 	"addw":              true,
+	"expw":              true,
+	"exp":               true,
 	"divmodw":			 true,
 	"balance":           true,
 	"min_balance":       true,
@@ -210,6 +229,10 @@ var builtinFun = map[string]bool{
 	"getbyte":           true,
 	"setbit":            true,
 	"setbyte":           true,
+	"shl":               true,
+	"shr":               true,
+	"sqrt":              true,
+	"bitlen":            true,
 }
 
 var builtinFunDependantTypes = map[string]int{
@@ -247,12 +270,14 @@ type forNode struct {
 
 type programNode struct {
 	*TreeNode
+	nonInlineFunc []*funDefNode
 }
 
 type funDefNode struct {
 	*TreeNode
-	name string
-	args []string
+	name   string
+	args   []string
+	inline bool
 }
 
 type blockNode struct {

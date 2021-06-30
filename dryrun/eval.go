@@ -3,8 +3,8 @@ package dryrun
 import (
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"io/ioutil"
-	"strings"
 
 	"github.com/algorand/go-algorand/config"
 	"github.com/algorand/go-algorand/data/basics"
@@ -16,7 +16,7 @@ import (
 //go:generate sh ./bundle_sampletxn_json.sh
 
 // Run bytecode using transaction data from txnFile file
-func Run(bytecode []byte, txnFile string, sb *strings.Builder) (bool, error) {
+func Run(bytecode []byte, txnFile string, trace io.Writer) (bool, error) {
 	txn, err := loadTxn(txnFile)
 	if err != nil {
 		return false, err
@@ -38,7 +38,7 @@ func Run(bytecode []byte, txnFile string, sb *strings.Builder) (bool, error) {
 	ep = logic.EvalParams{
 		Txn:        &stxn,
 		Proto:      &proto,
-		Trace:      sb,
+		Trace:      trace,
 		TxnGroup:   txgroup,
 		GroupIndex: 1,
 	}
