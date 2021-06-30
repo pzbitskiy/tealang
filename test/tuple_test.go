@@ -17,7 +17,6 @@ func performTest(t *testing.T, source string) {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	teal := compiler.Codegen(result)
-
 	op, err := logic.AssembleString(teal)
 	a.NoError(err)
 

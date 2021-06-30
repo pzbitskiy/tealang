@@ -122,21 +122,21 @@ RET         : 'return' ;
 IF          : 'if' ;
 ELSE        : 'else' ;
 FUNC        : 'function' ;
-IMPORT      : 'import' -> pushMode(DOIMPORT);
-LOGIC       : 'logic';
-APPROVAL    : 'approval';
-CLEARSTATE  : 'clearstate';
-FOR         : 'for';
-BREAK       : 'break';
+IMPORT      : 'import' -> pushMode(DOIMPORT) ;
+LOGIC       : 'logic' ;
+APPROVAL    : 'approval' ;
+CLEARSTATE  : 'clearstate' ;
+FOR         : 'for' ;
+BREAK       : 'break' ;
+INLINE      : 'inline' ;
 
-GLOBAL      : 'global';
-TXN         : 'txn';
-GTXN        : 'gtxn';
-ARGS        : 'args';
-ACCOUNTS    : 'accounts';
-APPS        : 'apps';
-ASSETS      : 'assets';
-EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
+GLOBAL      : 'global' ;
+TXN         : 'txn' ;
+GTXN        : 'gtxn' ;
+ARGS        : 'args' ;
+ACCOUNTS    : 'accounts' ;
+APPS        : 'apps' ;
+ASSETS      : 'assets' ;
 
 
 MINTXNFEE       : 'MinTxnFee' ;
@@ -205,7 +205,7 @@ NUMGLOBALINTS        : 'GlobalNumUint' ;
 NUMGLOBALBYTESLICES  : 'GlobalNumByteSlice' ;
 NUMLOCALINTS         : 'LocalNumUint' ;
 NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
-
+EXTRAPROGRAMPAGES    : 'ExtraProgramPages' ;
 
 
 ASSETTOTAL         : 'AssetTotal' ;

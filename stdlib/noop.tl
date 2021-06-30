@@ -1,3 +1,3 @@
-function NoOp() {
+inline function NoOp() {
     return 0
 }

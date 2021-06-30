@@ -46,6 +46,7 @@ intc 1
 store 0
 bytec 0
 store 1
+fun_main:
 intc 2
 store 0
 intc 3
@@ -65,6 +66,7 @@ func TestCodegenErr(t *testing.T) {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1
+fun_main:
 err`
 	CompareTEAL(a, expected, actual)
 }
@@ -80,6 +82,7 @@ func TestCodegenBinOp(t *testing.T) {
 	expected := `#pragma version *
 intcblock 0 1 10
 // const
+fun_main:
 intc 1
 intc 2
 +
@@ -122,6 +125,7 @@ func TestCodegenIfStmt(t *testing.T) {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 10
+fun_main:
 intc 1
 bz if_stmt_end_*
 intc 2
@@ -137,6 +141,7 @@ if_stmt_end_*`
 	actual = Codegen(result)
 	expected = `#pragma version *
 intcblock 0 1 10 11
+fun_main:
 intc 1
 bz if_stmt_false_*
 intc 2
@@ -167,6 +172,7 @@ return 1;
 	actual := Codegen(result)
 	expected := `#pragma version *
 *
+fun_main:
 global MinTxnFee
 store 0
 gtxn 1 Sender
@@ -196,6 +202,7 @@ return 1;
 	actual := Codegen(result)
 	expected := `#pragma version *
 *
+fun_main:
 gtxn 0 Sender
 store 0
 intc 1
@@ -223,6 +230,7 @@ return 1;
 	actual = Codegen(result)
 	expected = `#pragma version *
 *
+fun_main:
 gtxna 0 ApplicationArgs 1
 store 0
 intc 1
@@ -233,6 +241,66 @@ store 2
 intc 1`
 	CompareTEAL(a, expected, actual)
 
+}
+
+func TestCodegenFunCallInline(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+inline function sum(x, y) { return x + y; }
+function logic() {
+	let a = 1
+	let b = sum (a, 2)
+	let x = 3
+	let c = sum (x, 1)
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 2 3
+fun_main:
+intc 1
+store 0
+load 0
+store 1
+intc 2
+store 2
+load 1
+load 2
++
+b end_sum_*
+end_sum_*
+store 1
+intc 3
+store 2
+load 2
+store 3
+intc 1
+store 4
+load 3
+load 4
++
+b end_sum_*
+end_sum_*
+store 3
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+	lines := strings.Split(actual, "\n")
+	a.Contains(lines[12], "b end_sum_")
+	a.Contains(lines[13], "end_sum_")
+	a.Contains(lines[24], "b end_sum_")
+	a.Contains(lines[25], "end_sum_")
+	a.NotEqual(lines[12], lines[24])
+	a.NotEqual(lines[13], lines[25])
+	a.True(lines[13][len(lines[13])-1] == ':')
+	a.True(lines[25][len(lines[25])-1] == ':')
 }
 
 func TestCodegenFunCall(t *testing.T) {
@@ -254,18 +322,14 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 2 3
+fun_main:
 intc 1
 store 0
 load 0
-store 1
+store 3
 intc 2
-store 2
-load 1
-load 2
-+
-intc 1
-bnz end_sum_*
-end_sum_*
+store 4
+callsub fun_sum
 store 1
 intc 3
 store 2
@@ -273,27 +337,22 @@ load 2
 store 3
 intc 1
 store 4
-load 3
-load 4
-+
-intc 1
-bnz end_sum_*
-end_sum_*
+callsub fun_sum
 store 3
 intc 1
 return
 end_main:
+fun_sum:
+load 3
+load 4
++
+retsub
+end_sum:
 `
 	CompareTEAL(a, expected, actual)
 	lines := strings.Split(actual, "\n")
-	a.Contains(lines[12], "bnz end_sum_")
-	a.Contains(lines[13], "end_sum_")
-	a.Contains(lines[25], "bnz end_sum_")
-	a.Contains(lines[26], "end_sum_")
-	a.NotEqual(lines[12], lines[25])
-	a.NotEqual(lines[13], lines[26])
-	a.True(lines[13][len(lines[13])-1] == ':')
-	a.True(lines[13][len(lines[13])-1] == ':')
+	a.Equal(lines[8], lines[16])               // callsub func_sum_*
+	a.True(lines[21][len(lines[21])-1] == ':') // func_sum_*:
 }
 
 func TestCodegenGeneric(t *testing.T) {
@@ -369,6 +428,7 @@ intc 4
 -
 /
 store 0
+fun_main:
 load 0
 return
 end_main:
@@ -390,11 +450,11 @@ function logic() { let type = TxTypePayment; type = NoOp(); return 1;}
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 2 3 4 5 6
+fun_main:
 intc 1
 store 0
 intc 0
-intc 1
-bnz end_NoOp_*
+b end_NoOp_*
 end_NoOp_*
 store 0
 intc 1
@@ -448,6 +508,7 @@ function logic() {
 intcblock 0 1 2 3
 intc 1
 store 0
+fun_main:
 intc 2
 store 1
 intc 1
@@ -466,8 +527,8 @@ func TestCodegenNestedFun(t *testing.T) {
 	a := require.New(t)
 
 	source := `
-function test1() { return 1; }
-function test2() { return test1(); }
+inline function test1() { return 1; }
+inline function test2() { return test1(); }
 function logic() {
 	return test2()
 }
@@ -478,12 +539,11 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1
+fun_main:
 intc 1
-intc 1
-bnz end_test1_*
+b end_test1_*
 end_test1_*
-intc 1
-bnz end_test2_*
+b end_test2_*
 end_test2_*
 return
 end_main:
@@ -507,6 +567,7 @@ function logic() {
 	expected := fmt.Sprintf(`#pragma version *
 intcblock 0 1
 bytecblock 0x%s
+fun_main:
 bytec 0
 store 0
 intc 0
@@ -539,6 +600,7 @@ intc 2
 mulw
 store 0
 store 1
+fun_main:
 intc 3
 intc 4
 mulw
@@ -577,6 +639,7 @@ function approval() {
 	expected := `#pragma version *
 intcblock 0 1
 bytecblock 0x6b6579
+fun_main:
 intc 1
 intc 0
 bytec 0
@@ -601,6 +664,7 @@ function approval() {
 	expected = `#pragma version *
 intcblock 0 1 2
 bytecblock 0x6b6579
+fun_main:
 intc 2
 bytec 0
 app_local_get
@@ -622,6 +686,7 @@ function approval() {
 	expected = `#pragma version *
 intcblock 0 1
 bytecblock 0x6b6579
+fun_main:
 intc 0
 bytec 0
 intc 1
@@ -644,6 +709,7 @@ function approval() {
 	expected = `#pragma version *
 intcblock 0 1
 bytecblock 0x6b6579
+fun_main:
 bytec 0
 app_global_get
 return
@@ -664,6 +730,7 @@ function approval() {
 	expected = `#pragma version *
 intcblock 0 1 2
 bytecblock 0x6b6579
+fun_main:
 bytec 0
 intc 2
 app_global_put
@@ -686,6 +753,7 @@ function approval() {
 	expected = `#pragma version *
 intcblock 0 1 2
 bytecblock 0x6b6579
+fun_main:
 intc 2
 bytec 0
 app_global_get_ex
@@ -714,6 +782,7 @@ function approval() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1
+fun_main:
 intc 1
 balance
 store 0
@@ -739,6 +808,7 @@ function approval() {
 	actual = Codegen(result)
 	expected = `#pragma version *
 intcblock 0 1 2 101
+fun_main:
 intc 2
 intc 3
 app_opted_in
@@ -765,6 +835,7 @@ function approval() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 100
+fun_main:
 intc 2
 store 0
 intc 1
@@ -792,6 +863,7 @@ function approval() {
 	actual = Codegen(result)
 	expected = `#pragma version *
 intcblock 0 1 2 101
+fun_main:
 intc 2
 intc 3
 asset_holding_get AssetFrozen
@@ -815,6 +887,7 @@ function approval() {
 	actual = Codegen(result)
 	expected = `#pragma version *
 intcblock 0 1
+fun_main:
 intc 0
 asset_params_get AssetTotal
 store 0
@@ -844,6 +917,7 @@ function logic() {
 	expected := `#pragma version *
 intcblock 0 1
 bytecblock 0x616263 0x646566
+fun_main:
 bytec 0
 store 0
 bytec 1
@@ -877,6 +951,7 @@ function logic() {
 	expected := `#pragma version *
 intcblock 0 1 2
 bytecblock 0x616263
+fun_main:
 intc 1
 store 0
 bytec 0
@@ -904,6 +979,7 @@ function logic() {
 	expected = `#pragma version *
 intcblock 0 1 2
 bytecblock 0x616263
+fun_main:
 bytec 0
 substring 1 2
 store 0
@@ -932,6 +1008,7 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 2
+fun_main:
 intc 2
 store 0
 loop_start_*
@@ -958,7 +1035,7 @@ func TestBreak(t *testing.T) {
 	source := `
 function logic() {
 	let y= 0;
-	for 1 { 
+	for 1 {
 		if y==10 {break;}
 		y=y+1
 	}
@@ -971,6 +1048,7 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 10
+fun_main:
 intc 0
 store 0
 loop_start_*
@@ -1013,6 +1091,7 @@ function approval() {
 	expected := `#pragma version *
 intcblock 0 1 255 2
 bytecblock 0xff 0x74657374
+fun_main:
 intc 2
 intc 1
 getbit
@@ -1052,6 +1131,7 @@ function approval() {
 	expected = `#pragma version *
 intcblock 0 1 32
 bytecblock 0xff 0x74657374
+fun_main:
 intc 0
 intc 1
 intc 1
