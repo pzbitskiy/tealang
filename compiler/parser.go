@@ -358,9 +358,9 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 		return
 	}
 
-	remlowctx:= ctx.IDENT(2)
-	remhighctx:= ctx.IDENT(3)
-	if remlowctx!=nil && remhighctx != nil {
+	remlowctx := ctx.IDENT(2)
+	remhighctx := ctx.IDENT(3)
+	if remlowctx != nil && remhighctx != nil {
 		remlow := remlowctx.GetText()
 		remhigh := remhighctx.GetText()
 
@@ -374,14 +374,12 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
 			return
 		}
-		node := newVarDeclDivmodwTupleNode(l.ctx, l.parent, identLow, identHigh, remlow,remhigh, exprNode)
+		node := newVarDeclDivmodwTupleNode(l.ctx, l.parent, identLow, identHigh, remlow, remhigh, exprNode)
 		l.node = node
-	}else{
+	} else {
 		node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh, exprNode)
 		l.node = node
 	}
-
-
 
 }
 
@@ -1034,7 +1032,7 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 		name = ctx.ADDW().GetText()
 	} else if ctx.EXPW() != nil {
 		name = ctx.EXPW().GetText()
-	}else{
+	} else {
 		name = ctx.DIVMODW().GetText()
 	}
 

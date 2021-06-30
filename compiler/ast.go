@@ -210,7 +210,7 @@ var builtinFun = map[string]bool{
 	"addw":              true,
 	"expw":              true,
 	"exp":               true,
-	"divmodw":			 true,
+	"divmodw":           true,
 	"balance":           true,
 	"min_balance":       true,
 	"app_opted_in":      true,
@@ -325,8 +325,8 @@ type varDeclTupleNode struct {
 	*TreeNode
 	low      string
 	high     string
-	rlow	  string
-	rhigh	  string
+	rlow     string
+	rhigh    string
 	exprType exprType
 	value    ExprNodeIf
 }

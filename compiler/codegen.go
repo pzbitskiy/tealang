@@ -157,7 +157,7 @@ func (n *varDeclTupleNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 	info, _ = n.ctx.lookup(n.high)
 	fmt.Fprintf(ostream, "store %d\n", info.address)
-	if n.nodeName=="divmodw"{
+	if n.nodeName == "divmodw" {
 		info, _ = n.ctx.lookup(n.rlow)
 		fmt.Fprintf(ostream, "store %d\n", info.address)
 		info, _ = n.ctx.lookup(n.rhigh)
