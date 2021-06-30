@@ -992,7 +992,6 @@ end_main:
 
 }
 
-
 func TestLoop(t *testing.T) {
 	a := require.New(t)
 
@@ -1009,6 +1008,7 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 2
+fun_main:
 intc 2
 store 0
 loop_start_*
@@ -1035,7 +1035,7 @@ func TestBreak(t *testing.T) {
 	source := `
 function logic() {
 	let y= 0;
-	for 1 { 
+	for 1 {
 		if y==10 {break;}
 		y=y+1
 	}
@@ -1048,6 +1048,7 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 10
+fun_main:
 intc 0
 store 0
 loop_start_*
@@ -1180,6 +1181,7 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 2 3 4
+fun_main:
 intc 1
 intc 2
 intc 3
