@@ -28,3 +28,5 @@ java-trace: grammar-java
 
 java-gui: grammar-java
 	java -classpath "gen/java:$(ANTLR4_JAR)" org.antlr.v4.gui.TestRig Tealang program -diagnostics -gui $(ARGS)
+
+.PHONY: all test
