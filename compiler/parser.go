@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
+	"sort"
 	"strconv"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
@@ -205,7 +206,6 @@ func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *ge
 			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(i+1).GetSymbol(), ctx.GetRuleContext())
 			return
 		}
-
 		args[i] = ident
 	}
 	node := newFunDefNode(scopedContext, l.parent)
@@ -248,15 +248,18 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 			// otherwise fixup internal variable indices
 			// the trick is to use scratch space slots that are not used yet
 			// in order to guarantee function args do not shadow main/global variables
-			lastAddress := callNode.ctx.addressNext
 			defNode := vi.node.(*funDefNode)
-			vars := make(map[string]varInfo, len(defNode.ctx.vars))
-			for name, info := range defNode.ctx.vars {
+			vars := make([]varInfo, 0, len(defNode.ctx.vars))
+			for _, info := range defNode.ctx.vars {
+				vars = append(vars, info)
+			}
+			sort.Slice(vars, func(i, j int) bool { return vars[i].address < vars[j].address })
+			lastAddress := callNode.ctx.LastAddress()
+			for _, info := range vars {
 				info.address = lastAddress
-				vars[name] = info
+				defNode.ctx.update(info.name, info)
 				lastAddress++
 			}
-			defNode.ctx.vars = vars
 			return defNode
 		}
 		err := l.ctx.newFunc(name, unknownType, defParserCb)

@@ -110,7 +110,7 @@ func (ctx *context) update(name string, info varInfo) (err error) {
 		}
 		current = current.parent
 	}
-	return fmt.Errorf("Failed to update ident %s", name)
+	return fmt.Errorf("failed to update ident %s", name)
 }
 
 func (ctx *context) newVar(name string, theType exprType) error {
@@ -172,6 +172,10 @@ func (ctx *context) Print() {
 	for name, value := range ctx.vars {
 		fmt.Printf("%v %v\n", name, value)
 	}
+}
+
+func (ctx *context) LastAddress() uint {
+	return ctx.addressNext
 }
 
 type exprType int
