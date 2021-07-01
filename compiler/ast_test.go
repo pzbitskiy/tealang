@@ -47,12 +47,6 @@ function logic() {
 		error
 	}
 
-	let y= 0;
-	for 1 { 
-		if y==10 {break;}
-		y=y+1
-	}
-
 	x = shr(shl(9, 2), 2)
 	x = bitlen(sqrt(x))
 	
@@ -581,7 +575,7 @@ function logic() {
 		return 0
 	}
 	a, b = addw(5, 6)
-	a, b, c, d = divmodw(1, 2, 3, 4)
+	let a, b, c, d = divmodw(1, 2, 3, 4)
 	a, b = expw(3, 2)
 	return 1
 }

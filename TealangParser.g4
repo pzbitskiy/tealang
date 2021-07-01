@@ -64,7 +64,7 @@ termination
 decl
     :   LET IDENT EQ expr                          # DeclareVar
     |   LET IDENT COMMA IDENT EQ tupleExpr         # DeclareVarTupleExpr
-    |   LET IDENT COMMA IDENT COMMA IDENT COMMA IDENT EQ tupleExpr # DeclareVarTupleExpr
+    |   LET IDENT COMMA IDENT COMMA IDENT COMMA IDENT EQ tupleExpr # DeclareQuadrupleExpr
     |   CONST IDENT EQ NUMBER                      # DeclareNumberConst
     |   CONST IDENT EQ STRING                      # DeclareStringConst
     ;
@@ -72,7 +72,7 @@ decl
 assignment
     :   IDENT EQ expr                              # Assign
     |   IDENT COMMA IDENT EQ tupleExpr             # AssignTuple
-    |   IDENT COMMA IDENT COMMA IDENT COMMA IDENT EQ tupleExpr      # AssignTuple
+    |   IDENT COMMA IDENT COMMA IDENT COMMA IDENT EQ tupleExpr      # AssignQuadruple
     ;
 
 expr
