@@ -1164,3 +1164,31 @@ end_main:
 	CompareTEAL(a, expected, actual)
 
 }
+
+func TestCodegenByteArith(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() { let z = bzero(4); let r = band(z, "\x11"); return 1;}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1 4
+bytecblock 0x11
+fun_main:
+intc 2
+bzero
+store 0
+load 0
+bytec 0
+b&
+store 1
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
