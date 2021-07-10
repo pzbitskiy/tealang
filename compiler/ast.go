@@ -269,17 +269,6 @@ type assignTupleNode struct {
 	exprType exprType
 	value    ExprNodeIf
 }
-
-type assignQuadrupleNode struct {
-	*TreeNode
-	low      string
-	high     string
-	rlow     string
-	rhigh    string
-	exprType exprType
-	value    ExprNodeIf
-}
-
 type varDeclNode struct {
 	*TreeNode
 	name     string
@@ -294,17 +283,6 @@ type varDeclTupleNode struct {
 	exprType exprType
 	value    ExprNodeIf
 }
-
-type varDeclQuadrupleNode struct {
-	*TreeNode
-	low      string
-	high     string
-	rlow     string
-	rhigh    string
-	exprType exprType
-	value    ExprNodeIf
-}
-
 type constNode struct {
 	*TreeNode
 	name     string
@@ -464,18 +442,6 @@ func newAssignTupleNode(ctx *context, parent TreeNodeIf, identLow string, identH
 	return
 }
 
-func newAssignQuadrupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, remLow string, remHigh string) (node *assignQuadrupleNode) {
-	node = new(assignQuadrupleNode)
-	node.TreeNode = newNode(ctx, parent)
-	node.nodeName = "assign quadruple"
-	node.low = identLow
-	node.high = identHigh
-	node.rlow = remLow
-	node.rhigh = remHigh
-	node.value = nil
-	return
-}
-
 func newFunDefNode(ctx *context, parent TreeNodeIf) (node *funDefNode) {
 	node = new(funDefNode)
 	node.TreeNode = newNode(ctx, parent)
@@ -500,20 +466,6 @@ func newVarDeclTupleNode(ctx *context, parent TreeNodeIf, identLow string, ident
 	node.nodeName = "var, var"
 	node.low = identLow
 	node.high = identHigh
-	node.value = value
-	tp, _ := value.getType()
-	node.exprType = tp
-	return
-}
-
-func newVarDeclDivmodwTupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, remLow string, remHigh string, value ExprNodeIf) (node *varDeclQuadrupleNode) {
-	node = new(varDeclQuadrupleNode)
-	node.TreeNode = newNode(ctx, parent)
-	node.nodeName = "divmodw"
-	node.low = identLow
-	node.high = identHigh
-	node.rlow = remLow
-	node.rhigh = remHigh
 	node.value = value
 	tp, _ := value.getType()
 	node.exprType = tp
@@ -869,35 +821,6 @@ func (n *funCallNode) getTypeTuple() (exprType, exprType, error) {
 	}
 	tpl, err = opTypeFromSpec(n.name, 1)
 	return tph, tpl, err
-}
-
-func (n *funCallNode) getTypeQuadruple() (exprType, exprType, exprType, exprType, error) {
-	var err error
-	builtin := false
-	_, builtin = builtinFun[n.name]
-	if !builtin {
-		return invalidType, invalidType, invalidType, invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
-	}
-
-	var tpl exprType = invalidType
-	var tph exprType = invalidType
-	var rtpl exprType = invalidType
-	var rtph exprType = invalidType
-
-	tph, err = opTypeFromSpec(n.name, 0)
-	if err != nil {
-		return tph, tpl, rtpl, rtph, err
-	}
-	tpl, err = opTypeFromSpec(n.name, 1)
-	if err != nil {
-		return tph, tpl, rtpl, rtph, err
-	}
-	rtpl, err = opTypeFromSpec(n.name, 2)
-	if err != nil {
-		return tph, tpl, rtpl, rtph, err
-	}
-	rtpl, err = opTypeFromSpec(n.name, 3)
-	return tph, tpl, rtpl, rtph, err
 }
 
 func (n *funCallNode) resolveArgs(definitionNode *funDefNode) error {

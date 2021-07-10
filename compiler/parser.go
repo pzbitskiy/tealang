@@ -361,74 +361,9 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 		return
 	}
 
-	remlowctx := ctx.IDENT(2)
-	remhighctx := ctx.IDENT(3)
-	if remlowctx != nil && remhighctx != nil {
-		remlow := remlowctx.GetText()
-		remhigh := remhighctx.GetText()
-
-		err = l.ctx.newVar(remlow, lType)
-		if err != nil {
-			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
-			return
-		}
-		err = l.ctx.newVar(remhigh, hType)
-		if err != nil {
-			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
-			return
-		}
-		node := newVarDeclDivmodwTupleNode(l.ctx, l.parent, identLow, identHigh, remlow, remhigh, exprNode)
-		l.node = node
-	} else {
-		node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh, exprNode)
-		l.node = node
-	}
-
-}
-
-func (l *treeNodeListener) EnterDeclareQuadrupleExpr(ctx *gen.DeclareQuadrupleExprContext) {
-	identHigh := ctx.IDENT(0).GetText()
-	identLow := ctx.IDENT(1).GetText()
-	remLow := ctx.IDENT(2).GetText()
-	remHigh := ctx.IDENT(3).GetText()
-
-	listener := newExprListener(l.ctx, l.parent)
-	ctx.TupleExpr().EnterRule(listener)
-	exprNode := listener.getExpr()
-
-	hType, lType, rhType, rlType, err := exprNode.(*funCallNode).getTypeQuadruple()
-	if err != nil {
-		reportError(
-			err.Error(), ctx.GetParser(),
-			ctx.TupleExpr().GetParser().GetCurrentToken(), ctx.GetRuleContext(),
-		)
-		return
-	}
-
-	err = l.ctx.newVar(identLow, lType)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-	err = l.ctx.newVar(identHigh, hType)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-
-	err = l.ctx.newVar(remLow, rhType)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-	err = l.ctx.newVar(remHigh, rlType)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-
-	node := newVarDeclDivmodwTupleNode(l.ctx, l.parent, identLow, identHigh, remLow, remHigh, exprNode)
+	node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh, exprNode)
 	l.node = node
+
 }
 
 func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {
@@ -674,79 +609,6 @@ func (l *treeNodeListener) EnterAssignTuple(ctx *gen.AssignTupleContext) {
 		reportError(
 			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoLow.theType, lType),
 			ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext(),
-		)
-		return
-	}
-	l.node = node
-}
-
-func (l *treeNodeListener) EnterAssignQuadruple(ctx *gen.AssignQuadrupleContext) {
-	identHigh := ctx.IDENT(0).GetSymbol().GetText()
-	infoHigh, err := getVarInfoForAssignment(identHigh, l.ctx)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-
-	identLow := ctx.IDENT(1).GetSymbol().GetText()
-	infoLow, err := getVarInfoForAssignment(identLow, l.ctx)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-
-	remHigh := ctx.IDENT(2).GetSymbol().GetText()
-	infoRemHigh, err := getVarInfoForAssignment(remHigh, l.ctx)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-
-	remLow := ctx.IDENT(3).GetSymbol().GetText()
-	infoRemLow, err := getVarInfoForAssignment(remLow, l.ctx)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-
-	node := newAssignQuadrupleNode(l.ctx, l.parent, identLow, identHigh, remLow, remHigh)
-	listener := newExprListener(l.ctx, node)
-	ctx.TupleExpr().EnterRule(listener)
-	rhs := listener.getExpr()
-	node.value = rhs
-	hType, lType, rhType, rlType, err := rhs.(*funCallNode).getTypeQuadruple()
-	if err != nil {
-		reportError(
-			fmt.Sprintf("failed type resolution type: %s", err.Error()),
-			ctx.GetParser(), ctx.TupleExpr().GetParser().GetCurrentToken(), ctx.GetRuleContext(),
-		)
-		return
-	}
-	if infoHigh.theType != hType {
-		reportError(
-			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoHigh.theType, hType),
-			ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext(),
-		)
-		return
-	}
-	if infoLow.theType != lType {
-		reportError(
-			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoLow.theType, lType),
-			ctx.GetParser(), ctx.IDENT(1).GetSymbol(), ctx.GetRuleContext(),
-		)
-		return
-	}
-	if infoRemHigh.theType != rhType {
-		reportError(
-			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoRemHigh.theType, rhType),
-			ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext(),
-		)
-		return
-	}
-	if infoRemLow.theType != rlType {
-		reportError(
-			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", infoLow.theType, rlType),
-			ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext(),
 		)
 		return
 	}
@@ -1105,8 +967,6 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 		name = ctx.ADDW().GetText()
 	} else if ctx.EXPW() != nil {
 		name = ctx.EXPW().GetText()
-	} else {
-		name = ctx.DIVMODW().GetText()
 	}
 
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())

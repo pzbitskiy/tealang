@@ -57,17 +57,3 @@ function logic() {
 }`
 	performTest(t, source)
 }
-
-func TestDivmodw(t *testing.T) {
-	source := `
-function logic() {
-	let qhigh, qlow, rhigh, rlow = divmodw(2, 0, 0, 1)
-	assert(qlow == 2)
-	assert(qhigh == 0)
-	assert(rlow == 0)
-	assert(rhigh == 0)
-	
-return 1
-}`
-	performTest(t, source)
-}

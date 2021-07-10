@@ -281,7 +281,6 @@ BYTENOT     : 'bnot' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
-DIVMODW     : 'divmodw';
 EXPW        : 'expw' ;
 
 BALANCE         : 'Balance' ;
