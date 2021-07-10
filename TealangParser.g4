@@ -71,7 +71,6 @@ decl
 assignment
     :   IDENT EQ expr                              # Assign
     |   IDENT COMMA IDENT EQ tupleExpr             # AssignTuple
-    |   IDENT COMMA IDENT COMMA IDENT COMMA IDENT EQ tupleExpr      # Assignuple
     ;
 
 expr
