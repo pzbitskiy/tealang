@@ -107,7 +107,22 @@ BUILTINFUNC
     |   SHR
     |   SQRT
     |   BITLEN
-    |   GAIDS
+    |   BZERO
+    |   BADD
+    |   BSUB
+    |   BDIV
+    |   BMUL
+    |   BLT
+    |   BGT
+    |   BLE
+    |   BGE
+    |   BEQ
+    |   BNE
+    |   BMOD
+    |   BYTEOR
+    |   BYTEAND
+    |   BYTEXOR
+    |   BYTENOT
     ;
 
 MAINFUNC
@@ -244,7 +259,23 @@ SHL         : 'shl' ;
 SHR         : 'shr' ;
 SQRT        : 'sqrt' ;
 BITLEN      : 'bitlen' ;
-GAIDS       : 'gaids';
+BZERO       : 'bzero' ;
+
+BADD        : 'badd' ;
+BSUB        : 'bsub' ;
+BDIV        : 'bdiv' ;
+BMUL        : 'bmul' ;
+BLT         : 'blt' ;
+BGT         : 'bgt' ;
+BLE         : 'ble' ;
+BGE         : 'bge' ;
+BEQ         : 'beq' ;
+BNE         : 'bne' ;
+BMOD        : 'bmod' ;
+BYTEOR      : 'bor' ;
+BYTEAND     : 'band' ;
+BYTEXOR     : 'bxor' ;
+BYTENOT     : 'bnot' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;

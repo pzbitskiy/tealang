@@ -1165,65 +1165,26 @@ end_main:
 
 }
 
-func TestCodegenDivmodw(t *testing.T) {
+func TestCodegenByteArith(t *testing.T) {
 	a := require.New(t)
 
 	source := `
-function logic() {
-	let a, b, c, d = divmodw(1, 2, 3, 4)
-	let h, l = mulw(3, 4)
-	return 1
-}
+function logic() { let z = bzero(4); let r = band(z, "\x11"); return 1;}
 `
 	result, errors := Parse(source)
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
 	expected := `#pragma version *
-intcblock 0 1 2 3 4
+intcblock 0 1 4
+bytecblock 0x11
 fun_main:
-intc 1
 intc 2
-intc 3
-intc 4
-divmodw
+bzero
 store 0
-store 1
-store 2
-store 3
-intc 3
-intc 4
-mulw
-store 4
-store 5
-intc 1
-return
-end_main:
-`
-	CompareTEAL(a, expected, actual)
-}
-
-func TestCodegenGaid(t *testing.T) {
-	a := require.New(t)
-
-	source := `
-function logic() {
-	let a = gaid(0)
-	let h = gaids(1)
-	return 1
-}
-`
-	result, errors := Parse(source)
-	a.NotEmpty(result, errors)
-	a.Empty(errors)
-	actual := Codegen(result)
-	expected := `#pragma version *
-intcblock 0 1
-fun_main:
-gaid 0
-store 0
-intc 1
-gaids
+load 0
+bytec 0
+b&
 store 1
 intc 1
 return

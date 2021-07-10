@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
+	"sort"
 	"strconv"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
@@ -205,7 +206,6 @@ func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *ge
 			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(i+1).GetSymbol(), ctx.GetRuleContext())
 			return
 		}
-
 		args[i] = ident
 	}
 	node := newFunDefNode(scopedContext, l.parent)
@@ -248,15 +248,18 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 			// otherwise fixup internal variable indices
 			// the trick is to use scratch space slots that are not used yet
 			// in order to guarantee function args do not shadow main/global variables
-			lastAddress := callNode.ctx.addressNext
 			defNode := vi.node.(*funDefNode)
-			vars := make(map[string]varInfo, len(defNode.ctx.vars))
-			for name, info := range defNode.ctx.vars {
+			vars := make([]varInfo, 0, len(defNode.ctx.vars))
+			for _, info := range defNode.ctx.vars {
+				vars = append(vars, info)
+			}
+			sort.Slice(vars, func(i, j int) bool { return vars[i].address < vars[j].address })
+			lastAddress := callNode.ctx.LastAddress()
+			for _, info := range vars {
 				info.address = lastAddress
-				vars[name] = info
+				defNode.ctx.update(info.name, info)
 				lastAddress++
 			}
-			defNode.ctx.vars = vars
 			return defNode
 		}
 		err := l.ctx.newFunc(name, unknownType, defParserCb)
@@ -906,62 +909,14 @@ func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
 	l.expr = listener.getExpr()
 }
 
-func handleSubstring(exprNode *funCallNode, ctx *gen.BuiltinFunCallContext) (errToken antlr.Token, err error) {
-	var arg1Val, arg2Val string
-	switch arg1 := exprNode.childrenNodes[1].(type) {
-	case *constNode:
-		if arg1.exprType != intType {
-			errToken = ctx.Expr(1).GetStart()
-		} else {
-			arg1Val = arg1.value
-		}
-	case *exprLiteralNode:
-		if arg1.exprType != intType {
-			errToken = ctx.Expr(1).GetStart()
-		} else {
-			arg1Val = arg1.value
-		}
-	}
-	if errToken != nil {
-		err = fmt.Errorf("arg #1 must be int")
-		return
-	}
-	switch arg2 := exprNode.childrenNodes[2].(type) {
-	case *constNode:
-		if arg2.exprType != intType {
-			errToken = ctx.Expr(2).GetStart()
-		} else {
-			arg2Val = arg2.value
-		}
-	case *exprLiteralNode:
-		if arg2.exprType != intType {
-			errToken = ctx.Expr(2).GetStart()
-		} else {
-			arg2Val = arg2.value
-		}
-	}
-	if errToken != nil {
-		err = fmt.Errorf("arg #2 must be int")
-		return
-	}
-
-	if len(arg1Val) > 0 && len(arg2Val) > 0 {
-		exprNode.childrenNodes = exprNode.childrenNodes[:1]
-		exprNode.index1 = arg1Val
-		exprNode.index2 = arg2Val
-	} else {
-		exprNode.name = "substring3"
-	}
-	return
-}
-
 func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
 	name := ctx.BUILTINFUNC().GetText()
-	// special case for substring: generate substring or substring3 depending on arguments
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
-	if exprNode.name == "substring" {
-		errToken, err := handleSubstring(exprNode, ctx)
+	// convert builtin function name or args if needed
+	if remapper, ok := builtinFunRemap[name]; ok {
+		errPos, err := remapper(exprNode)
 		if err != nil {
+			errToken := ctx.Expr(errPos).GetStart()
 			parser := ctx.GetParser()
 			rule := ctx.GetRuleContext()
 			reportError(err.Error(), parser, errToken, rule)

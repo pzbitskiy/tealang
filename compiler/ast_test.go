@@ -49,9 +49,8 @@ function logic() {
 
 	x = shr(shl(9, 2), 2)
 	x = bitlen(sqrt(x))
-	
-	let p = gaid(0)
-	let q = gaids(0)
+	let zero = bzero(5)
+	let borres = bor(zero, "\x10")
 	return 1
 }
 `

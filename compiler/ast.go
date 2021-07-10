@@ -110,7 +110,7 @@ func (ctx *context) update(name string, info varInfo) (err error) {
 		}
 		current = current.parent
 	}
-	return fmt.Errorf("Failed to update ident %s", name)
+	return fmt.Errorf("failed to update ident %s", name)
 }
 
 func (ctx *context) newVar(name string, theType exprType) error {
@@ -174,6 +174,10 @@ func (ctx *context) Print() {
 	}
 }
 
+func (ctx *context) LastAddress() uint {
+	return ctx.addressNext
+}
+
 type exprType int
 
 const (
@@ -193,51 +197,6 @@ func (n exprType) String() string {
 		return "invalid"
 	}
 	return "unknown"
-}
-
-var builtinFun = map[string]bool{
-	"sha256":            true,
-	"keccak256":         true,
-	"sha512_256":        true,
-	"ed25519verify":     true,
-	"len":               true,
-	"itob":              true,
-	"btoi":              true,
-	"concat":            true,
-	"substring":         true,
-	"substring3":        true,
-	"mulw":              true,
-	"addw":              true,
-	"expw":              true,
-	"exp":               true,
-	"divmodw":           true,
-	"balance":           true,
-	"min_balance":       true,
-	"app_opted_in":      true,
-	"app_local_get":     true,
-	"app_local_get_ex":  true,
-	"app_global_get":    true,
-	"app_global_get_ex": true,
-	"app_local_put":     true, // accounts[x].put
-	"app_global_put":    true, // apps[0].put
-	"app_local_del":     true, // accounts[x].del
-	"app_global_del":    true, // apps[0].del
-	"asset_holding_get": true,
-	"asset_params_get":  true,
-	"assert":            true,
-	"getbit":            true,
-	"getbyte":           true,
-	"setbit":            true,
-	"setbyte":           true,
-	"shl":               true,
-	"shr":               true,
-	"sqrt":              true,
-	"bitlen":            true,
-	"gaids":             true,
-}
-
-var builtinFunDependantTypes = map[string]int{
-	"setbit": 0, // op type matches to first arg type
 }
 
 // TreeNodeIf represents a node in AST
