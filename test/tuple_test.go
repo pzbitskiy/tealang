@@ -84,6 +84,12 @@ function logic() {
 	assert(rhigh == 0)
 	assert(rlow == 1)
 
+	qhigh, qlow, rhigh, rlow = divmodw(2, 0, 0, 2)
+	assert(qhigh == 1)
+	assert(qlow == 0)
+	assert(rhigh == 0)
+	assert(rlow == 0)
+
 return 1
 }`
 	performTest(t, source)
