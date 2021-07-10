@@ -867,19 +867,19 @@ func (n *funCallNode) getTypeQuadruple() (exprType, exprType, exprType, exprType
 	var rtpl exprType = invalidType
 	var rtph exprType = invalidType
 
-	tph, err = opTypeFromSpec(n.name, 0)
+	tph, err = opTypeFromSpec(n.name, 3)
 	if err != nil {
 		return tph, tpl, rtpl, rtph, err
 	}
-	tpl, err = opTypeFromSpec(n.name, 1)
+	tpl, err = opTypeFromSpec(n.name, 2)
 	if err != nil {
 		return tph, tpl, rtpl, rtph, err
 	}
-	rtpl, err = opTypeFromSpec(n.name, 2)
+	rtph, err = opTypeFromSpec(n.name, 1)
 	if err != nil {
 		return tph, tpl, rtpl, rtph, err
 	}
-	rtpl, err = opTypeFromSpec(n.name, 3)
+	rtpl, err = opTypeFromSpec(n.name, 0)
 	return tph, tpl, rtpl, rtph, err
 }
 

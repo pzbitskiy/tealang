@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/algorand/go-algorand/data/transactions/logic"
@@ -20,7 +22,10 @@ func performTest(t *testing.T, source string) {
 	op, err := logic.AssembleString(teal)
 	a.NoError(err)
 
-	pass, err := dryrun.Run(op.Program, "", nil)
+	sb := strings.Builder{}
+	pass, err := dryrun.Run(op.Program, "", &sb)
+	fmt.Printf("trace:\n%s\n", sb.String())
+
 	a.NoError(err)
 	a.True(pass)
 }
@@ -62,12 +67,25 @@ func TestDivmodw(t *testing.T) {
 	source := `
 function logic() {
 	let qhigh, qlow, rhigh, rlow = divmodw(2, 0, 0, 1)
-	assert(qlow == 2)
-	assert(qhigh == 0)
-	assert(rlow == 0)
+	assert(qhigh == 2)
+	assert(qlow == 0)
 	assert(rhigh == 0)
-	
+	assert(rlow == 0)
+
 return 1
 }`
 	performTest(t, source)
+
+	source = `
+function logic() {
+	let qhigh, qlow, rhigh, rlow = divmodw(0, 99, 0, 2)
+	assert(qhigh == 0)
+	assert(qlow == 49)
+	assert(rhigh == 0)
+	assert(rlow == 1)
+
+return 1
+}`
+	performTest(t, source)
+
 }

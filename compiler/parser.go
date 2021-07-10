@@ -361,20 +361,20 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 		return
 	}
 
-	remlowctx := ctx.IDENT(2)
-	remhighctx := ctx.IDENT(3)
+	remhighctx := ctx.IDENT(2)
+	remlowctx := ctx.IDENT(3)
 	if remlowctx != nil && remhighctx != nil {
-		remlow := remlowctx.GetText()
 		remhigh := remhighctx.GetText()
+		remlow := remlowctx.GetText()
 
 		err = l.ctx.newVar(remlow, lType)
 		if err != nil {
-			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
+			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
 			return
 		}
 		err = l.ctx.newVar(remhigh, hType)
 		if err != nil {
-			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
+			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
 			return
 		}
 		node := newVarDeclDivmodwTupleNode(l.ctx, l.parent, identLow, identHigh, remlow, remhigh, exprNode)
@@ -389,8 +389,8 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 func (l *treeNodeListener) EnterDeclareQuadrupleExpr(ctx *gen.DeclareQuadrupleExprContext) {
 	identHigh := ctx.IDENT(0).GetText()
 	identLow := ctx.IDENT(1).GetText()
-	remLow := ctx.IDENT(2).GetText()
-	remHigh := ctx.IDENT(3).GetText()
+	remHigh := ctx.IDENT(2).GetText()
+	remLow := ctx.IDENT(3).GetText()
 
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.TupleExpr().EnterRule(listener)
@@ -415,15 +415,14 @@ func (l *treeNodeListener) EnterDeclareQuadrupleExpr(ctx *gen.DeclareQuadrupleEx
 		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
 		return
 	}
-
-	err = l.ctx.newVar(remLow, rhType)
-	if err != nil {
-		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
-		return
-	}
-	err = l.ctx.newVar(remHigh, rlType)
+	err = l.ctx.newVar(remLow, rlType)
 	if err != nil {
 		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
+		return
+	}
+	err = l.ctx.newVar(remHigh, rhType)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
 		return
 	}
 

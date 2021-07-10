@@ -175,13 +175,13 @@ func (n *varDeclTupleNode) Codegen(ostream io.Writer) {
 func (n *varDeclQuadrupleNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
 
-	info, _ := n.ctx.lookup(n.low)
-	fmt.Fprintf(ostream, "store %d\n", info.address)
-	info, _ = n.ctx.lookup(n.high)
-	fmt.Fprintf(ostream, "store %d\n", info.address)
-	info, _ = n.ctx.lookup(n.rlow)
+	info, _ := n.ctx.lookup(n.rlow)
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 	info, _ = n.ctx.lookup(n.rhigh)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.low)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.high)
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 }
 
