@@ -155,6 +155,7 @@ APPS        : 'apps' ;
 ASSETS      : 'assets' ;
 
 
+
 MINTXNFEE       : 'MinTxnFee' ;
 MINBALANCE      : 'MinBalance' ;
 MAXTXNLIFE      : 'MaxTxnLife' ;
@@ -221,7 +222,8 @@ NUMGLOBALINTS        : 'GlobalNumUint' ;
 NUMGLOBALBYTESLICES  : 'GlobalNumByteSlice' ;
 NUMLOCALINTS         : 'LocalNumUint' ;
 NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
-EXTRAPROGRAMPAGES    : 'ExtraProgramPages' ;
+EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
+
 
 
 ASSETTOTAL         : 'AssetTotal' ;
@@ -275,6 +277,7 @@ BYTENOT     : 'bnot' ;
 
 MULW        : 'mulw' ;
 ADDW        : 'addw' ;
+DIVMODW     : 'divmodw';
 EXPW        : 'expw' ;
 
 BALANCE         : 'Balance' ;

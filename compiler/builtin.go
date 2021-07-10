@@ -18,6 +18,7 @@ var builtinFun = map[string]bool{
 	"mulw":              true,
 	"addw":              true,
 	"expw":              true,
+	"divmodw":           true,
 	"exp":               true,
 	"balance":           true,
 	"min_balance":       true,

@@ -111,6 +111,19 @@ func (n *assignTupleNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 }
 
+func (n *assignQuadrupleNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	info, _ := n.ctx.lookup(n.rlow)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.rhigh)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.low)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.high)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+}
+
 func (n *returnNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
 	if n.definition.name == mainFuncName {
@@ -154,6 +167,19 @@ func (n *varDeclTupleNode) Codegen(ostream io.Writer) {
 	n.value.Codegen(ostream)
 
 	info, _ := n.ctx.lookup(n.low)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.high)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+}
+
+func (n *varDeclQuadrupleNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	info, _ := n.ctx.lookup(n.rlow)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.rhigh)
+	fmt.Fprintf(ostream, "store %d\n", info.address)
+	info, _ = n.ctx.lookup(n.low)
 	fmt.Fprintf(ostream, "store %d\n", info.address)
 	info, _ = n.ctx.lookup(n.high)
 	fmt.Fprintf(ostream, "store %d\n", info.address)
