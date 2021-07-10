@@ -314,10 +314,6 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 	}
 }
 
-func (n *runtimeGaidNode) Codegen(ostream io.Writer) {
-	fmt.Fprintf(ostream, "%s %s\n", n.op, n.number)
-}
-
 // Codegen runs code generation for a node and returns the program as a string
 func Codegen(prog TreeNodeIf) string {
 	buf := new(gobytes.Buffer)

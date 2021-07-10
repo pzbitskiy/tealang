@@ -123,7 +123,6 @@ builtinVarExpr
     |   args                                        # ArgsExpr
     |   accounts                                    # AccountsExpr
     |   apps                                        # AppsExpr
-    |   gaid                                        # GaidExpr
     ;
 
 txn
@@ -157,10 +156,6 @@ compoundElem
 
 arrayElem
     :   IDENT LEFTSQUARE NUMBER RIGHTSQUARE
-    ;
-
-gaid
-    :   GAID LEFTPARA NUMBER RIGHTPARA     # GaidNumberExpr
     ;
 
 // named rules for tree-walking only
