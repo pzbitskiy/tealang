@@ -47,16 +47,12 @@ function logic() {
 		error
 	}
 
-	let y= 0;
-	for 1 {
-		if y==10 {break;}
-		y=y+1
-	}
-
 	x = shr(shl(9, 2), 2)
 	x = bitlen(sqrt(x))
 	let zero = bzero(5)
 	let borres = bor(zero, "\x10")
+	let p = gaid(0)
+	let q = gaids(0)
 	return 1
 }
 `

@@ -363,6 +363,7 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 
 	node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh, exprNode)
 	l.node = node
+
 }
 
 func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {
@@ -1274,6 +1275,18 @@ func (l *treeNodeListener) EnterOnelinecond(ctx *gen.OnelinecondContext) {
 	root := newProgramNode(l.ctx, l.parent)
 	root.append(expr)
 	l.node = root
+}
+
+func (l *exprListener) EnterGaidExpr(ctx *gen.GaidExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Gaid().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterGaidNumberExpr(ctx *gen.GaidNumberExprContext) {
+	number := ctx.NUMBER().GetText()
+	node := newRuntimeGaidNode(l.ctx, l.parent, "gaid", number)
+	l.expr = node
 }
 
 func newParser(source string, collector *errorCollector) *gen.TealangParser {

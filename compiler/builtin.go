@@ -57,6 +57,7 @@ var builtinFun = map[string]bool{
 	"band":              true,
 	"bxor":              true,
 	"bnot":              true,
+	"gaids":             true,
 }
 
 var builtinFunDependantTypes = map[string]int{
