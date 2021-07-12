@@ -1,7 +1,7 @@
 # Tealang
 
-High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v2** language.
-The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
+High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL** language.
+The goal is to abstract the stack-based Algorand Virtual Machine (AVM) and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
 
