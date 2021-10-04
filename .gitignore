@@ -5,3 +5,6 @@ gen/java
 gen/go
 tealang
 .idea
+*.teal
+examples/*.teal
+examples/*.tok

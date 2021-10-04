@@ -298,7 +298,9 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 		} else if n.name == "substring" {
 			field = fmt.Sprintf(" %s %s", n.index1, n.index2)
 		}
-		fmt.Fprintf(ostream, "%s%s\n", n.name, field)
+		if n.name != "toint" && n.name != "tobyte" {
+		  fmt.Fprintf(ostream, "%s%s\n", n.name, field)
+		}
 	} else {
 		definitionNode := n.definition
 
