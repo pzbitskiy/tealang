@@ -59,6 +59,7 @@ termination
     |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
     |   ASSERT LEFTPARA expr RIGHTPARA              # TermAssert
     |   BREAK (NEWLINE|SEMICOLON)                   # Break
+    |   LOG LEFTPARA expr RIGHTPARA                 # DoLog
     ;
 
 decl
