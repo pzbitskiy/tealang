@@ -103,7 +103,7 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
     ```
 3. Install and setup **go-algorand**. Read [Algorand README](https://github.com/algorand/go-algorand/blob/master/README.md) if needed.
     ```sh
-    go get -u github.com/algorand/go-algorand
+    GO111MODULE=off go get -u github.com/algorand/go-algorand
     pushd $(go env GOPATH)/src/github.com/algorand/go-algorand
     make build
     popd
@@ -119,9 +119,14 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
    popd
    ```
 
+5. Link the pkg directory to the src that you just created.
+   ```sh
+   make algorand-link
+   ```
+
 ### Build and test
 ```sh
-make
+GO111MODULE=on make
 ```
 
 ### Build and run Java AST visualizer
