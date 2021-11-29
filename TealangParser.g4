@@ -23,6 +23,7 @@ statement
     |   assignment
     |   builtinVarStatement
     |   logStatement
+    |   innertxn
     |   NEWLINE|SEMICOLON
     ;
 
@@ -53,6 +54,12 @@ condTrueBlock
 
 condFalseBlock
     : block                                         # IfStatementFalse
+    ;
+
+innertxn
+    :   INNERTXN DOT ITXNBEGIN LEFTPARA RIGHTPARA    # InnerTxnBegin
+    |   INNERTXN DOT ITXNEND LEFTPARA RIGHTPARA      # InnerTxnEnd
+    |   INNERTXN DOT TXNFIELD EQ expr                # InnerTxnAssign
     ;
 
 termination
@@ -129,6 +136,7 @@ builtinVarExpr
     |   args                                        # ArgsExpr
     |   accounts                                    # AccountsExpr
     |   apps                                        # AppsExpr
+    |   INNERTXN DOT ITXNFIELD                      # InnerTxnFieldExpr
     ;
 
 txn

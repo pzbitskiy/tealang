@@ -11,6 +11,11 @@ GLOBALFIELD
     |   LATESTTIMESTAMP
     |   CURRENTAPPID
     |   CREATORADDRESS
+    |   CURRENTAPPADDRESS
+    ;
+
+ITXNFIELD
+    :   CREATEDASSETID
     ;
 
 TXNFIELD
@@ -148,6 +153,7 @@ BREAK       : 'break' ;
 INLINE      : 'inline' ;
 
 GLOBAL      : 'global' ;
+INNERTXN    : 'itxn' ;
 TXN         : 'txn' ;
 GTXN        : 'gtxn' ;
 ARGS        : 'args' ;
@@ -166,6 +172,9 @@ ROUND           : 'Round' ;
 LATESTTIMESTAMP : 'LatestTimestamp' ;
 CURRENTAPPID    : 'CurrentApplicationID' ;
 CREATORADDRESS  : 'CreatorAddress' ;
+CURRENTAPPADDRESS  : 'CurrentApplicationAddress' ;
+
+CREATEDASSETID  : 'CreatedAssetID' ;
 
 SENDER               : 'Sender' ;
 FEE                  : 'Fee' ;
@@ -293,6 +302,9 @@ APPPUT          : 'put' ;
 APPDEL          : 'del' ;
 ASSETHLDBALANCE : 'assetBalance' ;
 ASSETHLDFROZEN  : 'assetIsFrozen' ;
+
+ITXNBEGIN       : 'begin' ;
+ITXNEND         : 'submit' ;
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
 NUMBER      : [0-9]+ ;
