@@ -15,7 +15,7 @@ import (
 
 const trueConstValue = "1"
 const falseConstValue = "0"
-const tealVersion = 4
+const tealVersion = 5
 
 // TODO: switch from global var to recursive breakNode -> forNode lookup
 var ids []interface{}
@@ -101,6 +101,13 @@ func (n *exprIdentNode) Codegen(ostream io.Writer) {
 		op = literalTypeToOpcode(info.theType)
 	}
 	fmt.Fprintf(ostream, "%s %d\n", op, info.address)
+}
+
+func (n *assignInnerTxnNode) Codegen(ostream io.Writer) {
+	n.value.Codegen(ostream)
+
+	//info, _ := n.ctx.lookup(n.name)
+	fmt.Fprintf(ostream, "itxn_field %s\n", n.name)
 }
 
 func (n *assignNode) Codegen(ostream io.Writer) {
@@ -326,6 +333,14 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 			fmt.Fprintf(ostream, "callsub fun_%s\n", n.name)
 		}
 	}
+}
+
+func (n *itxnBeginNode) Codegen(ostream io.Writer) {
+	fmt.Fprintf(ostream, "itxn_begin\n")
+}
+
+func (n *itxnEndNode) Codegen(ostream io.Writer) {
+	fmt.Fprintf(ostream, "itxn_submit\n")
 }
 
 // Codegen runs code generation for a node and returns the program as a string

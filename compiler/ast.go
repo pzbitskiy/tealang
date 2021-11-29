@@ -280,6 +280,21 @@ type errorNode struct {
 	*TreeNode
 }
 
+type itxnBeginNode struct {
+	*TreeNode
+}
+
+type itxnEndNode struct {
+	*TreeNode
+}
+
+type assignInnerTxnNode struct {
+	*TreeNode
+	name     string
+	exprType exprType
+	value    ExprNodeIf
+}
+
 type breakNode struct {
 	*TreeNode
 	value ExprNodeIf
@@ -463,6 +478,29 @@ func newErorrNode(ctx *context, parent TreeNodeIf) (node *errorNode) {
 	node = new(errorNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "error"
+	return
+}
+
+func newInnertxnBeginNode(ctx *context, parent TreeNodeIf) (node *itxnBeginNode) {
+	node = new(itxnBeginNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "begin"
+	return
+}
+
+func newInnertxnEndNode(ctx *context, parent TreeNodeIf) (node *itxnEndNode) {
+	node = new(itxnEndNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "end"
+	return
+}
+
+func newAssignInnerTxnNode(ctx *context, parent TreeNodeIf, ident string) (node *assignInnerTxnNode) {
+	node = new(assignInnerTxnNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "assignItxn"
+	node.name = ident
+	node.value = nil
 	return
 }
 
@@ -663,6 +701,16 @@ func newRuntimeArgNode(ctx *context, parent TreeNodeIf, op string, number string
 	node.op = op
 	node.number = number
 	node.exprType = unknownType
+	return
+}
+
+func newRuntimeCreatedASAIDNode(ctx *context, parent TreeNodeIf, op string, number string) (node *runtimeArgNode) {
+	node = new(runtimeArgNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "runtime CreatedAssetID"
+	node.op = op
+	node.number = number
+	node.exprType = intType
 	return
 }
 

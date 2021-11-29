@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"runtime/debug"
 	"strconv"
-
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
 	gen "github.com/pzbitskiy/tealang/gen/go"
@@ -500,7 +499,9 @@ func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
 		ctx.BuiltinVarStatement().EnterRule(l)
 	} else if ctx.LogStatement() != nil {
 		ctx.LogStatement().EnterRule(l)
-	}
+  } else if ctx.Innertxn() != nil {
+  	ctx.Innertxn().EnterRule(l)
+  }
 }
 
 func (l *treeNodeListener) EnterTermReturn(ctx *gen.TermReturnContext) {
@@ -551,6 +552,47 @@ func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
 	}
 
 	l.node = exprNode
+}
+
+func (l *treeNodeListener) EnterInnerTxnAssign(ctx *gen.InnerTxnAssignContext) {
+	ident := ctx.TXNFIELD().GetSymbol().GetText()
+
+/*	info, err := getVarInfoForAssignment(ident, l.ctx)
+	if err != nil {
+		reportError(err.Error(), ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext())
+		return
+	} */
+
+	node := newAssignInnerTxnNode(l.ctx, l.parent, ident)
+	listener := newExprListener(l.ctx, node)
+	ctx.Expr().EnterRule(listener)
+	rhs := listener.getExpr()
+	node.value = rhs
+	_, err := rhs.getType()
+	if err != nil {
+		reportError(
+			fmt.Sprintf("failed type resolution type: %s", err.Error()),
+			ctx.GetParser(), ctx.TXNFIELD().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	/*
+	if info.theType != rhsType {
+		reportError(
+			fmt.Sprintf("incompatible types: (var) %s vs %s (expr)", info.theType, rhsType),
+			ctx.GetParser(), ctx.IDENT().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	} */
+	l.node = node
+}
+
+func (l *treeNodeListener) EnterInnerTxnBegin(ctx *gen.InnerTxnBeginContext) {
+  l.node = newInnertxnBeginNode(l.ctx, l.parent)
+}
+
+func (l *treeNodeListener) EnterInnerTxnEnd(ctx *gen.InnerTxnEndContext) {
+  l.node = newInnertxnEndNode(l.ctx, l.parent)
 }
 
 func (l *treeNodeListener) EnterDoLog(ctx *gen.DoLogContext) {
@@ -1290,6 +1332,17 @@ func (l *exprListener) EnterBuiltinObject(ctx *gen.BuiltinObjectContext) {
 func (l *exprListener) EnterGlobalFieldExpr(ctx *gen.GlobalFieldExprContext) {
 	field := ctx.GLOBALFIELD().GetText()
 	node := newRuntimeFieldNode(l.ctx, l.parent, "global", field)
+	l.expr = node
+}
+
+func (l *exprListener) EnterInnerTxnFieldExpr(ctx *gen.InnerTxnFieldExprContext) {
+	field := ctx.ITXNFIELD().GetText()
+	if field != "CreatedAssetID" {
+		reportError(fmt.Sprintf("Only CreatedAssetID currently supported"), nil, nil, ctx.GetRuleContext())
+		return
+	}
+	
+	node := newRuntimeCreatedASAIDNode(l.ctx, l.parent, "itxn", field)
 	l.expr = node
 }
 

@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+  "fmt"
+
 	"github.com/algorand/go-algorand/data/transactions/logic"
 	"github.com/stretchr/testify/require"
 
@@ -28,6 +30,17 @@ func performTest(t *testing.T, source string) {
 
 	a.NoError(err)
 	a.True(pass)
+}
+
+func compileTest(t *testing.T, source string, expected string) {
+	t.Helper()
+	a := require.New(t)
+	result, errors := compiler.Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	teal := compiler.Codegen(result)
+	a.Equal(teal, expected)
+	fmt.Println(teal)
 }
 
 func TestAddw(t *testing.T) {
@@ -63,6 +76,7 @@ function logic() {
 	performTest(t, source)
 }
 
+/*
 func TestDivmodw(t *testing.T) {
 	source := `
 function logic() {
@@ -95,3 +109,4 @@ return 1
 	performTest(t, source)
 
 }
+*/
