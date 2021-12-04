@@ -18,6 +18,15 @@ Refer to [TEAL documentation](https://developer.algorand.org/docs/reference/teal
 * uint64 (unsigned integer)
 * []byte (byte array)
 
+In some circumstances you can use `toint()` or `tobyte()` to specify an unknown type:
+
+
+```
+let a = accounts[0].get("key") // type unknown
+let b = toint(a) + 1
+
+```
+
 ## Statements vs expressions
 
 Statement is a standalone unit of execution that does not return any value.
@@ -57,12 +66,12 @@ function logic() {
 
 ## Functions
 
-Unlike **TEAL** functions are supported and inlined at the calling point.
-Functions must return some value and can not be recursive.
+Functions must return some value and can not be recursive or re-entrant.
 
 ```
-function inc(x) { return x+1; }
-function logic() { return inc(0); }
+inline function inc(x) { return x+1; }  // inlined at the calling point
+function dec(y) { return y-1; }         // uses callsub and retsub
+function logic() { return inc(0); } 
 ```
 
 ## Logic function
@@ -118,7 +127,7 @@ See [TEAL documentation](https://github.com/algorand/go-algorand/blob/master/dat
 
 ## Builtin functions
 
-`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3`, `assert`, `expw`, `exp`, `getbit`, `getbyte`, `setbit`, `setbyte`, `shl`, `shr`, `bitlen`, `sqrt` are supported.
+`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3`, `assert`, `expw`, `exp`, `getbit`, `getbyte`, `setbit`, `setbyte`, `shl`, `shr`, `bitlen`, `sqrt`, `log` are supported.
 `mulw`, `addw`, `expw` are special - they return two values, high and low.
 
 ```
@@ -129,16 +138,17 @@ h, l = mulw(l, h)
 
 ## Builtin objects
 
-There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `accounts`, `apps`.
+There are 8 builtin objects: `txn`, `gtxn`, `itxn`, `global`, `args`, `assets`, `accounts`, `apps`.
 
 | Object and Syntax | Description |
 | --- | --- |
 | `args[N]` | returns LogicSig Args[N] value as []byte |
 | `txn.FIELD` | retrieves field from current transaction (see below) |
 | `gtxn[N].FIELD` | retrieves field from a transaction N in the current transaction group |
+| `itxn.begin()/submit()\|FIELD` | create/submit inner transaction or set field (see below) |
 | `global.FIELD` | returns globals (see below) |
 | `assets[N].FIELD` | returns asset information for an asset specified by `txn.ForeignAssets[N]` (see below) |
-| `accounts[N].Balance|MinBalance` | returns balance (min balance) of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender |
+| `accounts[N].Balance\|MinBalance` | returns balance (min balance) of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender |
 | `accounts[N].method` | returns state data of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender (see below) |
 | `apps[N].method` | returns application global state data for an app specified by `txn.ForeignApps[N-1]`, N=0 means this app (see below) |
 
@@ -217,6 +227,8 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | 7 | LatestTimestamp | uint64 | Last confirmed block UNIX timestamp. Fails if negative. LogicSigVersion >= 2. |
 | 8 | CurrentApplicationID | uint64 | ID of current application executing. Fails if no such application is executing. LogicSigVersion >= 2. |
 | 9 | CreatorAddress | []byte | Address of the creator of the current application. Fails if no such application is executing. LogicSigVersion >= 3. |
+| 10 | CurrentApplicationAddress | []byte | Address of the current application. Fails if no such application is executing. LogicSigVersion >= 5. |
+
 
 #### Asset fields
 
@@ -254,6 +266,65 @@ There are 7 builtin objects: `txn`, `gtxn`, `global`, `args`, `assets`, `account
 | get(key) | []byte | any | Returns value or 0 if does not exist, see [`app_global_get` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
 | put(key, value) | []byte, any | - | Stores key-value pair in app's global store, does not return. See [`app_global_put` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
 | del(key) | []byte | - | Deletes from app's local store, does not return. See [`app_global_del` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+
+#### Inner Transactions
+
+Asset creation example:
+
+```
+const AssetConfig = 3
+
+itxn.begin()
+itxn.TypeEnum = AssetConfig
+itxn.ConfigAssetTotal = 1000000
+itxn.ConfigAssetDecimals = 3
+itxn.ConfigAssetUnitName = "oz"
+itxn.ConfigAssetName = "Gold"
+itxn.ConfigAssetURL = "https://gold.rush/"
+itxn.ConfigAssetManager = global.CurrentApplicationAddress
+itxn.submit()
+apps[0].put("assetid", itxn.CreatedAssetID)
+```
+
+Payment example:
+
+```
+const Pay = 1
+
+itxn.begin()
+itxn.TypeEnum = Pay
+itxn.Amount = 5000
+itxn.Receiver = txn.Sender
+itxn.submit()  
+```
+
+| Index | Name | Type | Notes |
+| --- | --- | --- | --- |
+| 0 | Sender | []byte | 32 byte address |
+| 1 | Fee | uint64 | micro-Algos |
+| 2 | Receiver | []byte | 32 byte address |
+| 3 | Amount | uint64 | micro-Algos |
+| 4 | CloseRemainderTo | []byte | 32 byte address |
+| 5 | Type | []byte | transaction type string |
+| 6 | TypeEnum | uint64 | type constant |
+| 7 | XferAsset | uint64 | Asset ID |
+| 8 | AssetAmount | uint64 | value in Asset's units |
+| 9 | AssetSender | []byte | 32 byte address. Causes clawback of all value of asset from AssetSender if Sender is the Clawback address of the asset. |
+| 10 | AssetReceiver | []byte | 32 byte address |
+| 11 | AssetCloseTo | []byte | 32 byte address |
+| 12 | ConfigAsset | uint64 | Asset ID in asset config transaction. LogicSigVersion >= 2. |
+| 13 | ConfigAssetTotal | uint64 | Total number of units of this asset created. LogicSigVersion >= 2. |
+| 14 | ConfigAssetDecimals | uint64 | Number of digits to display after the decimal place when displaying the asset. LogicSigVersion >= 2. |
+| 15 | ConfigAssetUnitName | []byte | Unit name of the asset. LogicSigVersion >= 2. |
+| 16 | ConfigAssetName | []byte | The asset name. LogicSigVersion >= 2. |
+| 17 | ConfigAssetURL | []byte | URL. LogicSigVersion >= 2. |
+| 18 | ConfigAssetManager | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 19 | ConfigAssetReserve | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 20 | ConfigAssetFreeze | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 21 | ConfigAssetClawback | []byte | 32 byte address. LogicSigVersion >= 2. |
+| 22 | FreezeAsset | uint64 | Asset ID being frozen or un-frozen. LogicSigVersion >= 2. |
+| 23 | FreezeAssetAccount | []byte | 32 byte address of the account whose asset slot is being frozen or un-frozen. LogicSigVersion >= 2. |
+| 24 | FreezeAssetFrozen | uint64 | The new frozen value, 0 or 1. LogicSigVersion >= 2. |
 
 ## Scopes
 
