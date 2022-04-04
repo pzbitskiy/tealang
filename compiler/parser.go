@@ -363,7 +363,6 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 
 	node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh, exprNode)
 	l.node = node
-
 }
 
 func (l *treeNodeListener) EnterDeclareNumberConst(ctx *gen.DeclareNumberConstContext) {

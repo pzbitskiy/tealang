@@ -269,6 +269,7 @@ type assignTupleNode struct {
 	exprType exprType
 	value    ExprNodeIf
 }
+
 type varDeclNode struct {
 	*TreeNode
 	name     string
@@ -283,6 +284,7 @@ type varDeclTupleNode struct {
 	exprType exprType
 	value    ExprNodeIf
 }
+
 type constNode struct {
 	*TreeNode
 	name     string
