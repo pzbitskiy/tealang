@@ -1192,3 +1192,34 @@ end_main:
 `
 	CompareTEAL(a, expected, actual)
 }
+
+func TestCodegenGaid(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	let a = gaid(0)
+	let h = gaid(a+1)
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1
+fun_main:
+gaid 0
+store 0
+load 0
+intc 1
++
+gaids
+store 1
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}

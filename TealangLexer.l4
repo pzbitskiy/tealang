@@ -123,6 +123,7 @@ BUILTINFUNC
     |   BYTEAND
     |   BYTEXOR
     |   BYTENOT
+    |   GAID
     ;
 
 MAINFUNC
@@ -258,6 +259,7 @@ SHR         : 'shr' ;
 SQRT        : 'sqrt' ;
 BITLEN      : 'bitlen' ;
 BZERO       : 'bzero' ;
+GAID        : 'gaid' ;
 
 BADD        : 'badd' ;
 BSUB        : 'bsub' ;

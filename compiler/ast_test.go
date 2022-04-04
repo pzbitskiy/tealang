@@ -51,6 +51,8 @@ function logic() {
 	x = bitlen(sqrt(x))
 	let zero = bzero(5)
 	let borres = bor(zero, "\x10")
+	let p = gaid(0)
+	let q = gaid(p+1)
 	return 1
 }
 `
