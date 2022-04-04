@@ -123,7 +123,7 @@ BUILTINFUNC
     |   BYTEAND
     |   BYTEXOR
     |   BYTENOT
-    |   GAIDS
+    |   GAID
     ;
 
 MAINFUNC
@@ -154,9 +154,6 @@ ARGS        : 'args' ;
 ACCOUNTS    : 'accounts' ;
 APPS        : 'apps' ;
 ASSETS      : 'assets' ;
-GAID        : 'gaid';
-
-
 
 
 MINTXNFEE       : 'MinTxnFee' ;
@@ -225,8 +222,7 @@ NUMGLOBALINTS        : 'GlobalNumUint' ;
 NUMGLOBALBYTESLICES  : 'GlobalNumByteSlice' ;
 NUMLOCALINTS         : 'LocalNumUint' ;
 NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
-EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
-
+EXTRAPROGRAMPAGES    : 'ExtraProgramPages' ;
 
 
 ASSETTOTAL         : 'AssetTotal' ;
@@ -261,7 +257,7 @@ SHR         : 'shr' ;
 SQRT        : 'sqrt' ;
 BITLEN      : 'bitlen' ;
 BZERO       : 'bzero' ;
-GAIDS       : 'gaids';
+GAID        : 'gaid' ;
 
 BADD        : 'badd' ;
 BSUB        : 'bsub' ;

@@ -57,7 +57,8 @@ var builtinFun = map[string]bool{
 	"band":              true,
 	"bxor":              true,
 	"bnot":              true,
-	"gaids":             true,
+	"gaid":              true,
+	"gaids":             false, // not a tealang builtin but TEAL func
 }
 
 var builtinFunDependantTypes = map[string]int{
@@ -66,8 +67,12 @@ var builtinFunDependantTypes = map[string]int{
 
 type remapper func(*funCallNode) (int, error)
 
+// builtinFunRemap is used in builtin func parser and allows reusing existing builtin names.
+// For example, substring recognize multiple variants of substring parameters
+// and eventually generate substring or substring3 opcode
 var builtinFunRemap = map[string]remapper{
 	"substring": remapSubsring,
+	"gaid":      remapGaid,
 	"badd":      makeByteArithRemapper("b+"),
 	"bsub":      makeByteArithRemapper("b-"),
 	"bdiv":      makeByteArithRemapper("b/"),
@@ -140,6 +145,36 @@ func remapSubsring(exprNode *funCallNode) (argErrorPos int, err error) {
 		exprNode.index2 = arg2Val
 	} else {
 		exprNode.name = "substring3"
+	}
+	return
+}
+
+func remapGaid(exprNode *funCallNode) (argErrorPos int, err error) {
+	var arg0Val string
+	switch arg0 := exprNode.childrenNodes[0].(type) {
+	case *constNode:
+		if arg0.exprType != intType {
+			argErrorPos = 0
+			err = fmt.Errorf("arg #0 must be int")
+			return
+		} else {
+			arg0Val = arg0.value
+		}
+	case *exprLiteralNode:
+		if arg0.exprType != intType {
+			argErrorPos = 0
+			err = fmt.Errorf("arg #0 must be int")
+			return
+		} else {
+			arg0Val = arg0.value
+		}
+	}
+
+	if len(arg0Val) > 0 {
+		exprNode.childrenNodes = exprNode.childrenNodes[:0]
+		exprNode.field = arg0Val
+	} else {
+		exprNode.name = "gaids"
 	}
 	return
 }

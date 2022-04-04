@@ -1199,7 +1199,7 @@ func TestCodegenGaid(t *testing.T) {
 	source := `
 function logic() {
 	let a = gaid(0)
-	let h = gaids(1)
+	let h = gaid(a+1)
 	return 1
 }
 `
@@ -1212,7 +1212,9 @@ intcblock 0 1
 fun_main:
 gaid 0
 store 0
+load 0
 intc 1
++
 gaids
 store 1
 intc 1
