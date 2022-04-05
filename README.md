@@ -97,6 +97,7 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
 ### Prerequisites
 
 1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/)
+   Or run `make setup-antlr`
 2. Install runtime for Go
     ```sh
     go get -u github.com/antlr/antlr4/runtime/Go/antlr
