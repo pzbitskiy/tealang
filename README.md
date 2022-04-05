@@ -1,6 +1,6 @@
 # Tealang
 
-High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v2** language.
+High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v4** language.
 The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
@@ -19,14 +19,18 @@ let a = (1 + 2) / 3
 let b = ~a
 ```
 
-* Inlined functions
+* Functions
 ```
-function sample(a) {
+inline function sample1(a) {
     return a - 1
 }
 
+inline function sample2(a) {
+    return a + 1
+}
+
 function logic() {
-    return sample(2)
+    return sample1(2) + sample2(3)
 }
 ```
 
@@ -97,37 +101,18 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
 ### Prerequisites
 
 1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/)
-   Or run `make setup-antlr`
+   Or run `make antlr-install`
 2. Install runtime for Go
     ```sh
     go get -u github.com/antlr/antlr4/runtime/Go/antlr
     ```
 3. Install and setup **go-algorand**. Read [Algorand README](https://github.com/algorand/go-algorand/blob/master/README.md) if needed.
     ```sh
-    GO111MODULE=off go get -u github.com/algorand/go-algorand
-    pushd $(go env GOPATH)/src/github.com/algorand/go-algorand
-    make build
-    popd
+    make algorand-install
     ```
-4. If you see the error
-   ```
-   ../../go/src/github.com/algorand/go-algorand/logging/telemetry.go:78:32: multiple-value uuid.NewV4() in single-value context
-   ```
-   then
-   ```sh
-   pushd $(go env GOPATH)/src/github.com/satori/go.uuid
-   git checkout v1.2.0
-   popd
-   ```
-
-5. Link the pkg directory to the src that you just created.
-   ```sh
-   make algorand-link
-   ```
-
 ### Build and test
 ```sh
-GO111MODULE=on make
+make
 ```
 
 ### Build and run Java AST visualizer
