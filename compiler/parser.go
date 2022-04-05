@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime/debug"
-	"sort"
 	"strconv"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
@@ -180,12 +179,12 @@ func (l *treeNodeListener) EnterModule(ctx *gen.ModuleContext) {
 
 func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *gen.DeclarationContext, inline bool) {
 	// start new scoped context
-	scopedContext := newContext(l.ctx)
 	name := ctx.IDENT(0).GetText()
+	scopedContext := newContext(name, l.ctx)
 
 	// get arguments vars
 	argCount := len(ctx.AllIDENT()) - 1
-	args := make([]string, argCount)
+	args := make([]funArg, argCount)
 	actualArgs := callNode.children()
 	if len(args) != len(actualArgs) {
 		reportError("mismatching argument(s)", ctx.GetParser(), ctx.IDENT(0).GetSymbol(), ctx.GetRuleContext())
@@ -201,12 +200,15 @@ func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *ge
 			return
 		}
 
+		// arguments are variables in a new scope
+		// for inline functions they are set when calling
+		// for regular functions they re popped from the stack inside a function
 		err = scopedContext.newVar(ident, theType)
 		if err != nil {
 			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(i+1).GetSymbol(), ctx.GetRuleContext())
 			return
 		}
-		args[i] = ident
+		args[i] = funArg{ident, theType}
 	}
 	node := newFunDefNode(scopedContext, l.parent)
 	node.name = name
@@ -220,8 +222,9 @@ func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *ge
 	for _, stmt := range blockNode.children() {
 		node.append(stmt)
 	}
-
 	l.node = node
+
+	ctx.Block().ExitRule(listener)
 }
 
 func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
@@ -242,23 +245,36 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 				if node == nil {
 					return nil
 				}
-				vi.node = listener.node
+				vi.node = node
 				return node.(*funDefNode)
 			}
 			// otherwise fixup internal variable indices
 			// the trick is to use scratch space slots that are not used yet
-			// in order to guarantee function args do not shadow main/global variables
+			// in order to guarantee function args do not shadow global/main/parent variables.
+			// non-inline functions use stack for passing arguments, so remapping forward internal vars
+			// on invocation is safe and does not cause any problems because the func ends up using
+			// maximal addresses accross all invocations.
+			// the only problem is it requires remapping all way up to nested functions.
 			defNode := vi.node.(*funDefNode)
-			vars := make([]varInfo, 0, len(defNode.ctx.vars))
-			for _, info := range defNode.ctx.vars {
-				vars = append(vars, info)
-			}
-			sort.Slice(vars, func(i, j int) bool { return vars[i].address < vars[j].address })
-			lastAddress := callNode.ctx.LastAddress()
-			for _, info := range vars {
-				info.address = lastAddress
-				defNode.ctx.update(info.name, info)
-				lastAddress++
+			thisCtx := defNode.ctx
+			parentCtx := callNode.ctx
+			if thisCtx.EntryAddress() < parentCtx.LastAddress() {
+				thisCtx.remapTo(parentCtx.LastAddress())
+
+				var remapRec func(defNode *funDefNode)
+				remapRec = func(defNode *funDefNode) {
+					subfuncs := defNode.ctx.functions
+					for _, funCallExprNode := range subfuncs {
+						thisCtx := funCallExprNode.definition.ctx
+						parentCtx := thisCtx.parent
+						if thisCtx.EntryAddress() < parentCtx.LastAddress() {
+							thisCtx.remapTo(parentCtx.LastAddress())
+						}
+						remapRec(funCallExprNode.definition)
+					}
+				}
+
+				remapRec(defNode)
 			}
 			return defNode
 		}
@@ -297,7 +313,7 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 }
 
 func (l *treeNodeListener) EnterMain(ctx *gen.MainContext) {
-	scopedContext := newContext(l.ctx)
+	scopedContext := newContext("main", l.ctx)
 
 	node := newFunDefNode(scopedContext, l.parent)
 	node.name = mainFuncName
@@ -308,8 +324,8 @@ func (l *treeNodeListener) EnterMain(ctx *gen.MainContext) {
 	for _, stmt := range blockNode.children() {
 		node.append(stmt)
 	}
-
 	l.node = node
+	ctx.Block().ExitRule(listener)
 }
 
 func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
@@ -466,6 +482,7 @@ func (l *treeNodeListener) EnterBlock(ctx *gen.BlockContext) {
 		if node != nil {
 			block.append(node)
 		}
+		stmt.ExitRule(l)
 	}
 	l.node = block
 }
@@ -545,13 +562,13 @@ func (l *treeNodeListener) EnterIfStatement(ctx *gen.IfStatementContext) {
 	ctx.CondIfExpr().EnterRule(exprlistener)
 	node.condExpr = exprlistener.getExpr()
 
-	scopedContextTrue := newContext(l.ctx)
+	scopedContextTrue := newContext("if", l.ctx)
 
 	listener := newTreeNodeListener(scopedContextTrue, node)
 	ctx.CondTrueBlock().EnterRule(listener)
 	node.append(listener.getNode())
 
-	scopedContextFalse := newContext(l.ctx)
+	scopedContextFalse := newContext("else", l.ctx)
 	listener = newTreeNodeListener(scopedContextFalse, node)
 	if ctx.CondFalseBlock() != nil {
 		ctx.CondFalseBlock().EnterRule(listener)
@@ -595,7 +612,7 @@ func (l *treeNodeListener) EnterForStatement(ctx *gen.ForStatementContext) {
 	ctx.CondForExpr().EnterRule(exprlistener)
 	node.condExpr = exprlistener.getExpr()
 
-	scopedContextTrue := newContext(l.ctx)
+	scopedContextTrue := newContext("for", l.ctx)
 
 	listener := newTreeNodeListener(scopedContextTrue, node)
 	ctx.CondTrueBlock().EnterRule(listener)
@@ -1033,7 +1050,7 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 
 	argExprNodes := ctx.AllExpr()
 	funCallExprNode := l.funCallEnterImpl(name, argExprNodes)
-	// lazy parse function body
+	// parse function body
 	defNode := info.parser(l.ctx, funCallExprNode, &info)
 	if defNode == nil {
 		reportError("function parsing failed", parser, token, rule)
@@ -1049,11 +1066,8 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 		return
 	}
 
-	if err != nil {
-		reportError(err.Error(), parser, token, rule)
-		return
-	}
-
+	// save parsed functions at the root node to generate them
+	// save functions in the current context in order to refresh local vars bindings
 	if !defNode.inline {
 		var node TreeNodeIf = defNode
 		for ; node != nil; node = node.parent() {
@@ -1070,6 +1084,9 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 				}
 				break
 			}
+		}
+		if _, ok := l.ctx.functions[defNode.name]; !ok {
+			l.ctx.functions[defNode.name] = funCallExprNode
 		}
 	}
 
@@ -1511,7 +1528,7 @@ func ParseProgram(input InputDesc) (TreeNodeIf, []ParserError) {
 		return nil, collector.errors
 	}
 
-	ctx := newContext(nil)
+	ctx := newContext("root", nil)
 
 	parseCtx := newParseContext(input, collector)
 	l := newRootTreeNodeListener(ctx, nil, parseCtx)
@@ -1554,7 +1571,7 @@ func parseTestProgModule(progSource, moduleSource string) (TreeNodeIf, []ParserE
 		return nil, collector.errors
 	}
 
-	ctx := newContext(nil)
+	ctx := newContext("root", nil)
 	parseCtx := newParseContext(input, collector)
 	parseCtx.moduleResolver = func(moduleName string, sourceDir string, currentDir string) (InputDesc, error) {
 		input := InputDesc{moduleSource, moduleName, "", ""}
@@ -1596,7 +1613,7 @@ func ParseOneLineCond(source string) (TreeNodeIf, []ParserError) {
 		return nil, collector.errors
 	}
 
-	ctx := newContext(nil)
+	ctx := newContext("root", nil)
 	parseCtx := newParseContext(input, collector)
 	l := newRootTreeNodeListener(ctx, nil, parseCtx)
 
