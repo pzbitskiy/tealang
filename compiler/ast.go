@@ -3,6 +3,7 @@ package compiler
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 )
 
@@ -19,11 +20,13 @@ type literalInfo struct {
 }
 
 type context struct {
+	name         string
 	literals     *literalInfo
 	parent       *context
 	vars         map[string]varInfo
-	addressEntry uint
-	addressNext  uint
+	functions    map[string]*funCallNode
+	addressEntry uint // first address to use on the context creation
+	addressNext  uint // next address to use
 }
 
 type varKind int
@@ -68,14 +71,16 @@ func newLiteralInfo() (literals *literalInfo) {
 	return
 }
 
-func newContext(parent *context) (ctx *context) {
+func newContext(name string, parent *context) (ctx *context) {
 	ctx = new(context)
+	ctx.name = name
 	ctx.parent = parent
 	ctx.vars = make(map[string]varInfo)
+	ctx.functions = make(map[string]*funCallNode)
 	if parent != nil {
 		ctx.literals = parent.literals
 		ctx.addressEntry = parent.addressNext
-		ctx.addressNext = parent.addressNext
+		ctx.addressNext = ctx.addressEntry
 	} else {
 		ctx.literals = newLiteralInfo()
 		ctx.addressEntry = 0
@@ -111,6 +116,22 @@ func (ctx *context) update(name string, info varInfo) (err error) {
 		current = current.parent
 	}
 	return fmt.Errorf("failed to update ident %s", name)
+}
+
+// remapTo remaps this context variable addresses by using newBase as a new entry address
+func (ctx *context) remapTo(newBase uint) {
+	vars := make([]varInfo, 0, len(ctx.vars))
+	for _, info := range ctx.vars {
+		vars = append(vars, info)
+	}
+	sort.Slice(vars, func(i, j int) bool { return vars[i].address < vars[j].address })
+	ctx.addressEntry = newBase
+	for _, info := range vars {
+		info.address = newBase
+		ctx.update(info.name, info)
+		newBase++
+	}
+	ctx.addressNext = newBase
 }
 
 func (ctx *context) newVar(name string, theType exprType) error {
@@ -174,6 +195,10 @@ func (ctx *context) Print() {
 	}
 }
 
+func (ctx *context) EntryAddress() uint {
+	return ctx.addressEntry
+}
+
 func (ctx *context) LastAddress() uint {
 	return ctx.addressNext
 }
@@ -229,10 +254,15 @@ type programNode struct {
 	nonInlineFunc []*funDefNode
 }
 
+type funArg struct {
+	n string
+	t exprType
+}
+
 type funDefNode struct {
 	*TreeNode
 	name   string
-	args   []string
+	args   []funArg
 	inline bool
 }
 
@@ -881,31 +911,6 @@ func (n *funCallNode) getTypeQuadruple() (exprType, exprType, exprType, exprType
 	}
 	rtpl, err = opTypeFromSpec(n.name, 0)
 	return tph, tpl, rtpl, rtph, err
-}
-
-func (n *funCallNode) resolveArgs(definitionNode *funDefNode) error {
-	args := n.children()
-
-	if len(definitionNode.args) != len(args) {
-		return fmt.Errorf("mismatching parsed argument(s)")
-	}
-
-	for i := range args {
-		varName := definitionNode.args[i]
-		info, err := definitionNode.ctx.lookup(varName)
-		if err != nil {
-			return err
-		}
-		info.theType, err = args[i].(ExprNodeIf).getType()
-		if err != nil {
-			return err
-		}
-		err = definitionNode.ctx.update(varName, info)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (n *funCallNode) checkBuiltinArgs() (err error) {

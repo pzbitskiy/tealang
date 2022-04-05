@@ -67,6 +67,14 @@ func (n *programNode) Codegen(ostream io.Writer) {
 
 func (n *funDefNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "fun_%s:\n", n.name)
+	if !n.inline {
+		for i := len(n.args) - 1; i >= 0; i-- {
+			arg := n.args[i]
+			info, _ := n.ctx.lookup(arg.n)
+			fmt.Fprintf(ostream, "store %d\n", info.address)
+		}
+	}
+
 	for _, ch := range n.children() {
 		ch.Codegen(ostream)
 	}
@@ -297,9 +305,11 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 		// for each arg evaluate and store as appropriate named var
 		for idx, ch := range n.children() {
 			ch.Codegen(ostream)
-			argName := definitionNode.args[idx]
-			i, _ := definitionNode.ctx.lookup(argName)
-			fmt.Fprintf(ostream, "store %d\n", i.address)
+			if definitionNode.inline {
+				argName := definitionNode.args[idx].n
+				i, _ := definitionNode.ctx.lookup(argName)
+				fmt.Fprintf(ostream, "store %d\n", i.address)
+			}
 		}
 
 		if definitionNode.inline {

@@ -326,23 +326,21 @@ fun_main:
 intc 1
 store 0
 load 0
-store 3
 intc 2
-store 4
 callsub fun_sum
 store 1
 intc 3
 store 2
 load 2
-store 3
 intc 1
-store 4
 callsub fun_sum
 store 3
 intc 1
 return
 end_main:
 fun_sum:
+store 4
+store 3
 load 3
 load 4
 +
@@ -351,8 +349,8 @@ end_sum:
 `
 	CompareTEAL(a, expected, actual)
 	lines := strings.Split(actual, "\n")
-	a.Equal(lines[8], lines[16])               // callsub func_sum_*
-	a.True(lines[21][len(lines[21])-1] == ':') // func_sum_*:
+	a.Equal(lines[7], lines[13])               // callsub func_sum_*
+	a.True(lines[18][len(lines[18])-1] == ':') // func_sum_*:
 }
 
 func TestCodegenGeneric(t *testing.T) {
