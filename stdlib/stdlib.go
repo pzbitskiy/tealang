@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-//go:generate sh ./bundle_stdlib_files.sh
+//go:generate bash ./bundle_stdlib_files.sh
 
 // StdLibName constant name
 const StdLibName string = "stdlib"
