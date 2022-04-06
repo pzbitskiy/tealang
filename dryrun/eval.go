@@ -3,8 +3,8 @@ package dryrun
 import (
 	"encoding/base64"
 	"encoding/json"
-	"io"
 	"io/ioutil"
+	"strings"
 
 	"github.com/algorand/go-algorand/config"
 	"github.com/algorand/go-algorand/data/basics"
@@ -16,34 +16,30 @@ import (
 //go:generate sh ./bundle_sampletxn_json.sh
 
 // Run bytecode using transaction data from txnFile file
-func Run(bytecode []byte, txnFile string, trace io.Writer) (bool, error) {
+func Run(bytecode []byte, txnFile string, trace *strings.Builder) (bool, error) {
 	txn, err := loadTxn(txnFile)
 	if err != nil {
 		return false, err
 	}
 
-	stxn := transactions.SignedTxn{}
+	stxn := transactions.SignedTxn{Lsig: transactions.LogicSig{Logic: bytecode}}
 	stxn.Txn = txn
 	proto := config.Consensus[protocol.ConsensusCurrentVersion]
 
-	ep := logic.EvalParams{Txn: &stxn, Proto: &proto}
-	err = logic.Check(bytecode, ep)
+	stxnads := []transactions.SignedTxnWithAD{{SignedTxn: stxn}}
+	ep := logic.EvalParams{TxnGroup: stxnads, Proto: &proto}
+	err = logic.CheckSignature(0, &ep)
 	if err != nil {
 		return false, err
 	}
 
-	txgroup := make([]transactions.SignedTxn, 1)
-	txgroup[0] = stxn
-
 	ep = logic.EvalParams{
-		Txn:        &stxn,
-		Proto:      &proto,
-		Trace:      trace,
-		TxnGroup:   txgroup,
-		GroupIndex: 1,
+		Proto:    &proto,
+		Trace:    trace,
+		TxnGroup: stxnads,
 	}
 
-	pass, err := logic.Eval(bytecode, ep)
+	pass, err := logic.EvalSignature(0, &ep)
 	return pass, err
 }
 
