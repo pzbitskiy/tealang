@@ -1134,13 +1134,16 @@ func (n *funCallNode) String() string {
 }
 
 func (n *runtimeFieldNode) String() string {
-	if n.op == "gtxn" {
+	switch n.op {
+	case "gtxn":
 		return fmt.Sprintf("%s[%s].%s\n", n.op, n.index1, n.field)
-	} else if n.op == "gtxna" {
+	case "gtxna":
 		return fmt.Sprintf("%s[%s].%s[%s]\n", n.op, n.index1, n.field, n.index2)
-	} else if n.op == "txna" {
+	case "txna":
 		return fmt.Sprintf("%s.%s[%s]\n", n.op, n.field, n.index1)
-	} else {
+	case "txnas":
+		return fmt.Sprintf("%s.%s[var]\n", n.op, n.field)
+	default:
 		return fmt.Sprintf("%s.%s\n", n.op, n.field)
 	}
 }

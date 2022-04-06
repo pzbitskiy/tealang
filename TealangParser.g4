@@ -134,25 +134,20 @@ builtinVarExpr
     :   GLOBAL DOT GLOBALFIELD                      # GlobalFieldExpr
     |   txn                                         # TxnFieldExpr
     |   gtxn                                        # GroupTxnFieldExpr
-    |   args                                        # ArgsExpr
+    |   ARGS LEFTSQUARE expr RIGHTSQUARE            # ArgsExpr
     |   accounts                                    # AccountsExpr
     |   apps                                        # AppsExpr
     |   INNERTXN DOT TXNFIELD                       # InnerTxnFieldExpr
     ;
 
 txn
-    :   TXN DOT TXNFIELD                                            # TxnSingleFieldExpr
-    |   TXN DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE # TxnArrayFieldExpr
+    :   TXN DOT TXNFIELD                                    # TxnSingleFieldExpr
+    |   TXN DOT TXNARRAYFIELD LEFTSQUARE (expr) RIGHTSQUARE # TxnArrayFieldExpr
     ;
 
 gtxn
-    :   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNFIELD                                             # GroupTxnSingleFieldExpr
-    |   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE (IDENT|NUMBER) RIGHTSQUARE  # GroupTxnArrayFieldExpr
-    ;
-
-args
-    :   ARGS LEFTSQUARE NUMBER RIGHTSQUARE          # ArgsNumberExpr
-    |   ARGS LEFTSQUARE IDENT RIGHTSQUARE           # ArgsIdentExpr
+    :   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNFIELD                                   # GroupTxnSingleFieldExpr
+    |   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE expr RIGHTSQUARE  # GroupTxnArrayFieldExpr
     ;
 
 accounts
