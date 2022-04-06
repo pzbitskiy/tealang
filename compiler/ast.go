@@ -661,11 +661,14 @@ func newForStatementNode(ctx *context, parent TreeNodeIf) (node *forStatementNod
 	return
 }
 
-func newFunCallNode(ctx *context, parent TreeNodeIf, name string) (node *funCallNode) {
+func newFunCallNode(ctx *context, parent TreeNodeIf, name string, aux ...string) (node *funCallNode) {
 	node = new(funCallNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "fun call"
 	node.name = name
+	if len(aux) > 0 {
+		node.field = aux[0]
+	}
 	node.funType = unknownType
 	return
 }

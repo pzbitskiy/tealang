@@ -177,6 +177,10 @@ BUILTINFUNC
     |   GAID
     ;
 
+ECDSACURVE
+    :   CURVESECP256K1
+    ;
+
 MAINFUNC
     :   LOGIC
     |   APPROVAL
@@ -318,6 +322,10 @@ BITLEN      : 'bitlen' ;
 BZERO       : 'bzero' ;
 GAID        : 'gaid' ;
 
+ECDSAVERIFY     : 'ecdsa_verify' ;
+ECDSADECOMPRESS : 'ecdsa_pk_decompress' ;
+ECDSARECOVER    : 'ecdsa_pk_recover' ;
+
 BADD        : 'badd' ;
 BSUB        : 'bsub' ;
 BDIV        : 'bdiv' ;
@@ -364,6 +372,8 @@ APPADDRESS         : 'AppAddress' ;
 
 ITXNBEGIN       : 'begin' ;
 ITXNEND         : 'submit' ;
+
+CURVESECP256K1  : 'Secp256k1';
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
 NUMBER      : [0-9]+ ;
