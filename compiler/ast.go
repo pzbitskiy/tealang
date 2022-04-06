@@ -704,16 +704,6 @@ func newRuntimeArgNode(ctx *context, parent TreeNodeIf, op string, number string
 	return
 }
 
-func newRuntimeCreatedASAIDNode(ctx *context, parent TreeNodeIf, op string, number string) (node *runtimeArgNode) {
-	node = new(runtimeArgNode)
-	node.TreeNode = newNode(ctx, parent)
-	node.nodeName = "runtime CreatedAssetID"
-	node.op = op
-	node.number = number
-	node.exprType = intType
-	return
-}
-
 //--------------------------------------------------------------------------------------------------
 //
 // Type checks
