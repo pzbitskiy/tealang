@@ -32,6 +32,7 @@ var builtinFun = map[string]bool{
 	"app_local_del":     true, // accounts[x].del
 	"app_global_del":    true, // apps[0].del
 	"asset_holding_get": true,
+	"app_params_get":    true,
 	"asset_params_get":  true,
 	"assert":            true,
 	"getbit":            true,
