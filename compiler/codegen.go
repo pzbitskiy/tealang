@@ -285,6 +285,10 @@ func (n *blockNode) Codegen(ostream io.Writer) {
 	}
 }
 
+func (n *typeCastNode) Codegen(ostream io.Writer) {
+	n.expr.Codegen(ostream)
+}
+
 func (n *funCallNode) Codegen(ostream io.Writer) {
 	_, builtin := builtinFun[n.name]
 	if builtin {
@@ -298,9 +302,7 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 		} else if n.name == "substring" {
 			field = fmt.Sprintf(" %s %s", n.index1, n.index2)
 		}
-		if n.name != "toint" && n.name != "tobyte" {
-		  fmt.Fprintf(ostream, "%s%s\n", n.name, field)
-		}
+		fmt.Fprintf(ostream, "%s%s\n", n.name, field)
 	} else {
 		definitionNode := n.definition
 

@@ -391,6 +391,12 @@ type ifStatementNode struct {
 	condExpr ExprNodeIf
 }
 
+type typeCastNode struct {
+	*TreeNode
+	expr       ExprNodeIf
+	targetType exprType
+}
+
 type funCallNode struct {
 	*TreeNode
 	name       string
@@ -623,6 +629,14 @@ func newFunCallNode(ctx *context, parent TreeNodeIf, name string) (node *funCall
 	node.nodeName = "fun call"
 	node.name = name
 	node.funType = unknownType
+	return
+}
+
+func newTypeCastExprNode(ctx *context, parent TreeNodeIf, targetType exprType) (node *typeCastNode) {
+	node = new(typeCastNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "type cast (" + targetType.String() + ")"
+	node.targetType = targetType
 	return
 }
 
@@ -974,6 +988,17 @@ func (n *constNode) getType() (exprType, error) {
 	return n.exprType, nil
 }
 
+func (n *typeCastNode) getType() (exprType, error) {
+	exprType, err := n.expr.getType()
+	if err != nil {
+		return unknownType, err
+	}
+	if exprType != unknownType && exprType != n.targetType {
+		return unknownType, fmt.Errorf("cannot cast %s to %s", exprType.String(), n.targetType.String())
+	}
+	return n.targetType, nil
+}
+
 //--------------------------------------------------------------------------------------------------
 //
 // Common node methods
@@ -1031,7 +1056,7 @@ func (n *exprIdentNode) String() string {
 }
 
 func (n *exprLiteralNode) String() string {
-	return fmt.Sprintf("%s", n.value)
+	return n.value
 }
 
 func (n *exprBinOpNode) String() string {

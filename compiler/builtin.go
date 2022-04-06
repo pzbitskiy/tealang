@@ -60,6 +60,7 @@ var builtinFun = map[string]bool{
 	"bnot":              true,
 	"gaid":              true,
 	"gaids":             false, // not a tealang builtin but TEAL func
+	"log":               true,
 }
 
 var builtinFunDependantTypes = map[string]int{

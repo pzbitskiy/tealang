@@ -498,6 +498,8 @@ func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
 		ctx.Assignment().EnterRule(l)
 	} else if ctx.BuiltinVarStatement() != nil {
 		ctx.BuiltinVarStatement().EnterRule(l)
+	} else if ctx.LogStatement() != nil {
+		ctx.LogStatement().EnterRule(l)
 	}
 }
 
@@ -551,9 +553,7 @@ func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
 	l.node = exprNode
 }
 
-
 func (l *treeNodeListener) EnterDoLog(ctx *gen.DoLogContext) {
-  fmt.Println("ENTER LOG")
 	name := ctx.LOG().GetText()
 
 	listener := newExprListener(l.ctx, l.parent)
@@ -937,6 +937,21 @@ func (l *exprListener) EnterForExprCond(ctx *gen.ForExprCondContext) {
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.Expr().EnterRule(listener)
 	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterTypeCastExpr(ctx *gen.TypeCastExprContext) {
+	var node *typeCastNode
+	if ctx.TOBYTE() != nil {
+		node = newTypeCastExprNode(l.ctx, l.parent, bytesType)
+	} else {
+		node = newTypeCastExprNode(l.ctx, l.parent, intType)
+	}
+
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	node.expr = listener.getExpr()
+
+	l.expr = node
 }
 
 func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
