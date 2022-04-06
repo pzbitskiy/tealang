@@ -1172,8 +1172,25 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	l.expr = funCallExprNode
 }
 
-func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext) (node *funCallNode) {
-	node = newFunCallNode(l.ctx, l.parent, name)
+func (l *exprListener) EnterEcDsaFunCall(ctx *gen.EcDsaFunCallContext) {
+	name := ctx.ECDSAVERIFY().GetText()
+	field := ctx.ECDSACURVE().GetText()
+	exprNode := l.funCallEnterImpl(name, ctx.AllExpr(), field)
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		parser := ctx.GetParser()
+		token := ctx.ECDSAVERIFY().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError(err.Error(), parser, token, rule)
+		return
+	}
+
+	l.expr = exprNode
+}
+
+func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext, aux ...string) (node *funCallNode) {
+	node = newFunCallNode(l.ctx, l.parent, name, aux...)
 	for _, expr := range allExpr {
 		listener := newExprListener(l.ctx, node)
 		expr.EnterRule(listener)
@@ -1192,6 +1209,7 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 		return
 	}
 
+	var field string
 	var name string
 	if ctx.MULW() != nil {
 		name = ctx.MULW().GetText()
@@ -1199,11 +1217,20 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 		name = ctx.ADDW().GetText()
 	} else if ctx.EXPW() != nil {
 		name = ctx.EXPW().GetText()
-	} else {
+	} else if ctx.DIVMODW() != nil {
 		name = ctx.DIVMODW().GetText()
+	} else if ctx.ECDSADECOMPRESS() != nil {
+		name = ctx.ECDSADECOMPRESS().GetText()
+		field = ctx.ECDSACURVE().GetText()
+	} else if ctx.ECDSARECOVER() != nil {
+		name = ctx.ECDSARECOVER().GetText()
+		field = ctx.ECDSACURVE().GetText()
+	} else {
+		token := ctx.GetParser().GetCurrentToken()
+		reportError("unexpected token", ctx.GetParser(), token, ctx.GetRuleContext())
 	}
 
-	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+	exprNode := l.funCallEnterImpl(name, ctx.AllExpr(), field)
 
 	err := exprNode.checkBuiltinArgs()
 	if err != nil {

@@ -106,6 +106,8 @@ tupleExpr
     |   ADDW LEFTPARA ( expr COMMA expr ) RIGHTPARA
     |   EXPW LEFTPARA ( expr COMMA expr ) RIGHTPARA
     |   DIVMODW LEFTPARA ( expr COMMA expr COMMA expr COMMA expr ) RIGHTPARA
+    |   ECDSADECOMPRESS LEFTPARA ( ECDSACURVE COMMA expr ) RIGHTPARA
+    |   ECDSARECOVER LEFTPARA ( ECDSACURVE COMMA expr COMMA expr COMMA expr COMMA expr ) RIGHTPARA
     |   builtinVarTupleExpr
     ;
 
@@ -128,6 +130,7 @@ logStatement
 functionCall
     :   BUILTINFUNC LEFTPARA (expr (COMMA expr)* )? RIGHTPARA    # BuiltinFunCall
     |   IDENT LEFTPARA (expr (COMMA expr)* )? RIGHTPARA          # FunCall
+    |   ECDSAVERIFY LEFTPARA ( ECDSACURVE COMMA expr COMMA expr COMMA expr COMMA expr COMMA expr ) RIGHTPARA    # EcDsaFunCall
     ;
 
 builtinVarExpr

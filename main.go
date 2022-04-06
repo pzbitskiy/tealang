@@ -121,6 +121,9 @@ Syntax highlighter for vscode: https://github.com/pzbitskiy/tealang-syntax-highl
 		if !compileOnly {
 			op, err = logic.AssembleString(teal)
 			if err != nil {
+				for _, err := range op.Errors {
+					fmt.Println(err)
+				}
 				fmt.Println(err.Error())
 				os.Exit(1)
 			}

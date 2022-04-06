@@ -1350,7 +1350,7 @@ function approval() {
 	a.Empty(errors)
 	actual := Codegen(result)
 
-	expected := `#pragma version 5
+	expected := `#pragma version *
 intcblock 0 1
 bytecblock 0x30
 fun_main:
@@ -1384,13 +1384,57 @@ function logic() {
 	a.Empty(errors)
 	actual := Codegen(result)
 
-	expected := `#pragma version 5
+	expected := `#pragma version *
 intcblock 0 1
 bytecblock 0x4869
 fun_main:
 bytec 0
 log
 intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
+
+func TestCodegenEcdsa(t *testing.T) {
+	a := require.New(t)
+	source := `
+function logic() {
+	let res = ecdsa_verify(Secp256k1, "a", "b", "c", "d", "e")
+	let d1, d2 = ecdsa_pk_decompress(Secp256k1, "a")
+	d1, d2 = ecdsa_pk_recover(Secp256k1, "a", 1, "b", "c")
+	return res
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+
+	expected := `#pragma version *
+intcblock 0 1
+*
+fun_main:
+bytec 0
+bytec 1
+bytec 2
+bytec 3
+bytec 4
+ecdsa_verify Secp256k1
+store 0
+bytec 0
+ecdsa_pk_decompress Secp256k1
+store 1
+store 2
+bytec 0
+intc 1
+bytec 1
+bytec 2
+ecdsa_pk_recover Secp256k1
+store 1
+store 2
+load 0
 return
 end_main:
 `
