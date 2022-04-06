@@ -164,6 +164,7 @@ let g = gtxn[1].Sender;
 let a = args[0];
 let b = txn.ApplicationArgs[0]
 let c = gtxn[1].Assets[0]
+a = args[toint(a)+1];
 return 1;
 }`
 	result, errors := Parse(source)
@@ -182,7 +183,42 @@ store 2
 txna ApplicationArgs 0
 store 3
 gtxna 1 Assets 0
-store 4`
+store 4
+load 2
+intc 1
++
+args
+store 2
+intc 1`
+	CompareTEAL(a, expected, actual)
+}
+
+func TestCodegenTxn(t *testing.T) {
+	a := require.New(t)
+
+	source := `function logic() {
+let a = txn.ApplicationArgs[0]
+let idx = 1
+let b = txn.ApplicationArgs[idx+1]
+return 1;
+}`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+*
+fun_main:
+txna ApplicationArgs 0
+store 0
+intc 1
+store 1
+load 1
+intc 1
++
+txnas ApplicationArgs
+store 2
+intc 1`
 	CompareTEAL(a, expected, actual)
 }
 
@@ -219,9 +255,11 @@ intc 1`
 	CompareTEAL(a, expected, actual)
 
 	source = `function logic() {
-let a = gtxn[0].ApplicationArgs[1];
 let idx = 1;
-let b = gtxn[idx].ApplicationArgs[1];
+let a = gtxn[0].ApplicationArgs[1];
+let b = gtxn[0].ApplicationArgs[idx];
+let c = gtxn[idx].ApplicationArgs[1];
+let d = gtxn[idx].ApplicationArgs[idx+2];
 return 1;
 }`
 	result, errors = Parse(source)
@@ -231,13 +269,22 @@ return 1;
 	expected = `#pragma version *
 *
 fun_main:
-gtxna 0 ApplicationArgs 1
-store 0
 intc 1
+store 0
+gtxna 0 ApplicationArgs 1
 store 1
-load 1
-gtxnsa ApplicationArgs 1
+load 0
+gtxnas 0 ApplicationArgs
 store 2
+load 0
+gtxnsa ApplicationArgs 1
+store 3
+load 0
+load 0
+intc 2
++
+gtxnsas ApplicationArgs
+store 4
 intc 1`
 	CompareTEAL(a, expected, actual)
 

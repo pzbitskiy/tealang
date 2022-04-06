@@ -216,15 +216,37 @@ func (n *runtimeFieldNode) Codegen(ostream io.Writer) {
 			n.childrenNodes[i].Codegen(ostream)
 		}
 		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.field, n.index2)
+	case "gtxnas":
+		for i := 0; i < len(n.childrenNodes); i++ {
+			n.childrenNodes[i].Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.index1, n.field)
+	case "gtxnsas":
+		for i := 0; i < len(n.childrenNodes); i++ {
+			n.childrenNodes[i].Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
 	case "txna":
 		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.field, n.index1)
+	case "txnas":
+		for i := 0; i < len(n.childrenNodes); i++ {
+			n.childrenNodes[i].Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
 	default:
 		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
 	}
 }
 
 func (n *runtimeArgNode) Codegen(ostream io.Writer) {
-	fmt.Fprintf(ostream, "%s %s\n", n.op, n.number)
+	if n.number != "" {
+		fmt.Fprintf(ostream, "%s %s\n", n.op, n.number)
+	} else {
+		for _, ch := range n.children() {
+			ch.Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "%s\n", n.op)
+	}
 }
 
 func (n *ifExprNode) Codegen(ostream io.Writer) {
