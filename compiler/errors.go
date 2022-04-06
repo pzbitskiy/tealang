@@ -263,12 +263,12 @@ func (err *ParserError) String() (msg string) {
 	}
 	switch err.errorType {
 	case semanticError:
-		msg = fmt.Sprintf("error at %sline %d, col %d near token \"%s\"", filename, err.line, err.column, err.token)
+		msg = fmt.Sprintf("error at %sline %d, col %d near token '%s'", filename, err.line, err.column, err.token)
 		lines := append([]string{msg}, err.excerpt...)
 		lines = append(lines, err.msg)
 		msg = strings.Join(lines, "\n")
 	case syntaxError:
-		msg = fmt.Sprintf("syntax error at %sline %d, col %d near token \"%s\"", filename, err.line, err.column, err.token)
+		msg = fmt.Sprintf("syntax error at %sline %d, col %d near token '%s'", filename, err.line, err.column, err.token)
 		lines := append([]string{msg}, err.excerpt...)
 		msg = strings.Join(lines, "\n")
 	case ambiguityError:

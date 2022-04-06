@@ -111,7 +111,7 @@ function logic() {
 	a.Equal(1, len(errors))
 	a.Equal("let e = if a > 0 {1} else {}", errors[0].excerpt[0])
 	a.Equal("                      -----^-----", errors[0].excerpt[1])
-	msg := `syntax error at line 2, col 27 near token "}"
+	msg := `syntax error at line 2, col 27 near token '}'
 let e = if a > 0 {1} else {}
                       -----^-----`
 	a.Equal(msg, errors[0].String())
@@ -123,7 +123,7 @@ let e = if a > 0 {1} else {}
 	a.Equal(1, len(errors))
 	a.Equal("a = 33", errors[0].excerpt[0])
 	a.Equal("^-----", errors[0].excerpt[1])
-	msg = `syntax error at line 1, col 0 near token "a"
+	msg = `syntax error at line 1, col 0 near token 'a'
 a = 33
 ^-----`
 	a.Equal(msg, errors[0].String())
@@ -135,7 +135,7 @@ a = 33
 	a.Equal(1, len(errors))
 	a.Equal("let a = 33bbb", errors[0].excerpt[0])
 	a.Equal("     -----^-----", errors[0].excerpt[1])
-	msg = `syntax error at line 1, col 10 near token "bbb"
+	msg = `syntax error at line 1, col 10 near token 'bbb'
 let a = 33bbb
      -----^-----`
 	a.Equal(msg, errors[0].String())
@@ -155,7 +155,7 @@ function logic() {
 	a.Equal(1, len(errors))
 	a.Equal("    if e == 1 {", errors[0].excerpt[0])
 	a.Equal("  -----^-----", errors[0].excerpt[1])
-	msg = `error at line 3, col 4 near token "e"
+	msg = `error at line 3, col 4 near token 'e'
     if e == 1 {
   -----^-----
 ident not found`
@@ -178,7 +178,7 @@ function logic() {
 	a.Equal(1, len(errors))
 	a.Equal("        x = 2", errors[0].excerpt[0])
 	a.Equal("   -----^-----", errors[0].excerpt[1])
-	msg = `error at line 6, col 2 near token "x"
+	msg = `error at line 6, col 2 near token 'x'
         x = 2
    -----^-----
 incompatible types: (var) byte[] vs uint64 (expr)`
@@ -197,7 +197,7 @@ function logic() {
 	a.Equal(1, len(errors))
 	a.Equal(`    e = "123"`, errors[0].excerpt[0])
 	a.Equal("----^-----", errors[0].excerpt[1])
-	msg = `error at line 4, col 1 near token "e"
+	msg = `error at line 4, col 1 near token 'e'
     e = "123"
 ----^-----
 incompatible types: (var) uint64 vs byte[] (expr)`

@@ -968,20 +968,20 @@ func (n *funCallNode) getTypeQuadruple() (exprType, exprType, exprType, exprType
 	return tph, tpl, rtpl, rtph, err
 }
 
-func (n *funCallNode) checkBuiltinArgs() (err error) {
+func (n *funCallNode) checkBuiltinArgs() (argErrorPos int, err error) {
 	args := n.children()
 	for i, arg := range args {
 		tp, err := argOpTypeFromSpec(n.name, i)
 		if err != nil {
-			return err
+			return i, err
 		}
 		argExpr := arg.(ExprNodeIf)
 		actualType, err := argExpr.getType()
 		if err != nil {
-			return err
+			return i, err
 		}
 		if tp != unknownType && actualType != unknownType && actualType != tp {
-			return fmt.Errorf("incompatible types: (exp) %s vs %s (actual) in expr '%s'", tp, actualType, n)
+			return i, fmt.Errorf("incompatible types: (exp) %s vs %s (actual) in expr '%s'", tp, actualType, n)
 		}
 	}
 	return

@@ -543,10 +543,10 @@ func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
 	listener := newExprListener(l.ctx, l.parent)
 	exprNode := listener.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
 
-	err := exprNode.checkBuiltinArgs()
+	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
 		parser := ctx.GetParser()
-		token := ctx.ASSERT().GetSymbol()
+		token := ctx.Expr().GetStart()
 		rule := ctx.GetRuleContext()
 		reportError(err.Error(), parser, token, rule)
 		return
@@ -602,10 +602,10 @@ func (l *treeNodeListener) EnterDoLog(ctx *gen.DoLogContext) {
 	listener := newExprListener(l.ctx, l.parent)
 	exprNode := listener.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
 
-	err := exprNode.checkBuiltinArgs()
+	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
 		parser := ctx.GetParser()
-		token := ctx.LOG().GetSymbol()
+		token := ctx.Expr().GetStart()
 		rule := ctx.GetRuleContext()
 		reportError(err.Error(), parser, token, rule)
 		return
@@ -1018,7 +1018,7 @@ func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
 		}
 	}
 
-	err := exprNode.checkBuiltinArgs()
+	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
 		parser := ctx.GetParser()
 		token := ctx.BUILTINFUNC().GetSymbol()
@@ -1102,8 +1102,9 @@ func (l *treeNodeListener) EnterBuiltinVarStatement(ctx *gen.BuiltinVarStatement
 	listener := newExprListener(l.ctx, l.parent)
 	exprNode := listener.funCallEnterImpl(tealOpName, exprs)
 
-	err := exprNode.checkBuiltinArgs()
+	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
+		token := exprs[errPos].GetStart()
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
@@ -1177,10 +1178,10 @@ func (l *exprListener) EnterEcDsaFunCall(ctx *gen.EcDsaFunCallContext) {
 	field := ctx.ECDSACURVE().GetText()
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr(), field)
 
-	err := exprNode.checkBuiltinArgs()
+	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
 		parser := ctx.GetParser()
-		token := ctx.ECDSAVERIFY().GetSymbol()
+		token := ctx.Expr(errPos).GetStart()
 		rule := ctx.GetRuleContext()
 		reportError(err.Error(), parser, token, rule)
 		return
@@ -1221,7 +1222,7 @@ func (l *exprListener) EnterExtractFunCall(ctx *gen.ExtractFunCallContext) {
 		}
 	}
 
-	err := exprNode.checkBuiltinArgs()
+	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
 		parser := ctx.GetParser()
 		token := ctx.EXTRACT().GetSymbol()
@@ -1276,9 +1277,9 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr(), field)
 
-	err := exprNode.checkBuiltinArgs()
+	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
-		token := ctx.GetParser().GetCurrentToken()
+		token := ctx.Expr(errPos).GetStart()
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
@@ -1315,9 +1316,9 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
 
-	err := exprNode.checkBuiltinArgs()
+	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
-		token := ctx.GetParser().GetCurrentToken()
+		token := ctx.Expr(errPos).GetStart()
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
@@ -1339,9 +1340,9 @@ func (l *exprListener) EnterAccountsBalanceExpr(ctx *gen.AccountsBalanceExprCont
 	}
 	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
 
-	err := exprNode.checkBuiltinArgs()
+	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
-		token := ctx.GetParser().GetCurrentToken()
+		token := ctx.Expr().GetStart()
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
@@ -1357,9 +1358,9 @@ func (l *exprListener) EnterAccountsSingleMethodsExpr(ctx *gen.AccountsSingleMet
 	}
 	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
 
-	err := exprNode.checkBuiltinArgs()
+	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
-		token := ctx.GetParser().GetCurrentToken()
+		token := ctx.Expr(errPos).GetStart()
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
@@ -1378,9 +1379,9 @@ func (l *exprListener) EnterAppsSingleMethodsExpr(ctx *gen.AppsSingleMethodsExpr
 
 	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr(1)})
 
-	err := exprNode.checkBuiltinArgs()
+	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
-		token := ctx.GetParser().GetCurrentToken()
+		token := ctx.Expr(1).GetStart()
 		reportError(err.Error(), ctx.GetParser(), token, ctx.GetRuleContext())
 		return
 	}
