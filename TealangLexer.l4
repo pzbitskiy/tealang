@@ -127,6 +127,18 @@ ASSETPARAMSFIELDS
     |   ASSETCLAWBACK
     ;
 
+APPPARAMSFIELDS
+    :   APPAPPROVALPROG
+    |   APPCLEARSTATEPROG
+    |   APPGLOBALNUMUINT
+    |   APPGLOBALNUMBYTES
+    |   APPLOCALNUMUINT
+    |   APPLOCALNUMBYTES
+    |   APPEXTRAPROGPAGES
+    |   APPCREATOR
+    |   APPADDRESS
+    ;
+
 BUILTINFUNC
     :   SHA256
     |   KECCAK256
@@ -339,6 +351,16 @@ APPPUT          : 'put' ;
 APPDEL          : 'del' ;
 ASSETHLDBALANCE : 'assetBalance' ;
 ASSETHLDFROZEN  : 'assetIsFrozen' ;
+
+APPAPPROVALPROG    : 'AppApprovalProgram' ;
+APPCLEARSTATEPROG  : 'AppClearStateProgram' ;
+APPGLOBALNUMUINT   : 'AppGlobalNumUint' ;
+APPGLOBALNUMBYTES  : 'AppGlobalNumByteSlice' ;
+APPLOCALNUMUINT    : 'AppLocalNumUint' ;
+APPLOCALNUMBYTES   : 'AppLocalNumByteSlice' ;
+APPEXTRAPROGPAGES  : 'AppExtraProgramPages' ;
+APPCREATOR         : 'AppCreator' ;
+APPADDRESS         : 'AppAddress' ;
 
 ITXNBEGIN       : 'begin' ;
 ITXNEND         : 'submit' ;

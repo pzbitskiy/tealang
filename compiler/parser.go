@@ -1219,7 +1219,6 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 	var name string
 	var fieldArgToken antlr.Token
 	if node := ctx.ACCOUNTS(); node != nil {
-		name = node.GetText()
 		if ctx.ASSETHLDBALANCE() != nil {
 			fieldArgToken = ctx.ASSETHLDBALANCE().GetSymbol()
 			fieldArgToken.SetText("AssetBalance")
@@ -1232,7 +1231,12 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 			name = "app_local_get_ex"
 		}
 	} else if node := ctx.APPS(); node != nil {
-		name = "app_global_get_ex"
+		if ctx.APPGETEX() != nil {
+			name = "app_global_get_ex"
+		} else {
+			fieldArgToken = ctx.APPPARAMSFIELDS().GetSymbol()
+			name = "app_params_get"
+		}
 	} else if node := ctx.ASSETS(); node != nil {
 		fieldArgToken = ctx.ASSETPARAMSFIELDS().GetSymbol()
 		name = "asset_params_get"

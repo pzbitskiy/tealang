@@ -764,6 +764,36 @@ end_main:
 	CompareTEAL(a, expected, actual)
 }
 
+func TestCodegenAppParams(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function approval() {
+	let app = 1;
+	let amount, exist = apps[app].AppExtraProgramPages;
+	return exist;
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1
+fun_main:
+intc 1
+store 0
+load 0
+app_params_get AppExtraProgramPages
+store 1
+store 2
+load 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
+
 func TestCodegenAppAccounts(t *testing.T) {
 	a := require.New(t)
 
