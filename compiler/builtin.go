@@ -65,6 +65,11 @@ var builtinFun = map[string]bool{
 	"ecdsa_verify":        true,
 	"ecdsa_pk_decompress": true,
 	"ecdsa_pk_recover":    true,
+	"extract":             true,
+	"extract3":            false,
+	"extract_uint16":      false,
+	"extract_uint32":      false,
+	"extract_uint64":      false,
 }
 
 var builtinFunDependantTypes = map[string]int{
@@ -77,7 +82,8 @@ type remapper func(*funCallNode) (int, error)
 // For example, substring recognize multiple variants of substring parameters
 // and eventually generate substring or substring3 opcode
 var builtinFunRemap = map[string]remapper{
-	"substring": remapSubsring,
+	"substring": remapSubstring,
+	"extract":   remapExtract,
 	"gaid":      remapGaid,
 	"badd":      makeByteArithRemapper("b+"),
 	"bsub":      makeByteArithRemapper("b-"),
@@ -107,7 +113,15 @@ func makeByteArithRemapper(name string) remapper {
 	return remapper
 }
 
-func remapSubsring(exprNode *funCallNode) (argErrorPos int, err error) {
+func remapSubstring(exprNode *funCallNode) (argErrorPos int, err error) {
+	return remapFun3(exprNode, "substring3")
+}
+
+func remapExtract(exprNode *funCallNode) (argErrorPos int, err error) {
+	return remapFun3(exprNode, "extract3")
+}
+
+func remapFun3(exprNode *funCallNode, target string) (argErrorPos int, err error) {
 	var arg1Val, arg2Val string
 	switch arg1 := exprNode.childrenNodes[1].(type) {
 	case *constNode:
@@ -150,7 +164,7 @@ func remapSubsring(exprNode *funCallNode) (argErrorPos int, err error) {
 		exprNode.index1 = arg1Val
 		exprNode.index2 = arg2Val
 	} else {
-		exprNode.name = "substring3"
+		exprNode.name = target
 	}
 	return
 }

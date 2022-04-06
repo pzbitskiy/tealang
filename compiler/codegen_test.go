@@ -1440,3 +1440,54 @@ end_main:
 `
 	CompareTEAL(a, expected, actual)
 }
+
+func TestExtract(t *testing.T) {
+	a := require.New(t)
+
+	source := `function logic() {
+let a = extract("\x12\x34\x56\x78\x9a\xbc", 1, 2)
+
+let s = 1
+let e = 5
+a = extract("\x12\x34\x56\x78\x9a\xbc", s, e)
+
+let b = extract(UINT16, "\x12\x34\x56\x78\x9a\xbc", 1)
+assert(b == 0x3456)
+return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+
+	expected := `#pragma version *
+intcblock 0 1 2 5 0x3456
+bytecblock 0x123456789abc
+fun_main:
+bytec 0
+extract 1 2
+store 0
+intc 1
+store 1
+intc 3
+store 2
+bytec 0
+load 1
+load 2
+extract3
+store 0
+bytec 0
+intc 1
+extract_uint16
+store 3
+load 3
+intc 4
+==
+assert
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
