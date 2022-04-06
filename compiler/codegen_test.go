@@ -1221,3 +1221,95 @@ end_main:
 `
 	CompareTEAL(a, expected, actual)
 }
+
+func TestToInt(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function approval() {
+	let a = accounts[0].get("key")
+	let b = toint(a) + 1
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+	expected := `#pragma version *
+intcblock 0 1
+bytecblock 0x6b6579
+fun_main:
+intc 0
+bytec 0
+app_local_get
+store 0
+load 0
+intc 1
++
+store 1
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
+
+func TestInnerTxn(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function approval() {
+	itxn.begin()
+	itxn.TypeEnum = 1
+	itxn.Receiver = txn.Sender
+	itxn.submit()
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+
+	expected := `#pragma version 5
+intcblock 0 1
+fun_main:
+itxn_begin
+intc 1
+itxn_field TypeEnum
+txn Sender
+itxn_field Receiver
+itxn_submit
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
+
+func TestCodegenLog(t *testing.T) {
+	a := require.New(t)
+	source := `
+function logic() {
+	log("Hi")
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+
+	expected := `#pragma version 5
+intcblock 0 1
+bytecblock 0x4869
+fun_main:
+bytec 0
+log
+intc 1
+return
+end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
