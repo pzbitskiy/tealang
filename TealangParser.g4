@@ -59,7 +59,7 @@ condFalseBlock
 innertxn
     :   INNERTXN DOT ITXNBEGIN LEFTPARA RIGHTPARA    # InnerTxnBegin
     |   INNERTXN DOT ITXNEND LEFTPARA RIGHTPARA      # InnerTxnEnd
-    |   INNERTXN DOT TXNFIELD EQ expr                # InnerTxnAssign
+    |   INNERTXN DOT TXNFIELD EQ expr               # InnerTxnAssign
     ;
 
 termination
@@ -136,7 +136,7 @@ builtinVarExpr
     |   args                                        # ArgsExpr
     |   accounts                                    # AccountsExpr
     |   apps                                        # AppsExpr
-    |   INNERTXN DOT ITXNFIELD                      # InnerTxnFieldExpr
+    |   INNERTXN DOT TXNFIELD                       # InnerTxnFieldExpr
     ;
 
 txn

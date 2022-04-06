@@ -269,6 +269,10 @@ function test(a) {
 
 	const reimburseTxIndex = 0
 	let reimburseReceiver = gtxn[reimburseTxIndex].Receiver
+
+	let g = global.GroupID
+	let l = txn.Logs[1]
+	let caidx = gtxn[0].CreatedApplicationID
     return 1
 }
 

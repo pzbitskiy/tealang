@@ -1264,6 +1264,7 @@ function approval() {
 	itxn.TypeEnum = 1
 	itxn.Receiver = txn.Sender
 	itxn.submit()
+	let a = concat(itxn.Sender, "0")
 	return 1
 }
 `
@@ -1274,6 +1275,7 @@ function approval() {
 
 	expected := `#pragma version 5
 intcblock 0 1
+bytecblock 0x30
 fun_main:
 itxn_begin
 intc 1
@@ -1281,6 +1283,10 @@ itxn_field TypeEnum
 txn Sender
 itxn_field Receiver
 itxn_submit
+itxn Sender
+bytec 0
+concat
+store 0
 intc 1
 return
 end_main:

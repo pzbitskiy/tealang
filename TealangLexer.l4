@@ -12,11 +12,40 @@ GLOBALFIELD
     |   CURRENTAPPID
     |   CREATORADDRESS
     |   CURRENTAPPADDRESS
+    |   GROUPID
     ;
 
-ITXNFIELD
-    :   CREATEDASSETID
-    ;
+// TODO: lexer does not allow two token to be in the same rule
+// Move this check into code
+// ITXNFIELD
+//     :   SENDER
+//     |   FEE
+//     |   RECEIVER
+//     |   AMOUNT
+//     |   CLOSEREMINDERTO
+//     |   TYPE
+//     |   TYPEENUM
+//     |   XFERASSET
+//     |   AAMOUNT
+//     |   ASENDER
+//     |   ARECEIVER
+//     |   ACLOSETO
+//     |   CONFIGASSET
+//     |   CONFIGASSETTOTAL
+//     |   CONFIGASSETDEC
+//     |   CONFIGASSETDEFFROZEN
+//     |   CONFIGASSETUNITNAM
+//     |   CONFIGASSETNAME
+//     |   CONFIGASSETURL
+//     |   CONFIGASSETMETAHASH
+//     |   CONFIGASSETMANAGER
+//     |   CONFIGASSETRESERVE
+//     |   CONFIGASSETFREEZE
+//     |   CONFIGASSETCLAWBACK
+//     |   FREEZEASSET
+//     |   FREEZEASSETACCOUNT
+//     |   FREEZEAZZETFROZEN
+//     ;
 
 TXNFIELD
     :   SENDER
@@ -70,6 +99,10 @@ TXNFIELD
     |   NUMLOCALINTS
     |   NUMLOCALBYTESLICES
     |   EXTRAPROGRAMPAGES
+    |   NONPARTICIPATION
+    |   NUMLOGS
+    |   CREATEDASSETID
+    |   CREATEDAPPID
     ;
 
 TXNARRAYFIELD
@@ -77,6 +110,7 @@ TXNARRAYFIELD
     |   APPLICATIONARGS
     |   TXNASSETS
     |   APPLICATIONS
+    |   LOGS
     ;
 
 ASSETPARAMSFIELDS
@@ -162,19 +196,18 @@ APPS        : 'apps' ;
 ASSETS      : 'assets' ;
 
 
-MINTXNFEE       : 'MinTxnFee' ;
-MINBALANCE      : 'MinBalance' ;
-MAXTXNLIFE      : 'MaxTxnLife' ;
-ZEROADDRESS     : 'ZeroAddress' ;
-GROUPSIZE       : 'GroupSize' ;
-LOGICSIGVERSION : 'LogicSigVersion' ;
-ROUND           : 'Round' ;
-LATESTTIMESTAMP : 'LatestTimestamp' ;
-CURRENTAPPID    : 'CurrentApplicationID' ;
-CREATORADDRESS  : 'CreatorAddress' ;
-CURRENTAPPADDRESS  : 'CurrentApplicationAddress' ;
-
-CREATEDASSETID  : 'CreatedAssetID' ;
+MINTXNFEE         : 'MinTxnFee' ;
+MINBALANCE        : 'MinBalance' ;
+MAXTXNLIFE        : 'MaxTxnLife' ;
+ZEROADDRESS       : 'ZeroAddress' ;
+GROUPSIZE         : 'GroupSize' ;
+LOGICSIGVERSION   : 'LogicSigVersion' ;
+ROUND             : 'Round' ;
+LATESTTIMESTAMP   : 'LatestTimestamp' ;
+CURRENTAPPID      : 'CurrentApplicationID' ;
+CREATORADDRESS    : 'CreatorAddress' ;
+CURRENTAPPADDRESS : 'CurrentApplicationAddress' ;
+GROUPID           : 'GroupID' ;
 
 SENDER               : 'Sender' ;
 FEE                  : 'Fee' ;
@@ -232,7 +265,11 @@ NUMGLOBALBYTESLICES  : 'GlobalNumByteSlice' ;
 NUMLOCALINTS         : 'LocalNumUint' ;
 NUMLOCALBYTESLICES   : 'LocalNumByteSlice' ;
 EXTRAPROGRAMPAGES    : 'ExtraProgramPages';
-
+NONPARTICIPATION     : 'Nonparticipation' ;
+LOGS                 : 'Logs' ;
+NUMLOGS              : 'NumLogs' ;
+CREATEDASSETID       : 'CreatedAssetID' ;
+CREATEDAPPID         : 'CreatedApplicationID' ;
 
 ASSETTOTAL         : 'AssetTotal' ;
 ASSETDECIMALS      : 'AssetDecimals' ;

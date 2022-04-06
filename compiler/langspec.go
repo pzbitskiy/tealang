@@ -31,6 +31,10 @@ func argOpTypeFromSpec(name string, arg int) (exprType, error) {
 }
 
 func runtimeFieldTypeFromSpec(name string, field string) (exprType, error) {
+	// itxn does not have an entry in the langspec so substitute
+	if name == "itxn" {
+		name = "txn"
+	}
 	if op, ok := langOps[name]; ok && len(op.ArgEnum) != 0 {
 		for idx, entry := range op.ArgEnum {
 			if entry == field {
@@ -45,7 +49,7 @@ func runtimeFieldTypeFromSpec(name string, field string) (exprType, error) {
 			}
 		}
 	} else {
-		// gtxns does not have ArgEnum
+		// fallback
 		return opTypeFromSpec(name, 0)
 	}
 	return invalidType, fmt.Errorf("can't get type for %s.%s", name, field)
