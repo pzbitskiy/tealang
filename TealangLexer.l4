@@ -181,6 +181,12 @@ ECDSACURVE
     :   CURVESECP256K1
     ;
 
+EXTRACTOPT
+    :   EXTRACTOPTUINT16
+    |   EXTRACTOPTUINT32
+    |   EXTRACTOPTUINT64
+    ;
+
 MAINFUNC
     :   LOGIC
     |   APPROVAL
@@ -321,6 +327,7 @@ SQRT        : 'sqrt' ;
 BITLEN      : 'bitlen' ;
 BZERO       : 'bzero' ;
 GAID        : 'gaid' ;
+EXTRACT     : 'extract' ;
 
 ECDSAVERIFY     : 'ecdsa_verify' ;
 ECDSADECOMPRESS : 'ecdsa_pk_decompress' ;
@@ -373,10 +380,20 @@ APPADDRESS         : 'AppAddress' ;
 ITXNBEGIN       : 'begin' ;
 ITXNEND         : 'submit' ;
 
-CURVESECP256K1  : 'Secp256k1';
+CURVESECP256K1  : 'Secp256k1' ;
+
+EXTRACTOPTUINT16 : 'UINT16' ;
+EXTRACTOPTUINT32 : 'UINT32' ;
+EXTRACTOPTUINT64 : 'UINT64' ;
+
+NUMBER
+    : DECIMAL
+    | HEXADECIMAL
+    ;
 
 STRING      : EncodingPrefix? '"' StringChar* '"' ;
-NUMBER      : [0-9]+ ;
+DECIMAL     : [0-9]+ ;
+HEXADECIMAL : '0x' ([a-fA-F0-9])+;
 IDENT       : [a-zA-Z_]+[a-zA-Z0-9_]* ;
 NEWLINE     : [\r\n]+ ;
 SEMICOLON   : ';' ;

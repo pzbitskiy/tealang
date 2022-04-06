@@ -1189,6 +1189,50 @@ func (l *exprListener) EnterEcDsaFunCall(ctx *gen.EcDsaFunCallContext) {
 	l.expr = exprNode
 }
 
+func (l *exprListener) EnterExtractFunCall(ctx *gen.ExtractFunCallContext) {
+	name := ctx.EXTRACT().GetText()
+	if ctx.EXTRACTOPT() != nil {
+		field := ctx.EXTRACTOPT().GetText()
+		if len(ctx.AllExpr()) != 2 {
+			parser := ctx.GetParser()
+			token := ctx.EXTRACT().GetSymbol()
+			rule := ctx.GetRuleContext()
+			reportError(fmt.Sprintf("extract %s accepts only 2 args", field), parser, token, rule)
+		}
+		switch field {
+		case "UINT16":
+			name = "extract_uint16"
+		case "UINT32":
+			name = "extract_uint32"
+		case "UINT64":
+			name = "extract_uint64"
+		}
+	}
+
+	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+	if remapper, ok := builtinFunRemap[name]; ok {
+		errPos, err := remapper(exprNode)
+		if err != nil {
+			errToken := ctx.Expr(errPos).GetStart()
+			parser := ctx.GetParser()
+			rule := ctx.GetRuleContext()
+			reportError(err.Error(), parser, errToken, rule)
+			return
+		}
+	}
+
+	err := exprNode.checkBuiltinArgs()
+	if err != nil {
+		parser := ctx.GetParser()
+		token := ctx.EXTRACT().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError(err.Error(), parser, token, rule)
+		return
+	}
+
+	l.expr = exprNode
+}
+
 func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext, aux ...string) (node *funCallNode) {
 	node = newFunCallNode(l.ctx, l.parent, name, aux...)
 	for _, expr := range allExpr {
