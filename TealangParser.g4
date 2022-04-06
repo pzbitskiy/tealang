@@ -22,6 +22,7 @@ statement
     |   termination
     |   assignment
     |   builtinVarStatement
+    |   logStatement
     |   NEWLINE|SEMICOLON
     ;
 
@@ -59,7 +60,6 @@ termination
     |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
     |   ASSERT LEFTPARA expr RIGHTPARA              # TermAssert
     |   BREAK (NEWLINE|SEMICOLON)                   # Break
-    |   LOG LEFTPARA expr RIGHTPARA                 # DoLog
     ;
 
 decl
@@ -91,6 +91,7 @@ expr
     |   expr op=(BOR|BXOR|BAND) expr                # BitOp
     |   expr op=(LAND|LOR) expr                     # AndOr
     |   condExpr                                    # IfExpr
+    |   (TOINT|TOBYTE) LEFTPARA (expr) RIGHTPARA    # TypeCastExpr
     ;
 
 tupleExpr
@@ -110,6 +111,10 @@ builtinVarTupleExpr
 builtinVarStatement
     :   ACCOUNTS LEFTSQUARE expr RIGHTSQUARE DOT (APPPUT|APPDEL) LEFTPARA expr (COMMA expr)? RIGHTPARA
     |   APPS LEFTSQUARE expr RIGHTSQUARE DOT (APPPUT|APPDEL) LEFTPARA expr (COMMA expr)? RIGHTPARA
+    ;
+
+logStatement
+    :   LOG LEFTPARA expr RIGHTPARA                 # DoLog
     ;
 
 functionCall

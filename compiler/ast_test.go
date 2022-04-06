@@ -765,3 +765,68 @@ function approval() {
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors)
 }
+
+func TestLog(t *testing.T) {
+	a := require.New(t)
+	source := `
+function approval() {log(1); return 1;}
+`
+	result, parserErrors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `incompatible types: (exp) byte[] vs uint64 (actual)`)
+
+	source = `
+function approval() {log("test"); return 1;}
+`
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result)
+	a.Empty(parserErrors)
+}
+
+func TestTypeCast(t *testing.T) {
+	a := require.New(t)
+	source := `function approval() {
+let a = accounts[0].get("key")
+let b = toint(a) + 1
+b = toint(b)
+return 1
+}`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result)
+	a.Empty(parserErrors)
+
+	source = `function approval() {
+let a = accounts[0].get("key")
+let b = concat(tobyte(a), "test")
+b = tobyte(b)
+return 1
+}`
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result)
+	a.Empty(parserErrors)
+
+	source = `function approval() {
+let a = "test"
+let b = toint(a)
+return 1
+}`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `cannot cast byte[] to uint64`)
+
+	source = `function approval() {
+let a = 1
+let b = tobyte(a)
+return 1
+}`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `cannot cast uint64 to byte[]`)
+
+}
