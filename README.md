@@ -25,7 +25,7 @@ inline function sample1(a) {
     return a - 1
 }
 
-inline function sample2(a) {
+function sample2(a) {
     return a + 1
 }
 
@@ -100,8 +100,7 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
 
 ### Prerequisites
 
-1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/)
-   Or run `make antlr-install`
+1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/). Alternatively run `make antlr-install`
 2. Install runtime for Go
     ```sh
     go get -u github.com/antlr/antlr4/runtime/Go/antlr
@@ -112,16 +111,17 @@ Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highli
     ```
 ### Build and test
 ```sh
-make
+make && make test
 ```
 
-### Build and run Java AST visualizer
+### Optionally build and run Java AST visualizer
 ```sh
 make java-gui ARGS=examples/basic.tl
 ```
 
 ## Roadmap
 
+0. TEAL v5 and v6 support.
 1. Constant folding.
 2. Improve errors reporting.
 3. Code gen: do not use temp scratch in "assign and use" case.
