@@ -686,9 +686,12 @@
         "CurrentApplicationID",
         "CreatorAddress",
         "CurrentApplicationAddress",
-        "GroupID"
+        "GroupID",
+        "OpcodeBudget",
+        "CallerApplicationID",
+        "CallerApplicationAddress"
       ],
-      "ArgEnumTypes": "UUUBUUUUUBBB",
+      "ArgEnumTypes": "UUUBUUUUUBBBUUB",
       "Doc": "push value from globals to stack",
       "ImmediateNote": "{uint8 global field index}",
       "Groups": [
