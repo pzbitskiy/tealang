@@ -1,7 +1,7 @@
 # Tealang
 
 High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v5** language.
-The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
+The goal is to abstract the stack-based **Algorand Virtual Machine** and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
 
@@ -61,21 +61,27 @@ function get_string() {
 
 function logic() {
     let a = 1
-    a = get_string()
+    a = get_string()  // <- type check error
     return a
 }
 ```
 
 * Accounts state access
 ```
-let x = accounts[1].Balance
+function approval() {
+    let x = accounts[1].Balance
+    return 1
+}
 ```
 
 * Globals and txn data access
 ```
-let s = global.GroupSize
-let idx = 1
-let a = gtxn[s-1].ApplicationArgs[idx+2];
+function logic() {
+    let s = global.GroupSize
+    let idx = 1
+    let a = gtxn[s-1].ApplicationArgs[idx+2];
+    return a != "\x01"
+}
 ```
 
 * Modules
@@ -87,7 +93,7 @@ import stdlib.const
 
 ## Language guide
 
-[Documentation](GUIDE.md)
+Check the [languaga documentation](GUIDE.md)!
 
 ## Usage
 
@@ -112,22 +118,27 @@ import stdlib.const
     ```sh
     tealang -s -c -d '' examples/basic.tl
     ```
-
-Checkout [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
+* [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
 
 ## Build from sources
 
 ### Prerequisites
 
-1. Set up **ANTLR4** as explained in [the documentation](https://www.antlr.org/). Alternatively run `make antlr-install`
+1. Set up **ANTLR4**
+    ```sh
+    make antlr-install
+    ```
+    Refer to the [documentation](https://www.antlr.org/) in case of problems.
 2. Install runtime for Go
     ```sh
     go get -u github.com/antlr/antlr4/runtime/Go/antlr
     ```
-3. Install and setup **go-algorand**. Read [Algorand README](https://github.com/algorand/go-algorand/blob/master/README.md) if needed.
+3. Install and setup **go-algorand**
     ```sh
     make algorand-install
     ```
+    Check the [Algorand README](https://github.com/algorand/go-algorand/blob/master/README.md) for detailed build instructions if encounter any issues.
+
 ### Build and test
 ```sh
 make && make test
