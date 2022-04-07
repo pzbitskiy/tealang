@@ -589,6 +589,39 @@ func (l *treeNodeListener) EnterInnerTxnAssign(ctx *gen.InnerTxnAssignContext) {
 	l.node = node
 }
 
+func (l *treeNodeListener) EnterInnerTxnArrayAssign(ctx *gen.InnerTxnArrayAssignContext) {
+	field := ctx.TXNARRAYFIELD().GetText()
+	node := newArrayAssignInnerTxnNode(l.ctx, l.parent, field)
+	listener := newExprListener(l.ctx, node)
+	ctx.Expr().EnterRule(listener)
+	exprToPush := listener.getExpr()
+	node.value = exprToPush
+	exprToPushType, err := exprToPush.getType()
+	if err != nil {
+		reportError(
+			fmt.Sprintf("failed type resolution type: %s", err.Error()),
+			ctx.GetParser(), ctx.TXNARRAYFIELD().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	exprType, err := runtimeFieldTypeFromSpec("txn", field)
+	if err != nil {
+		reportError(
+			fmt.Sprintf("failed to retrieve type of field %s: %s", field, err.Error()),
+			ctx.GetParser(), ctx.TXNARRAYFIELD().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	if exprType != exprToPushType {
+		reportError(
+			fmt.Sprintf("incompatible types: (lhs) %s vs %s (expr)", exprType, exprToPushType),
+			ctx.GetParser(), ctx.TXNARRAYFIELD().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	l.node = node
+}
+
 func (l *treeNodeListener) EnterInnerTxnBegin(ctx *gen.InnerTxnBeginContext) {
 	l.node = newInnertxnBeginNode(l.ctx, l.parent)
 }
