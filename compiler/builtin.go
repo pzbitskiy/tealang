@@ -70,6 +70,7 @@ var builtinFun = map[string]bool{
 	"extract_uint16":      false,
 	"extract_uint32":      false,
 	"extract_uint64":      false,
+	"acct_params_get":     false,
 }
 
 var builtinFunDependantTypes = map[string]int{

@@ -1530,6 +1530,12 @@
       "Returns": ".U",
       "Cost": 1,
       "Size": 2,
+      "ArgEnum": [
+        "AcctBalance",
+        "AcctMinBalance",
+        "AcctAuthAddr"
+      ],
+      "ArgEnumTypes": "UUB",
       "Doc": "X is field F from account A. Y is 1 if A owns positive algos, else 0",
       "ImmediateNote": "{uint8 account params field index}",
       "Groups": [
