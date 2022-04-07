@@ -236,6 +236,15 @@ func (n *runtimeFieldNode) Codegen(ostream io.Writer) {
 			n.childrenNodes[i].Codegen(ostream)
 		}
 		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
+	case "gitxn":
+		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.index1, n.field)
+	case "gitxna":
+		fmt.Fprintf(ostream, "%s %s %s %s\n", n.op, n.index1, n.field, n.index2)
+	case "gitxnas":
+		for i := 0; i < len(n.childrenNodes); i++ {
+			n.childrenNodes[i].Codegen(ostream)
+		}
+		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.index1, n.field)
 	default:
 		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
 	}
@@ -362,6 +371,10 @@ func (n *funCallNode) Codegen(ostream io.Writer) {
 
 func (n *itxnBeginNode) Codegen(ostream io.Writer) {
 	fmt.Fprintf(ostream, "itxn_begin\n")
+}
+
+func (n *itxnNextNode) Codegen(ostream io.Writer) {
+	fmt.Fprintf(ostream, "itxn_next\n")
 }
 
 func (n *itxnEndNode) Codegen(ostream io.Writer) {

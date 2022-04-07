@@ -593,6 +593,10 @@ func (l *treeNodeListener) EnterInnerTxnBegin(ctx *gen.InnerTxnBeginContext) {
 	l.node = newInnertxnBeginNode(l.ctx, l.parent)
 }
 
+func (l *treeNodeListener) EnterInnerTxnNext(ctx *gen.InnerTxnNextContext) {
+	l.node = newInnertxnNextNode(l.ctx, l.parent)
+}
+
 func (l *treeNodeListener) EnterInnerTxnEnd(ctx *gen.InnerTxnEndContext) {
 	l.node = newInnertxnEndNode(l.ctx, l.parent)
 }
@@ -1643,6 +1647,131 @@ func (l *exprListener) EnterGroupTxnArrayFieldExpr(ctx *gen.GroupTxnArrayFieldEx
 			node.append(groupIndexExprNode)
 			node.append(arrayIndexExprNode)
 		}
+	}
+
+	l.expr = node
+}
+
+func (l *exprListener) EnterGroupInnerTxnFieldExpr(ctx *gen.GroupInnerTxnFieldExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Gitxn().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterGroupInnerTxnSingleFieldExpr(ctx *gen.GroupInnerTxnSingleFieldExprContext) {
+	field := ctx.TXNFIELD().GetText()
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	exprNode := listener.getExpr()
+
+	var op string
+	var groupIndex string
+	var errToken antlr.Token
+	var node ExprNodeIf
+
+	switch expr := exprNode.(type) {
+	case *constNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex = expr.value
+			op = "gitxn"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+
+		}
+	case *exprLiteralNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			groupIndex = expr.value
+			op = "gitxn"
+			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+		}
+	default:
+		// group index must be provided
+		errToken = ctx.Expr().GetStart()
+		reportError(fmt.Sprintf("group index not provided as literal or constant"), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
+	if errToken != nil {
+		reportError(fmt.Sprintf("%s not a number", exprNode.String()), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
+	l.expr = node
+}
+
+func (l *exprListener) EnterGroupInnerTxnArrayFieldExpr(ctx *gen.GroupInnerTxnArrayFieldExprContext) {
+	field := ctx.TXNARRAYFIELD().GetText()
+
+	groupIndexExpr := ctx.AllExpr()[0]
+	arrayIndexExpr := ctx.AllExpr()[1]
+
+	listener := newExprListener(l.ctx, l.parent)
+	groupIndexExpr.EnterRule(listener)
+	groupIndexExprNode := listener.getExpr()
+
+	listener = newExprListener(l.ctx, l.parent)
+	arrayIndexExpr.EnterRule(listener)
+	arrayIndexExprNode := listener.getExpr()
+
+	var errToken antlr.Token
+	var node ExprNodeIf
+
+	var groupIndex string
+	switch expr := groupIndexExprNode.(type) {
+	case *constNode:
+		if expr.exprType != intType {
+			errToken = groupIndexExpr.GetStart()
+		} else {
+			groupIndex = expr.value
+		}
+	case *exprLiteralNode:
+		if expr.exprType != intType {
+			errToken = groupIndexExpr.GetStart()
+		} else {
+			groupIndex = expr.value
+		}
+	default:
+		// group index must be provided
+		errToken = groupIndexExpr.GetStart()
+		reportError(fmt.Sprintf("group index not provided as literal or constant"), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+	if errToken != nil {
+		reportError(fmt.Sprintf("group index %s not a number", groupIndexExprNode.String()), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
+	var arrayIndex string
+	switch expr := arrayIndexExprNode.(type) {
+	case *constNode:
+		if expr.exprType != intType {
+			errToken = arrayIndexExpr.GetStart()
+		} else {
+			arrayIndex = expr.value
+		}
+	case *exprLiteralNode:
+		if expr.exprType != intType {
+			errToken = arrayIndexExpr.GetStart()
+		} else {
+			arrayIndex = expr.value
+		}
+	default:
+	}
+	if errToken != nil {
+		reportError(fmt.Sprintf("array index %s not a number", arrayIndexExprNode.String()), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
+	// unlike gtxn{..} opcodes, the array index must be provided as an immediate arg
+	// so there are only two combinations
+	if arrayIndex != "" {
+		node = newRuntimeFieldNode(l.ctx, l.parent, "gitxna", field, groupIndex, arrayIndex)
+	} else {
+		node = newRuntimeFieldNode(l.ctx, l.parent, "gitxnas", field, groupIndex)
+		node.append(arrayIndexExprNode)
 	}
 
 	l.expr = node

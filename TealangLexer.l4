@@ -175,6 +175,7 @@ BUILTINFUNC
     |   BEQ
     |   BNE
     |   BMOD
+    |   BSQRT
     |   BYTEOR
     |   BYTEAND
     |   BYTEXOR
@@ -224,6 +225,7 @@ INLINE      : 'inline' ;
 GLOBAL      : 'global' ;
 INNERTXN    : 'itxn' ;
 TXN         : 'txn' ;
+GINNERTXN   : 'gitxn' ;
 GTXN        : 'gtxn' ;
 ARGS        : 'args' ;
 ACCOUNTS    : 'accounts' ;
@@ -362,6 +364,7 @@ BGE         : 'bge' ;
 BEQ         : 'beq' ;
 BNE         : 'bne' ;
 BMOD        : 'bmod' ;
+BSQRT       : 'bsqrt' ;
 BYTEOR      : 'bor' ;
 BYTEAND     : 'band' ;
 BYTEXOR     : 'bxor' ;
@@ -401,6 +404,7 @@ APPCREATOR         : 'AppCreator' ;
 APPADDRESS         : 'AppAddress' ;
 
 ITXNBEGIN       : 'begin' ;
+ITXNNEXT        : 'next' ;
 ITXNEND         : 'submit' ;
 
 CURVESECP256K1  : 'Secp256k1' ;

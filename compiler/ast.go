@@ -284,6 +284,10 @@ type itxnBeginNode struct {
 	*TreeNode
 }
 
+type itxnNextNode struct {
+	*TreeNode
+}
+
 type itxnEndNode struct {
 	*TreeNode
 }
@@ -485,6 +489,13 @@ func newInnertxnBeginNode(ctx *context, parent TreeNodeIf) (node *itxnBeginNode)
 	node = new(itxnBeginNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "begin"
+	return
+}
+
+func newInnertxnNextNode(ctx *context, parent TreeNodeIf) (node *itxnNextNode) {
+	node = new(itxnNextNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "next"
 	return
 }
 

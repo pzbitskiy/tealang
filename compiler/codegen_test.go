@@ -1366,10 +1366,16 @@ function approval() {
 	itxn.begin()
 	itxn.TypeEnum = 1
 	itxn.Receiver = txn.Sender
+	itxn.next()
+	itxn.TypeEnum = 1
+	itxn.Receiver = txn.Sender
 	itxn.submit()
 	let a = concat(itxn.Sender, "0")
 	let c = itxn.ApplicationArgs[0]
 	let b = itxn.Logs[c]
+	let d = concat(gitxn[0].Sender, "1")
+	let e = gitxn[1].ApplicationArgs[0]
+	let f = gitxn[0].Logs[e]
 	return 1
 }
 `
@@ -1378,11 +1384,18 @@ function approval() {
 	a.Empty(errors)
 	actual := Codegen(result)
 
+	fmt.Println(actual)
+
 	expected := `#pragma version *
 intcblock 0 1
-bytecblock 0x30
+bytecblock 0x30 0x31
 fun_main:
 itxn_begin
+intc 1
+itxn_field TypeEnum
+txn Sender
+itxn_field Receiver
+itxn_next
 intc 1
 itxn_field TypeEnum
 txn Sender
@@ -1397,6 +1410,15 @@ store 1
 load 1
 itxnas Logs
 store 2
+gitxn 0 Sender
+bytec 1
+concat
+store 3
+gitxna 1 ApplicationArgs 0
+store 4
+load 4
+gitxnas 0 Logs
+store 5
 intc 1
 return
 end_main:
