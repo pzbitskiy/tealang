@@ -110,7 +110,7 @@ func (n *assignInnerTxnNode) Codegen(ostream io.Writer) {
 }
 
 func (n *arrayAssignInnerTxnNode) Codegen(ostream io.Writer) {
-	n.value.Codegen(ostream)
+	n.childrenNodes[0].Codegen(ostream)
 	fmt.Fprintf(ostream, "itxn_field %s\n", n.name)
 }
 
