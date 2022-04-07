@@ -174,7 +174,9 @@ BUILTINFUNC
     |   BYTEAND
     |   BYTEXOR
     |   BYTENOT
+    |   BSQRL
     |   GAID
+    |   DIVW
     ;
 
 ECDSACURVE
@@ -354,6 +356,7 @@ BYTEOR      : 'bor' ;
 BYTEAND     : 'band' ;
 BYTEXOR     : 'bxor' ;
 BYTENOT     : 'bnot' ;
+BSQRL       : 'bsqrt' ;
 
 TOINT       : 'toint'  ;
 TOBYTE      : 'tobyte' ;
@@ -362,6 +365,7 @@ MULW        : 'mulw' ;
 ADDW        : 'addw' ;
 DIVMODW     : 'divmodw';
 EXPW        : 'expw' ;
+DIVW        : 'divw' ;
 
 BALANCE         : 'Balance' ;
 MINIMUMBALANCE  : 'MinimumBalance' ;
