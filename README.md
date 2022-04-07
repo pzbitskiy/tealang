@@ -90,10 +90,11 @@ import stdlib.const
 ```
 
 * Antlr-based parser
+* [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
 
 ## Language guide
 
-Check the [languaga documentation](GUIDE.md)!
+Check the [language documentation](GUIDE.md)!
 
 ## Usage
 
@@ -118,7 +119,6 @@ Check the [languaga documentation](GUIDE.md)!
     ```sh
     tealang -s -c -d '' examples/basic.tl
     ```
-* [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
 
 ## Build from sources
 
