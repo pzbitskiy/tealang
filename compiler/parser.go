@@ -1431,12 +1431,6 @@ func (l *exprListener) EnterTxnSingleFieldExpr(ctx *gen.TxnSingleFieldExprContex
 	l.expr = node
 }
 
-func (l *exprListener) EnterInnerTxnFieldExpr(ctx *gen.InnerTxnFieldExprContext) {
-	field := ctx.TXNFIELD().GetText()
-	node := newRuntimeFieldNode(l.ctx, l.parent, "itxn", field)
-	l.expr = node
-}
-
 func (l *exprListener) EnterTxnArrayFieldExpr(ctx *gen.TxnArrayFieldExprContext) {
 	field := ctx.TXNARRAYFIELD().GetText()
 
@@ -1463,6 +1457,55 @@ func (l *exprListener) EnterTxnArrayFieldExpr(ctx *gen.TxnArrayFieldExprContext)
 		}
 	default:
 		node = newRuntimeFieldNode(l.ctx, l.parent, "txnas", field)
+		node.append(exprNode)
+	}
+
+	if errToken != nil {
+		reportError(fmt.Sprintf("%s not a number", exprNode.String()), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		return
+	}
+
+	l.expr = node
+}
+
+func (l *exprListener) EnterInnerTxnFieldExpr(ctx *gen.InnerTxnFieldExprContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Itxn().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *exprListener) EnterInnerTxnSingleFieldExpr(ctx *gen.InnerTxnSingleFieldExprContext) {
+	field := ctx.TXNFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, l.parent, "itxn", field)
+	l.expr = node
+}
+
+func (l *exprListener) EnterInnerTxnArrayFieldExpr(ctx *gen.InnerTxnArrayFieldExprContext) {
+	field := ctx.TXNARRAYFIELD().GetText()
+
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.Expr().EnterRule(listener)
+	exprNode := listener.getExpr()
+
+	var errToken antlr.Token
+	var node ExprNodeIf
+
+	switch expr := exprNode.(type) {
+	case *constNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			node = newRuntimeFieldNode(l.ctx, l.parent, "itxna", field, expr.value)
+
+		}
+	case *exprLiteralNode:
+		if expr.exprType != intType {
+			errToken = ctx.Expr().GetStart()
+		} else {
+			node = newRuntimeFieldNode(l.ctx, l.parent, "itxna", field, expr.value)
+		}
+	default:
+		node = newRuntimeFieldNode(l.ctx, l.parent, "itxnas", field)
 		node.append(exprNode)
 	}
 

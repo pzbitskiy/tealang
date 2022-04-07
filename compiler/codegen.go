@@ -226,8 +226,12 @@ func (n *runtimeFieldNode) Codegen(ostream io.Writer) {
 		}
 		fmt.Fprintf(ostream, "%s %s\n", n.op, n.field)
 	case "txna":
+		fallthrough
+	case "itxna":
 		fmt.Fprintf(ostream, "%s %s %s\n", n.op, n.field, n.index1)
 	case "txnas":
+		fallthrough
+	case "itxnas":
 		for i := 0; i < len(n.childrenNodes); i++ {
 			n.childrenNodes[i].Codegen(ostream)
 		}
