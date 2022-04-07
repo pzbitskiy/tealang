@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"strconv"
+	"strings"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 
@@ -1299,6 +1300,12 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 			fieldArgToken = ctx.ASSETHLDFROZEN().GetSymbol()
 			fieldArgToken.SetText("AssetFrozen")
 			name = "asset_holding_get"
+		} else if ctx.ACCTPARAMS() != nil {
+			fieldArgToken = ctx.ACCTPARAMS().GetSymbol()
+			origText := fieldArgToken.GetText()
+			newText := strings.ToUpper(string(origText[0])) + origText[1:]
+			fieldArgToken.SetText(newText)
+			name = "acct_params_get"
 		} else {
 			name = "app_local_get_ex"
 		}

@@ -936,6 +936,16 @@ func (n *funCallNode) getTypeTuple() (exprType, exprType, error) {
 		return tph, tpl, err
 	}
 	tpl, err = opTypeFromSpec(n.name, 1)
+
+	// some functions (acct_params_get for example) might have any type in the return spec
+	// but also have field types. In this case funCallNode has it resolved and can be used
+	if n.funType != unknownType {
+		if tph == unknownType {
+			tph = n.funType
+		} else if tpl == unknownType {
+			tpl = n.funType
+		}
+	}
 	return tph, tpl, err
 }
 

@@ -848,6 +848,12 @@ func TestCodegenAppAccounts(t *testing.T) {
 function approval() {
 	let b = accounts[1].Balance
 	let m = accounts[0].MinimumBalance
+	let ok = 0
+	b, ok = accounts[1].acctBalance()
+	m, ok = accounts[m].acctMinBalance()
+	let a = addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+	let u = ""
+	u, ok = accounts[a].acctAuthAddr()
 	return b + m
 }
 `
@@ -855,8 +861,10 @@ function approval() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
+	fmt.Println(actual)
 	expected := `#pragma version *
 intcblock 0 1
+*
 fun_main:
 intc 1
 balance
@@ -864,6 +872,24 @@ store 0
 intc 0
 min_balance
 store 1
+intc 0
+store 2
+intc 1
+acct_params_get AcctBalance
+store 2
+store 0
+load 1
+acct_params_get AcctMinBalance
+store 2
+store 1
+bytec 0
+store 3
+bytec 1
+store 4
+load 3
+acct_params_get AcctAuthAddr
+store 2
+store 4
 load 0
 load 1
 +

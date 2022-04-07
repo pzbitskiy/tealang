@@ -187,6 +187,12 @@ EXTRACTOPT
     |   EXTRACTOPTUINT64
     ;
 
+ACCTPARAMS
+    :   ACCTBALANCE
+    |   ACCTMINBALANCE
+    |   ACCTAUTHADDR
+    ;
+
 MAINFUNC
     :   LOGIC
     |   APPROVAL
@@ -366,6 +372,9 @@ APPPUT          : 'put' ;
 APPDEL          : 'del' ;
 ASSETHLDBALANCE : 'assetBalance' ;
 ASSETHLDFROZEN  : 'assetIsFrozen' ;
+ACCTBALANCE     : 'acctBalance' ;
+ACCTMINBALANCE  : 'acctMinBalance' ;
+ACCTAUTHADDR    : 'acctAuthAddr' ;
 
 APPAPPROVALPROG    : 'AppApprovalProgram' ;
 APPCLEARSTATEPROG  : 'AppClearStateProgram' ;
