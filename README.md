@@ -1,6 +1,6 @@
 # Tealang
 
-High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v4** language.
+High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v5** language.
 The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
@@ -9,7 +9,8 @@ The goal is to abstract the stack-based **TEAL** VM and provide imperative Go/JS
 
 * Variables and constants
 ```
-let variable1 = 1
+let var1 = 1
+let var2 = 0x123
 const myaddr = addr"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
 ```
 
@@ -46,6 +47,12 @@ function condition(a) {
 }
 ```
 
+* Loops
+```
+let y= 2;
+for y>0 { y=y-1 }
+```
+
 * Type checking
 ```
 function get_string() {
@@ -57,6 +64,18 @@ function logic() {
     a = get_string()
     return a
 }
+```
+
+* Accounts state access
+```
+let x = accounts[1].Balance
+```
+
+* Globals and txn data access
+```
+let s = global.GroupSize
+let idx = 1
+let a = gtxn[s-1].ApplicationArgs[idx+2];
 ```
 
 * Modules
@@ -121,7 +140,7 @@ make java-gui ARGS=examples/basic.tl
 
 ## Roadmap
 
-0. TEAL v5 and v6 support.
+0. TEAL v6 support.
 1. Constant folding.
 2. Improve errors reporting.
 3. Code gen: do not use temp scratch in "assign and use" case.
