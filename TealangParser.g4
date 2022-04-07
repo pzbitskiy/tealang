@@ -57,10 +57,11 @@ condFalseBlock
     ;
 
 innertxn
-    :   INNERTXN DOT ITXNBEGIN LEFTPARA RIGHTPARA    # InnerTxnBegin
-    |   INNERTXN DOT ITXNNEXT LEFTPARA RIGHTPARA     # InnerTxnNext
-    |   INNERTXN DOT ITXNEND LEFTPARA RIGHTPARA      # InnerTxnEnd
-    |   INNERTXN DOT TXNFIELD EQ expr                # InnerTxnAssign
+    :   INNERTXN DOT ITXNBEGIN LEFTPARA RIGHTPARA                       # InnerTxnBegin
+    |   INNERTXN DOT ITXNNEXT LEFTPARA RIGHTPARA                        # InnerTxnNext
+    |   INNERTXN DOT ITXNEND LEFTPARA RIGHTPARA                         # InnerTxnEnd
+    |   INNERTXN DOT TXNFIELD EQ expr                                   # InnerTxnAssign
+    |   INNERTXN DOT TXNARRAYFIELD DOT ITXNPUSH LEFTPARA expr RIGHTPARA # InnerTxnArrayAssign
     ;
 
 termination

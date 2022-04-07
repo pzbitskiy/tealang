@@ -1366,6 +1366,7 @@ function approval() {
 	itxn.begin()
 	itxn.TypeEnum = 1
 	itxn.Receiver = txn.Sender
+	itxn.Applications.push(txn.ApplicationID)
 	itxn.next()
 	itxn.TypeEnum = 1
 	itxn.Receiver = txn.Sender
@@ -1384,8 +1385,6 @@ function approval() {
 	a.Empty(errors)
 	actual := Codegen(result)
 
-	fmt.Println(actual)
-
 	expected := `#pragma version *
 intcblock 0 1
 bytecblock 0x30 0x31
@@ -1395,6 +1394,8 @@ intc 1
 itxn_field TypeEnum
 txn Sender
 itxn_field Receiver
+txn ApplicationID
+itxn_field Applications
 itxn_next
 intc 1
 itxn_field TypeEnum

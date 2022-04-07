@@ -299,6 +299,13 @@ type assignInnerTxnNode struct {
 	value    ExprNodeIf
 }
 
+type arrayAssignInnerTxnNode struct {
+	*TreeNode
+	name     string
+	exprType exprType
+	value    ExprNodeIf
+}
+
 type breakNode struct {
 	*TreeNode
 	value ExprNodeIf
@@ -508,6 +515,15 @@ func newInnertxnEndNode(ctx *context, parent TreeNodeIf) (node *itxnEndNode) {
 
 func newAssignInnerTxnNode(ctx *context, parent TreeNodeIf, ident string) (node *assignInnerTxnNode) {
 	node = new(assignInnerTxnNode)
+	node.TreeNode = newNode(ctx, parent)
+	node.nodeName = "assignItxn"
+	node.name = ident
+	node.value = nil
+	return
+}
+
+func newArrayAssignInnerTxnNode(ctx *context, parent TreeNodeIf, ident string) (node *arrayAssignInnerTxnNode) {
+	node = new(arrayAssignInnerTxnNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "assignItxn"
 	node.name = ident

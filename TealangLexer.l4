@@ -406,6 +406,7 @@ APPADDRESS         : 'AppAddress' ;
 ITXNBEGIN       : 'begin' ;
 ITXNNEXT        : 'next' ;
 ITXNEND         : 'submit' ;
+ITXNPUSH        : 'push' ;
 
 CURVESECP256K1  : 'Secp256k1' ;
 
