@@ -71,12 +71,12 @@ Functions must return some value and can not be recursive or re-entrant.
 ```
 inline function inc(x) { return x+1; }  // inlined at the calling point
 function dec(y) { return y-1; }         // uses callsub and retsub
-function logic() { return inc(0); } 
+function logic() { return inc(0); }
 ```
 
 ## Logic function
 
-Must exist in every program and return integer. The return value (zero/non-zero) is **TRUE** or **FALSE** return code for entire **TEAL** program (smart contract).
+Must exist in every program and return integer. The return value (zero/non-zero) is **TRUE** or **FALSE** return code for entire **TEAL** program (smart signature).
 ```
 function logic() {
     if txn.Sender == addr"47YPQTIGQEO7T4Y4RWDYWEKV6RTR2UNBQXBABEEGM72ESWDQNCQ52OPASU" {
@@ -85,6 +85,25 @@ function logic() {
     return 0
 }
 ```
+
+For smart contracts there are two special entry points:
+
+1. Approval program:
+    ```
+    function approval() {
+        return 1
+    }
+    ```
+
+2. Clear state program:
+    ```
+    function clearstate() {
+        return 1
+    }
+    ```
+
+At the moment there is no difference between `logic`, `approval`, `clearstate`
+but newer versions of **tealang** might enforce features availability based on the contract type.
 
 ## Flow control statements
 
@@ -99,9 +118,27 @@ if x == 1 {
 }
 ```
 
+### for loop
+
+For loop has condition (must evaluate to integer) and a body.
+```
+let y = 2;
+for 1 {
+    if y > 10 {
+        break
+    }
+    y = y +1
+}
+```
+
+### break
+
+`break` statement can appear in loop body and transfers the execution flow to its end.
+
 ### return
 
-`return` forces current function to exit and return a value. For the special `logic` function it would be entire program return value.
+`return` forces current function to exit and return a value.
+For the special `logic`, `approval`, `clearstate` functions it is the entire program return value.
 
 ### error
 
@@ -127,8 +164,18 @@ See [TEAL documentation](https://github.com/algorand/go-algorand/blob/master/dat
 
 ## Builtin functions
 
-`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `len`, `itob`, `btoi`, `mulw`, `addw`, `concat`, `substring3`, `assert`, `expw`, `exp`, `getbit`, `getbyte`, `setbit`, `setbyte`, `shl`, `shr`, `bitlen`, `sqrt`, `log` are supported.
-`mulw`, `addw`, `expw` are special - they return two values, high and low.
+Common:
+`len`, `itob`, `btoi`, `mulw`, `addw`, `divw`, `assert`, `expw`, `exp`, `getbit`, `getbyte`, `setbit`, `setbyte`, `shl`, `shr`, `bitlen`, `sqrt`, `log`, `gaid`, `concat`, `substring`, `extract`
+
+Crypto:
+`sha256`, `keccak256`, `sha512_256`, `ed25519verify`, `ecdsa_verify`, `ecdsa_pk_decompress`, `ecdsa_pk_recover`
+
+Byte operations:
+`badd`, `bsub`, `bdiv`, `bmul`, `blt`, `bgt`, `ble`, `bge`, `beq`, `bne`, `bmod`, `bmod`,
+`bor`, `band`, `bxor`, `bnot`, `bsqrt`, `bzero`
+
+Note,
+`mulw`, `addw`, `expw`, `divmodw` are special - they return two values, high and low.
 
 ```
 let h = len("123")
@@ -136,21 +183,30 @@ let l = btoi("1")
 h, l = mulw(l, h)
 ```
 
+Tealang aims to support all operations in the matching TEAL version. Refer to the grammar is something missing in the lists above.
+
 ## Builtin objects
 
-There are 8 builtin objects: `txn`, `gtxn`, `itxn`, `global`, `args`, `assets`, `accounts`, `apps`.
+There are 9 builtin objects:
+1. `txn`, `gtxn`, `args` for transaction (group) data access.
+2. `itxn`, `gitxn` for inner transactions manipulations.
+3. `global` for querying general information about the Algorand blockchain, and info relevant to current execution.
+4. `assets`, `accounts`, `apps` allow accessing Algorand blockchain accounts state.
 
 | Object and Syntax | Description |
 | --- | --- |
 | `args[N]` | returns LogicSig Args[N] value as []byte |
-| `txn.FIELD` | retrieves field from current transaction (see below) |
-| `gtxn[N].FIELD` | retrieves field from a transaction N in the current transaction group |
-| `itxn.begin()/submit()\|FIELD` | create/submit inner transaction or set field (see below) |
+| `txn.FIELD[I]` | retrieves field from current transaction (see below) |
+| `gtxn[N].FIELD[I]` | retrieves field from a transaction N in the current transaction group |
+| `itxn.begin()`, `submit()\|FIELD` | create/submit inner transaction or set field (see below) |
 | `global.FIELD` | returns globals (see below) |
 | `assets[N].FIELD` | returns asset information for an asset specified by `txn.ForeignAssets[N]` (see below) |
 | `accounts[N].Balance\|MinBalance` | returns balance (min balance) of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender |
 | `accounts[N].method` | returns state data of an account specified by `txn.Accounts[N-1]`, N=0 for txn.Sender (see below) |
-| `apps[N].method` | returns application global state data for an app specified by `txn.ForeignApps[N-1]`, N=0 means this app (see below) |
+| `apps[N].method` | returns application data for an app specified by `txn.ForeignApps[N-1]`, N=0 means this app (see below) |
+
+Starting with TEAL v5 assets and apps can be specified by both index and absolute value (but must appear in `ForeignApps`/ `ForeignAssets`).
+The same rule is applicable to account addresses - it can be either an index or an address (but must appear in `Accounts`).
 
 #### Transaction fields
 
@@ -212,6 +268,14 @@ There are 8 builtin objects: `txn`, `gtxn`, `itxn`, `global`, `args`, `assets`, 
 | 53 | GlobalNumByteSlice | uint64 | Number of global state byteslices in ApplicationCall. LogicSigVersion >= 3. |
 | 54 | LocalNumUint | uint64 | Number of local state integers in ApplicationCall. LogicSigVersion >= 3. |
 | 55 | LocalNumByteSlice | uint64 | Number of local state byteslices in ApplicationCall. LogicSigVersion >= 3. |
+| 56 | ExtraProgramPages | uint64 | Number of additional pages for each of the application's approval and clear state programs. An ExtraProgramPages of 1 means 2048 more total bytes, or 1024 for each program. |
+| 57 | Nonparticipation | uint64 | Marks an account nonparticipating for rewards |
+| 58 | Logs | []byte | Log messages emitted by an application call (only with `itxn` in v5). Application mode only |
+| 59 | NumLogs | uint64 | Number of Logs (only with `itxn` in v5). Application mode only |
+| 60 | CreatedAssetID | uint64 | Asset ID allocated by the creation of an ASA (only with `itxn` in v5). Application mode only |
+| 61 | CreatedApplicationID | uint64 | ApplicationID allocated by the creation of an application (only with `itxn` in v5). Application mode only |
+| 62 | LastLog | []byte | The last message emitted. Empty bytes if none were emitted. Application mode only |
+| 63 | StateProofPK | []byte | 64 byte state proof public key commitment |
 
 #### Global fields
 
@@ -228,6 +292,10 @@ There are 8 builtin objects: `txn`, `gtxn`, `itxn`, `global`, `args`, `assets`, 
 | 8 | CurrentApplicationID | uint64 | ID of current application executing. Fails if no such application is executing. LogicSigVersion >= 2. |
 | 9 | CreatorAddress | []byte | Address of the creator of the current application. Fails if no such application is executing. LogicSigVersion >= 3. |
 | 10 | CurrentApplicationAddress | []byte | Address of the current application. Fails if no such application is executing. LogicSigVersion >= 5. |
+| 11 | GroupID | []byte | ID of the transaction group. 32 zero bytes if the transaction is not part of a group. |
+| 12 | OpcodeBudget | uint64 | The remaining cost that can be spent by opcodes in this program. |
+| 13 | CallerApplicationID | uint64 | The application ID of the application that called this application. 0 if this application is at the top-level. Application mode only. |
+| 14 | CallerApplicationAddress | []byte | The application address of the application that called this application. ZeroAddress if this application is at the top-level. Application mode only. |
 
 
 #### Asset fields
@@ -245,6 +313,7 @@ There are 8 builtin objects: `txn`, `gtxn`, `itxn`, `global`, `args`, `assets`, 
 | 8 | AssetReserve | []byte | Reserve address |
 | 9 | AssetFreeze | []byte | Freeze address |
 | 10 | AssetClawback | []byte | Clawback address |
+| 11 | AssetCreator | []byte | Creator address |
 
 #### Accounts methods
 
@@ -257,6 +326,9 @@ There are 8 builtin objects: `txn`, `gtxn`, `itxn`, `global`, `args`, `assets`, 
 | get(key) | []byte | any | Returns value or 0 if does not exist, see [`app_local_get` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
 | put(key, value) | []byte, any | - | Stores key-value pair in app's local store, does not return. See [`app_local_put` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
 | del(key) | []byte | - | Deletes from app's local store, does not return. See [`app_local_del` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| acctBalance | - | uint64, uint64 (top) | Account balance in microalgos. Returns value and isOk flag |
+| acctMinBalance | - | uint64, uint64 (top) | Minimum required blance for account, in microalgos. Returns value and isOk flag |
+| acctAuthAddr | - | []byte, uint64 (top) | Address the account is rekeyed to. Returns value and isOk flag |
 
 #### Apps methods
 
@@ -266,6 +338,16 @@ There are 8 builtin objects: `txn`, `gtxn`, `itxn`, `global`, `args`, `assets`, 
 | get(key) | []byte | any | Returns value or 0 if does not exist, see [`app_global_get` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
 | put(key, value) | []byte, any | - | Stores key-value pair in app's global store, does not return. See [`app_global_put` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
 | del(key) | []byte | - | Deletes from app's local store, does not return. See [`app_global_del` opcode](https://developer.algorand.org/docs/reference/teal/specification/#state-access) for details |
+| appApprovalProgram | - | []byte, uint64 (top) | Bytecode of Approval Program and existence flag |
+| appClearStateProgram | - | []byte, uint64 (top) | Bytecode of Clear State Program and existence flag |
+| appGlobalNumUint | - | uint64, uint64 (top) | Number of uint64 values allowed in Global State and existence flag |
+| appGlobalNumByteSlice | - | uint64, uint64 (top) | Number of byte array values allowed in Global State and existence flag |
+| appLocalNumUint | - | uint64, uint64 (top) | Number of uint64 values allowed in Local State and existence flag |
+| appLocalNumByteSlice | - | uint64, uint64 (top) | Number of byte array values allowed in Local State and existence flag |
+| appExtraProgramPages | - | uint64, uint64 (top) | Number of Extra Program Pages of code space and existence flag |
+| appCreator | - | []byte, uint64 (top) | Creator address and existence flag |
+| appAddress | - | []byte, uint64 (top) | Address for which this application has authority and existence flag |
+
 
 #### Inner Transactions
 
@@ -295,36 +377,10 @@ itxn.begin()
 itxn.TypeEnum = Pay
 itxn.Amount = 5000
 itxn.Receiver = txn.Sender
-itxn.submit()  
+itxn.submit()
 ```
 
-| Index | Name | Type | Notes |
-| --- | --- | --- | --- |
-| 0 | Sender | []byte | 32 byte address |
-| 1 | Fee | uint64 | micro-Algos |
-| 2 | Receiver | []byte | 32 byte address |
-| 3 | Amount | uint64 | micro-Algos |
-| 4 | CloseRemainderTo | []byte | 32 byte address |
-| 5 | Type | []byte | transaction type string |
-| 6 | TypeEnum | uint64 | type constant |
-| 7 | XferAsset | uint64 | Asset ID |
-| 8 | AssetAmount | uint64 | value in Asset's units |
-| 9 | AssetSender | []byte | 32 byte address. Causes clawback of all value of asset from AssetSender if Sender is the Clawback address of the asset. |
-| 10 | AssetReceiver | []byte | 32 byte address |
-| 11 | AssetCloseTo | []byte | 32 byte address |
-| 12 | ConfigAsset | uint64 | Asset ID in asset config transaction. LogicSigVersion >= 2. |
-| 13 | ConfigAssetTotal | uint64 | Total number of units of this asset created. LogicSigVersion >= 2. |
-| 14 | ConfigAssetDecimals | uint64 | Number of digits to display after the decimal place when displaying the asset. LogicSigVersion >= 2. |
-| 15 | ConfigAssetUnitName | []byte | Unit name of the asset. LogicSigVersion >= 2. |
-| 16 | ConfigAssetName | []byte | The asset name. LogicSigVersion >= 2. |
-| 17 | ConfigAssetURL | []byte | URL. LogicSigVersion >= 2. |
-| 18 | ConfigAssetManager | []byte | 32 byte address. LogicSigVersion >= 2. |
-| 19 | ConfigAssetReserve | []byte | 32 byte address. LogicSigVersion >= 2. |
-| 20 | ConfigAssetFreeze | []byte | 32 byte address. LogicSigVersion >= 2. |
-| 21 | ConfigAssetClawback | []byte | 32 byte address. LogicSigVersion >= 2. |
-| 22 | FreezeAsset | uint64 | Asset ID being frozen or un-frozen. LogicSigVersion >= 2. |
-| 23 | FreezeAssetAccount | []byte | 32 byte address of the account whose asset slot is being frozen or un-frozen. LogicSigVersion >= 2. |
-| 24 | FreezeAssetFrozen | uint64 | The new frozen value, 0 or 1. LogicSigVersion >= 2. |
+Most transaction fields can be accessed from `itxn` and `gitxn` objects.
 
 ## Scopes
 

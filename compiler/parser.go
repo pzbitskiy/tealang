@@ -1351,6 +1351,9 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 			name = "app_global_get_ex"
 		} else {
 			fieldArgToken = ctx.APPPARAMSFIELDS().GetSymbol()
+			origText := fieldArgToken.GetText()
+			newText := strings.ToUpper(string(origText[0])) + origText[1:]
+			fieldArgToken.SetText(newText)
 			name = "app_params_get"
 		}
 	} else if node := ctx.ASSETS(); node != nil {

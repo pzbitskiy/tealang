@@ -817,7 +817,7 @@ func TestCodegenAppParams(t *testing.T) {
 	source := `
 function approval() {
 	let app = 1;
-	let amount, exist = apps[app].AppExtraProgramPages;
+	let amount, exist = apps[app].appExtraProgramPages();
 	return exist;
 }
 `

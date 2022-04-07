@@ -1,6 +1,6 @@
 # Tealang
 
-High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v5** language.
+High-level language for Algorand Smart Contracts at Layer-1 and its low-level **TEAL v6** language.
 The goal is to abstract the stack-based **Algorand Virtual Machine** and provide imperative Go/JS/Python-like syntax.
 
 ## Language Features
@@ -90,10 +90,11 @@ import stdlib.const
 ```
 
 * Antlr-based parser
+* [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
 
 ## Language guide
 
-Check the [languaga documentation](GUIDE.md)!
+Check the [language documentation](GUIDE.md)!
 
 ## Usage
 
@@ -118,7 +119,6 @@ Check the [languaga documentation](GUIDE.md)!
     ```sh
     tealang -s -c -d '' examples/basic.tl
     ```
-* [syntax highlighter](https://github.com/pzbitskiy/tealang-syntax-highlighter) for vscode.
 
 ## Build from sources
 
@@ -151,7 +151,6 @@ make java-gui ARGS=examples/basic.tl
 
 ## Roadmap
 
-0. TEAL v6 support.
 1. Constant folding.
 2. Improve errors reporting.
 3. Code gen: do not use temp scratch in "assign and use" case.
