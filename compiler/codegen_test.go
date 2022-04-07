@@ -1368,6 +1368,8 @@ function approval() {
 	itxn.Receiver = txn.Sender
 	itxn.submit()
 	let a = concat(itxn.Sender, "0")
+	let c = itxn.ApplicationArgs[0]
+	let b = itxn.Logs[c]
 	return 1
 }
 `
@@ -1390,6 +1392,11 @@ itxn Sender
 bytec 0
 concat
 store 0
+itxna ApplicationArgs 0
+store 1
+load 1
+itxnas Logs
+store 2
 intc 1
 return
 end_main:

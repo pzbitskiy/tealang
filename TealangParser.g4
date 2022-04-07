@@ -59,7 +59,7 @@ condFalseBlock
 innertxn
     :   INNERTXN DOT ITXNBEGIN LEFTPARA RIGHTPARA    # InnerTxnBegin
     |   INNERTXN DOT ITXNEND LEFTPARA RIGHTPARA      # InnerTxnEnd
-    |   INNERTXN DOT TXNFIELD EQ expr               # InnerTxnAssign
+    |   INNERTXN DOT TXNFIELD EQ expr                # InnerTxnAssign
     ;
 
 termination
@@ -142,7 +142,7 @@ builtinVarExpr
     |   ARGS LEFTSQUARE expr RIGHTSQUARE            # ArgsExpr
     |   accounts                                    # AccountsExpr
     |   apps                                        # AppsExpr
-    |   INNERTXN DOT TXNFIELD                       # InnerTxnFieldExpr
+    |   itxn                                        # InnerTxnFieldExpr
     ;
 
 txn
@@ -153,6 +153,11 @@ txn
 gtxn
     :   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNFIELD                                   # GroupTxnSingleFieldExpr
     |   GTXN LEFTSQUARE expr RIGHTSQUARE DOT TXNARRAYFIELD LEFTSQUARE expr RIGHTSQUARE  # GroupTxnArrayFieldExpr
+    ;
+
+itxn
+    :   INNERTXN DOT TXNFIELD                                    # InnerTxnSingleFieldExpr
+    |   INNERTXN DOT TXNARRAYFIELD LEFTSQUARE (expr) RIGHTSQUARE # InnerTxnArrayFieldExpr
     ;
 
 accounts
