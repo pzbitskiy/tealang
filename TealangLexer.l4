@@ -13,6 +13,9 @@ GLOBALFIELD
     |   CREATORADDRESS
     |   CURRENTAPPADDRESS
     |   GROUPID
+    |   OPCODEBUDGET
+    |   CALLERAPPID
+    |   CALLERAPPADDR
     ;
 
 // TODO: lexer does not allow two token to be in the same rule
@@ -103,6 +106,8 @@ TXNFIELD
     |   NUMLOGS
     |   CREATEDASSETID
     |   CREATEDAPPID
+    |   LASTLOG
+    |   STATEPROOFPK
     ;
 
 TXNARRAYFIELD
@@ -238,6 +243,9 @@ CURRENTAPPID      : 'CurrentApplicationID' ;
 CREATORADDRESS    : 'CreatorAddress' ;
 CURRENTAPPADDRESS : 'CurrentApplicationAddress' ;
 GROUPID           : 'GroupID' ;
+OPCODEBUDGET      : 'OpcodeBudget' ;
+CALLERAPPID       : 'CallerApplicationID' ;
+CALLERAPPADDR     : 'CallerApplicationAddress' ;
 
 SENDER               : 'Sender' ;
 FEE                  : 'Fee' ;
@@ -300,6 +308,8 @@ LOGS                 : 'Logs' ;
 NUMLOGS              : 'NumLogs' ;
 CREATEDASSETID       : 'CreatedAssetID' ;
 CREATEDAPPID         : 'CreatedApplicationID' ;
+LASTLOG              : 'LastLog' ;
+STATEPROOFPK         : 'StateProofPK' ;
 
 ASSETTOTAL         : 'AssetTotal' ;
 ASSETDECIMALS      : 'AssetDecimals' ;

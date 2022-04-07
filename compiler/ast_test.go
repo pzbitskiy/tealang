@@ -273,7 +273,12 @@ function test(a) {
 	let g = global.GroupID
 	let l = txn.Logs[1]
 	let caidx = gtxn[0].CreatedApplicationID
-    return 1
+
+	caidx = global.CallerApplicationID
+	l = txn.LastLog
+	let spk = gtxn[0].StateProofPK
+
+	return 1
 }
 
 function logic() {
