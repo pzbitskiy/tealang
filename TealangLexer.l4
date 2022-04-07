@@ -179,7 +179,7 @@ BUILTINFUNC
     |   BYTEAND
     |   BYTEXOR
     |   BYTENOT
-    |   BSQRL
+    |   BSQRT
     |   GAID
     |   DIVW
     ;
@@ -367,7 +367,7 @@ BYTEOR      : 'bor' ;
 BYTEAND     : 'band' ;
 BYTEXOR     : 'bxor' ;
 BYTENOT     : 'bnot' ;
-BSQRL       : 'bsqrt' ;
+BSQRT       : 'bsqrt' ;
 
 TOINT       : 'toint'  ;
 TOBYTE      : 'tobyte' ;
@@ -391,15 +391,15 @@ ACCTBALANCE     : 'acctBalance' ;
 ACCTMINBALANCE  : 'acctMinBalance' ;
 ACCTAUTHADDR    : 'acctAuthAddr' ;
 
-APPAPPROVALPROG    : 'AppApprovalProgram' ;
-APPCLEARSTATEPROG  : 'AppClearStateProgram' ;
-APPGLOBALNUMUINT   : 'AppGlobalNumUint' ;
-APPGLOBALNUMBYTES  : 'AppGlobalNumByteSlice' ;
-APPLOCALNUMUINT    : 'AppLocalNumUint' ;
-APPLOCALNUMBYTES   : 'AppLocalNumByteSlice' ;
-APPEXTRAPROGPAGES  : 'AppExtraProgramPages' ;
-APPCREATOR         : 'AppCreator' ;
-APPADDRESS         : 'AppAddress' ;
+APPAPPROVALPROG    : 'appApprovalProgram' ;
+APPCLEARSTATEPROG  : 'appClearStateProgram' ;
+APPGLOBALNUMUINT   : 'appGlobalNumUint' ;
+APPGLOBALNUMBYTES  : 'appGlobalNumByteSlice' ;
+APPLOCALNUMUINT    : 'appLocalNumUint' ;
+APPLOCALNUMBYTES   : 'appLocalNumByteSlice' ;
+APPEXTRAPROGPAGES  : 'appExtraProgramPages' ;
+APPCREATOR         : 'appCreator' ;
+APPADDRESS         : 'appAddress' ;
 
 ITXNBEGIN       : 'begin' ;
 ITXNNEXT        : 'next' ;
