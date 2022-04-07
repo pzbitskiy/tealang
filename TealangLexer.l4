@@ -175,7 +175,6 @@ BUILTINFUNC
     |   BEQ
     |   BNE
     |   BMOD
-    |   BSQRT
     |   BYTEOR
     |   BYTEAND
     |   BYTEXOR
@@ -364,7 +363,6 @@ BGE         : 'bge' ;
 BEQ         : 'beq' ;
 BNE         : 'bne' ;
 BMOD        : 'bmod' ;
-BSQRT       : 'bsqrt' ;
 BYTEOR      : 'bor' ;
 BYTEAND     : 'band' ;
 BYTEXOR     : 'bxor' ;
