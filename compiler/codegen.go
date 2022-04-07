@@ -15,7 +15,6 @@ import (
 
 const trueConstValue = "1"
 const falseConstValue = "0"
-const tealVersion = 5
 
 // TODO: switch from global var to recursive breakNode -> forNode lookup
 var ids []interface{}
@@ -29,7 +28,7 @@ func (n *TreeNode) Codegen(ostream io.Writer) {
 func (n *programNode) Codegen(ostream io.Writer) {
 	ctx := n.ctx
 
-	fmt.Fprintf(ostream, "#pragma version %d\n", tealVersion)
+	fmt.Fprintf(ostream, "#pragma version %d\n", tealVersion())
 
 	// emit literals
 	if len(ctx.literals.intc) > 0 {

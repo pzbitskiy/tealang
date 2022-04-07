@@ -50,3 +50,7 @@ func runtimeFieldTypeFromSpec(name string, field string) (exprType, error) {
 	}
 	return invalidType, fmt.Errorf("can't get type for %s.%s", name, field)
 }
+
+func tealVersion() int {
+	return langSpec.EvalMaxVersion
+}

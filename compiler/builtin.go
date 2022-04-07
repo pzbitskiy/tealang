@@ -18,6 +18,7 @@ var builtinFun = map[string]bool{
 	"mulw":                true,
 	"addw":                true,
 	"expw":                true,
+	"divw":                true,
 	"divmodw":             true,
 	"exp":                 true,
 	"balance":             true,
@@ -59,6 +60,7 @@ var builtinFun = map[string]bool{
 	"band":                true,
 	"bxor":                true,
 	"bnot":                true,
+	"bsqrt":               true,
 	"gaid":                true,
 	"gaids":               false, // not a tealang builtin but TEAL func
 	"log":                 true,
