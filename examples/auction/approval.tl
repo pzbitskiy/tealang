@@ -21,6 +21,8 @@ function closeNFTTo(asset_id, acc) {
             itxn.AssetCloseTo = acc
         itxn.submit()
     }
+
+    return 1
 }
 
 function repayPreviousLeadBidder(prevLeadBidder, prevLeadBidAmount) {
@@ -29,6 +31,8 @@ function repayPreviousLeadBidder(prevLeadBidder, prevLeadBidAmount) {
         itxn.Amount = prevLeadBidAmount - global.MinTxnFee
         itxn.Receiver = prevLeadBidder
     itxn.submit()
+
+    return 1
 }
 
 function closeAccountTo(acc) {
@@ -39,6 +43,8 @@ function closeAccountTo(acc) {
             itxn.CloseRemainderTo = acc
         itxn.submit()
     }
+
+    return 1
 }
 
 function onCreate(on_create_start_time, on_create_end_time) {
@@ -81,7 +87,7 @@ function onBid(on_bid_txn_index, on_bid_nft_holding) {
         if apps[0].get(lead_bid_account_key) != global.ZeroAddress {
             let acc = apps[0].get(lead_bid_account_key)
             let amount = apps[0].get(lead_bid_amount_key)
-            repayPreviousLeadBidder(acc, amount)
+            let ok = repayPreviousLeadBidder(acc, amount)
         }
 
         apps[0].put(lead_bid_amount_key, gtxn[on_bid_txn_index].Amount)
@@ -96,24 +102,24 @@ function onBid(on_bid_txn_index, on_bid_nft_holding) {
 function onDelete() {
     if global.LatestTimestamp < apps[0].get(start_time_key) {
         assert(txn.Sender == apps[0].get(seller_key) || txn.Sender == global.CreatorAddress)
-        closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
-        closeAccountTo(apps[0].get(seller_key))
+        let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
+        ok = closeAccountTo(apps[0].get(seller_key))
         return 1
     }
 
     if apps[0].get(end_time_key) <= global.LatestTimestamp {
         if apps[0].get(lead_bid_account_key) != global.ZeroAddress {
             if apps[0].get(lead_bid_amount_key) >= apps[0].get(reserve_amount_key) {
-                closeNFTTo(apps[0].get(nft_id_key), apps[0].get(lead_bid_account_key))
+                let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(lead_bid_account_key))
             } else {
-                closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
-                repayPreviousLeadBidder(apps[0].get(lead_bid_account_key), apps[0].get(lead_bid_amount_key))
+                let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
+                ok = repayPreviousLeadBidder(apps[0].get(lead_bid_account_key), apps[0].get(lead_bid_amount_key))
             }
         } else {
-            closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
+            let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
         }
 
-        closeAccountTo(apps[0].get(seller_key))
+        let ok = closeAccountTo(apps[0].get(seller_key))
         return 1
     }
 
@@ -122,20 +128,20 @@ function onDelete() {
 
 function approval() {
     if (txn.ApplicationID == 0) {
-        on_create_start_time = btoi(txn.ApplicationArgs[2])
-        on_create_end_time = btoi(txn.ApplicationArgs[3])
-        return onCreate()
+        let on_create_start_time = btoi(txn.ApplicationArgs[2])
+        let on_create_end_time = btoi(txn.ApplicationArgs[3])
+        return onCreate(on_create_start_time, on_create_end_time)
     }
     
     // noop
     if txn.OnCompletion == 0 {
-        on_call_method = txn.ApplicationArgs[0]
+        let on_call_method = txn.ApplicationArgs[0]
         if on_call_method == "setup" {
             return onSetup()
         }
         if on_call_method == "bid" {
             let addr = global.CurrentApplicationAddress
-            let on_bid_nft_holding = accounts[addr].assetBalance(apps[0].get(nft_id_key))
+            let on_bid_nft_holding, _ = accounts[addr].assetBalance(apps[0].get(nft_id_key))
             return onBid(txn.GroupIndex - 1, on_bid_nft_holding)
         }
     }
