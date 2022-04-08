@@ -12,7 +12,7 @@ const lead_bid_account_key = "bid_account"
 
 function closeNFTTo(asset_id, acc) {
     let cur_addr = global.CurrentApplicationAddress
-    let _, ok = accounts[cur_addr].assetBalance(asset_id) // todo
+    let _, ok = accounts[cur_addr].assetBalance(asset_id)
 
     if ok {
         itxn.begin()
@@ -63,10 +63,10 @@ function onCreate(on_create_start_time, on_create_end_time) {
 }
 
 function onSetup() {
-    assert(global.LatestTimestamp < apps[0].get(start_time_key))
+    assert(global.LatestTimestamp < toint(apps[0].get(start_time_key)))
     itxn.begin()
         itxn.TypeEnum = TxTypeAssetTransfer
-        itxn.XferAsset = apps[0].get(nft_id_key)
+        itxn.XferAsset = toint(apps[0].get(nft_id_key))
         itxn.AssetReceiver = global.CurrentApplicationAddress
     itxn.submit()
 
@@ -75,24 +75,24 @@ function onSetup() {
 
 function onBid(on_bid_txn_index, on_bid_nft_holding) {
     assert(on_bid_nft_holding > 0)
-    assert(apps[0].get(start_time_key) <= global.LatestTimestamp)
-    assert(global.LatestTimestamp <= apps[0].get(end_time_key))
+    assert(toint(apps[0].get(start_time_key)) <= global.LatestTimestamp)
+    assert(global.LatestTimestamp <= toint(apps[0].get(end_time_key)))
     assert(gtxn[on_bid_txn_index].TypeEnum == TxTypePayment)
     assert(gtxn[on_bid_txn_index].Sender == txn.Sender)
     assert(gtxn[on_bid_txn_index].Receiver == global.CurrentApplicationAddress)
     assert(gtxn[on_bid_txn_index].Amount == global.MinTxnFee)
 
-    let min_amount = apps[0].get(lead_bid_amount_key) + apps[0].get(min_bid_increment_key)
+    let min_amount = toint(apps[0].get(lead_bid_amount_key)) + toint(apps[0].get(min_bid_increment_key))
     if gtxn[on_bid_txn_index].Amount >= min_amount {
         if apps[0].get(lead_bid_account_key) != global.ZeroAddress {
-            let acc = apps[0].get(lead_bid_account_key)
-            let amount = apps[0].get(lead_bid_amount_key)
+            let acc = tobyte(apps[0].get(lead_bid_account_key))
+            let amount = toint(apps[0].get(lead_bid_amount_key))
             let ok = repayPreviousLeadBidder(acc, amount)
         }
 
         apps[0].put(lead_bid_amount_key, gtxn[on_bid_txn_index].Amount)
         apps[0].put(lead_bid_account_key, gtxn[on_bid_txn_index].Sender)
-        apps[0].put(num_bids_key, apps[0].get(num_bids_key) + 1)
+        apps[0].put(num_bids_key, toint(apps[0].get(num_bids_key)) + 1)
         return 1
     }
 
@@ -100,26 +100,31 @@ function onBid(on_bid_txn_index, on_bid_nft_holding) {
 }
 
 function onDelete() {
-    if global.LatestTimestamp < apps[0].get(start_time_key) {
-        assert(txn.Sender == apps[0].get(seller_key) || txn.Sender == global.CreatorAddress)
-        let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
-        ok = closeAccountTo(apps[0].get(seller_key))
+    let nft_id_int = toint(apps[0].get(nft_id_key))
+    let lead_bid_account_byte = tobyte(apps[0].get(seller_key))
+    let seller_byte = tobyte(apps[0].get(seller_key))
+    if global.LatestTimestamp < toint(apps[0].get(start_time_key)) {
+        assert(txn.Sender == tobyte(apps[0].get(seller_key)) || txn.Sender == global.CreatorAddress)
+        let ok = closeNFTTo(nft_id_int, lead_bid_account_byte)
+        ok = closeAccountTo(tobyte(apps[0].get(seller_key)))
         return 1
     }
 
-    if apps[0].get(end_time_key) <= global.LatestTimestamp {
+    if toint(apps[0].get(end_time_key)) <= global.LatestTimestamp {
+        
         if apps[0].get(lead_bid_account_key) != global.ZeroAddress {
             if apps[0].get(lead_bid_amount_key) >= apps[0].get(reserve_amount_key) {
-                let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(lead_bid_account_key))
+                let ok = closeNFTTo(nft_id_int, lead_bid_account_byte)
             } else {
-                let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
-                ok = repayPreviousLeadBidder(apps[0].get(lead_bid_account_key), apps[0].get(lead_bid_amount_key))
+                let ok = closeNFTTo(nft_id_int, seller_byte)
+                let acc = tobyte(apps[0].get(lead_bid_account_key))
+                ok = repayPreviousLeadBidder(acc, toint(apps[0].get(lead_bid_amount_key)))
             }
         } else {
-            let ok = closeNFTTo(apps[0].get(nft_id_key), apps[0].get(seller_key))
+            let ok = closeNFTTo(nft_id_int, seller_byte)
         }
 
-        let ok = closeAccountTo(apps[0].get(seller_key))
+        let ok = closeAccountTo(tobyte(apps[0].get(seller_key)))
         return 1
     }
 
