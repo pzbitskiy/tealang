@@ -515,11 +515,12 @@ func (l *treeNodeListener) EnterTermReturn(ctx *gen.TermReturnContext) {
 
 	parent := node.parent()
 	var definition *funDefNode
+outer:
 	for parent != nil && definition == nil {
 		switch tt := parent.(type) {
 		case *funDefNode:
 			definition = tt
-			break
+			break outer
 		}
 		parent = parent.parent()
 	}
@@ -653,6 +654,37 @@ func (l *treeNodeListener) EnterDoLog(ctx *gen.DoLogContext) {
 }
 
 func (l *treeNodeListener) EnterBreak(ctx *gen.BreakContext) {
+	// check break is inside for loop
+	parentBlock, ok := l.parent.(*blockNode)
+	if !ok {
+		parser := ctx.GetParser()
+		token := ctx.BREAK().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError("break is not inside block", parser, token, rule)
+		return
+	}
+
+	var parent TreeNodeIf = parentBlock
+	var forNode *forStatementNode
+outer:
+	for parent != nil && forNode == nil {
+		switch tt := parent.(type) {
+		case *forStatementNode:
+			forNode = tt
+			break outer
+		case *funDefNode:
+			break outer
+		}
+		parent = parent.parent()
+	}
+	if forNode == nil {
+		parser := ctx.GetParser()
+		token := ctx.BREAK().GetSymbol()
+		rule := ctx.GetRuleContext()
+		reportError("break is not inside for block", parser, token, rule)
+		return
+	}
+
 	l.node = newBreakNode(l.ctx, l.parent)
 }
 
@@ -1724,14 +1756,12 @@ func (l *exprListener) EnterGroupInnerTxnSingleFieldExpr(ctx *gen.GroupInnerTxnS
 			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
 		}
 	default:
-		// group index must be provided
+		// group index must be either const or literal
 		errToken = ctx.Expr().GetStart()
-		reportError(fmt.Sprintf("group index not provided as literal or constant"), ctx.GetParser(), errToken, ctx.GetRuleContext())
-		return
 	}
 
 	if errToken != nil {
-		reportError(fmt.Sprintf("%s not a number", exprNode.String()), ctx.GetParser(), errToken, ctx.GetRuleContext())
+		reportError(fmt.Sprintf("group index %s not a number", exprNode.String()), ctx.GetParser(), errToken, ctx.GetRuleContext())
 		return
 	}
 
@@ -1770,10 +1800,8 @@ func (l *exprListener) EnterGroupInnerTxnArrayFieldExpr(ctx *gen.GroupInnerTxnAr
 			groupIndex = expr.value
 		}
 	default:
-		// group index must be provided
+		// group index must be either const or literal
 		errToken = groupIndexExpr.GetStart()
-		reportError(fmt.Sprintf("group index not provided as literal or constant"), ctx.GetParser(), errToken, ctx.GetRuleContext())
-		return
 	}
 	if errToken != nil {
 		reportError(fmt.Sprintf("group index %s not a number", groupIndexExprNode.String()), ctx.GetParser(), errToken, ctx.GetRuleContext())

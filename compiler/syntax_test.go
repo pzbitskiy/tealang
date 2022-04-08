@@ -320,3 +320,74 @@ function logic() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 }
+
+func TestBreakError1(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function logic() {
+	break
+	return 0
+}
+`
+	result, errors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("    break", errors[0].excerpt[0])
+	a.Equal("----^-----", errors[0].excerpt[1])
+	msg := `error at line 3, col 1 near token 'break'
+    break
+----^-----
+break is not inside for block`
+	a.Equal(msg, errors[0].String())
+
+	source = `
+function logic() {
+	if 1 {
+		break
+	}
+	return 0
+}
+`
+	result, errors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("        break", errors[0].excerpt[0])
+	a.Equal("   -----^-----", errors[0].excerpt[1])
+	msg = `error at line 4, col 2 near token 'break'
+        break
+   -----^-----
+break is not inside for block`
+	a.Equal(msg, errors[0].String())
+}
+
+func TestBreakError2(t *testing.T) {
+	a := require.New(t)
+
+	source := `
+function test() {
+	break
+	return 1
+}
+function logic() {
+	let res = 0
+	for 1 {
+		res = res + test()
+	}
+	return 0
+}
+`
+	result, errors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(errors)
+	a.Equal(1, len(errors))
+	a.Equal("    break", errors[0].excerpt[0])
+	a.Equal("----^-----", errors[0].excerpt[1])
+	msg := `error at line 3, col 1 near token 'break'
+    break
+----^-----
+break is not inside for block`
+	a.Equal(msg, errors[0].String())
+}
