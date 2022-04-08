@@ -927,6 +927,7 @@ function approval() {
 	let asset = 100;
 	let acc = 1;
 	let amount, exist = accounts[acc].assetBalance(asset);
+	amount, exist = accounts[global.CurrentApplicationAddress].assetBalance(asset);
 	return exist;
 }
 `
@@ -942,6 +943,11 @@ store 0
 intc 1
 store 1
 load 1
+load 0
+asset_holding_get AssetBalance
+store 2
+store 3
+global CurrentApplicationAddress
 load 0
 asset_holding_get AssetBalance
 store 2
