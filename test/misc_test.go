@@ -2,6 +2,8 @@ package test
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestByteArith(t *testing.T) {
@@ -71,4 +73,18 @@ function logic() {
 }
 `
 	performTest(t, source)
+}
+
+func TestAppAddress(t *testing.T) {
+	source := `
+function approval() {
+	let asset = 100;
+	let acc = 1;
+	let amount, exist = accounts[acc].assetBalance(asset);
+	amount, exist = accounts[global.CurrentApplicationAddress].assetBalance(asset);
+	return exist;
+}
+`
+	ops := compileTest(t, source)
+	require.NotEmpty(t, ops.Program)
 }

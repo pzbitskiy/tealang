@@ -207,6 +207,13 @@ There are 9 builtin objects:
 
 Starting with TEAL v5 assets and apps can be specified by both index and absolute value (but must appear in `ForeignApps`/ `ForeignAssets`).
 The same rule is applicable to account addresses - it can be either an index or an address (but must appear in `Accounts`).
+For example, to obtain an _application account_ balance (of asset balance), one can write
+```
+let asset = 100;
+let appAddr = global.CurrentApplicationAddress
+let balance, ok = accounts[appAddr].acctBalance()
+let amount, exist = accounts[appAddr].assetBalance(asset);
+```
 
 #### Transaction fields
 
