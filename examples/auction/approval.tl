@@ -1,14 +1,14 @@
 import stdlib.const
 
-let seller_key = "seller"
-let nft_id_key = "nft_id"
-let start_time_key = "start"
-let end_time_key = "end"
-let reserve_amount_key = "reserve_amount"
-let min_bid_increment_key = "min_bid_inc"
-let num_bids_key = "num_bids"
-let lead_bid_amount_key = "bid_amount"
-let lead_bid_account_key = "bid_account"
+const seller_key = "seller"
+const nft_id_key = "nft_id"
+const start_time_key = "start"
+const end_time_key = "end"
+const reserve_amount_key = "reserve_amount"
+const min_bid_increment_key = "min_bid_inc"
+const num_bids_key = "num_bids"
+const lead_bid_amount_key = "bid_amount"
+const lead_bid_account_key = "bid_account"
 
 function closeNFTTo(asset_id, acc) {
     let cur_addr = global.CurrentApplicationAddress
@@ -29,7 +29,6 @@ function repayPreviousLeadBidder(prevLeadBidder, prevLeadBidAmount) {
         itxn.Amount = prevLeadBidAmount - global.MinTxnFee
         itxn.Receiver = prevLeadBidder
     itxn.submit()
-    return 1
 }
 
 function closeAccountTo(acc) {
