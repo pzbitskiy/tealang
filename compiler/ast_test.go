@@ -423,7 +423,9 @@ function logic() {
 	info, _ = logicNode.ctx.vars["y"]
 	a.Equal(uint(1), info.address)
 
-	ifStmtNode := logicNode.children()[1].(*ifStatementNode)
+	a.Len(logicNode.children(), 1)
+	block := logicNode.children()[0]
+	ifStmtNode := block.children()[1].(*ifStatementNode)
 
 	ifStmtTrueNode := ifStmtNode.children()[0].(*blockNode)
 	a.Equal(1, len(ifStmtTrueNode.ctx.vars))

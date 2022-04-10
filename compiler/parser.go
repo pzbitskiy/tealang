@@ -132,7 +132,8 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 		return
 	}
 
-	if !ensureBlockReturns(main) {
+	block := main.children()[0]
+	if !ensureBlockReturns(block) {
 		reportError(
 			"main function does not return",
 			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
@@ -220,11 +221,8 @@ func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *ge
 	listener := newTreeNodeListener(scopedContext, node)
 	ctx.Block().EnterRule(listener)
 	blockNode := listener.getNode()
-	for _, stmt := range blockNode.children() {
-		node.append(stmt)
-	}
+	node.append(blockNode)
 	l.node = node
-
 	ctx.Block().ExitRule(listener)
 }
 
@@ -322,9 +320,7 @@ func (l *treeNodeListener) EnterMain(ctx *gen.MainContext) {
 	listener := newTreeNodeListener(scopedContext, node)
 	ctx.Block().EnterRule(listener)
 	blockNode := listener.getNode()
-	for _, stmt := range blockNode.children() {
-		node.append(stmt)
-	}
+	node.append(blockNode)
 	l.node = node
 	ctx.Block().ExitRule(listener)
 }
@@ -1207,7 +1203,8 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	}
 	l.ctx.update(name, info) // save reference to funNodeDef
 
-	if !ensureBlockReturns(defNode) {
+	block := defNode.children()[0]
+	if !ensureBlockReturns(block) {
 		reportError(
 			fmt.Sprintf("%s function does not return", name),
 			parser, token, rule,
