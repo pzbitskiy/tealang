@@ -303,8 +303,8 @@ function logic() {let x = sha256(1) ; return 1;}
 	a.Contains(parserErrors[0].msg, `incompatible types: (exp) byte[] vs uint64 (actual) in expr 'sha256 ([1])'`)
 
 	source = `
-	function logic() {let x = 1; x = sha256("abc") ; return 1;}
-	`
+function logic() {let x = 1; x = sha256("abc") ; return 1;}
+`
 	result, parserErrors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)

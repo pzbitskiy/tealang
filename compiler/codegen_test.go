@@ -356,6 +356,10 @@ func TestCodegenFunCall(t *testing.T) {
 	source := `
 function true() {return 1;}
 function sum(x, y) { return x + y; }
+function noop() void {return;}
+noop()
+let x = 1
+noop()
 function logic() {
 	let a = 1
 	let b = sum (a, 2)
@@ -370,27 +374,34 @@ function logic() {
 	actual := Codegen(result)
 	expected := `#pragma version *
 intcblock 0 1 2 3
-fun_main:
+callsub fun_noop
 intc 1
 store 0
-load 0
+callsub fun_noop
+fun_main:
+intc 1
+store 1
+load 1
 intc 2
 callsub fun_sum
-store 1
-intc 3
 store 2
-load 2
+intc 3
+store 3
+load 3
 intc 1
 callsub fun_sum
-store 3
+store 4
 callsub fun_true
 return
 end_main:
+fun_noop:
+retsub
+end_noop:
 fun_sum:
+store 5
 store 4
-store 3
-load 3
 load 4
+load 5
 +
 retsub
 end_sum:
@@ -401,8 +412,8 @@ end_true:
 `
 	CompareTEAL(a, expected, actual)
 	lines := strings.Split(actual, "\n")
-	a.Equal(lines[7], lines[13])               // callsub func_sum_*
-	a.True(lines[18][len(lines[18])-1] == ':') // func_sum_*:
+	a.Equal(lines[11], lines[17])              // callsub func_sum_*
+	a.True(lines[25][len(lines[25])-1] == ':') // func_sum_*:
 
 	source = `
 function test() {return 1;}
