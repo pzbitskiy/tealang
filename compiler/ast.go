@@ -338,27 +338,24 @@ type assignQuadrupleNode struct {
 
 type varDeclNode struct {
 	*TreeNode
-	name     string
-	exprType exprType
-	value    ExprNodeIf
+	name  string
+	value ExprNodeIf
 }
 
 type varDeclTupleNode struct {
 	*TreeNode
-	low      string
-	high     string
-	exprType exprType
-	value    ExprNodeIf
+	low   string
+	high  string
+	value ExprNodeIf
 }
 
 type varDeclQuadrupleNode struct {
 	*TreeNode
-	low      string
-	high     string
-	rlow     string
-	rhigh    string
-	exprType exprType
-	value    ExprNodeIf
+	low   string
+	high  string
+	rlow  string
+	rhigh string
+	value ExprNodeIf
 }
 
 type constNode struct {
@@ -577,30 +574,24 @@ func newFunDefNode(ctx *context, parent TreeNodeIf) (node *funDefNode) {
 	return
 }
 
-func newVarDeclNode(ctx *context, parent TreeNodeIf, ident string, value ExprNodeIf) (node *varDeclNode) {
+func newVarDeclNode(ctx *context, parent TreeNodeIf, ident string) (node *varDeclNode) {
 	node = new(varDeclNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "var"
 	node.name = ident
-	node.value = value
-	tp, _ := value.getType()
-	node.exprType = tp
 	return
 }
 
-func newVarDeclTupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, value ExprNodeIf) (node *varDeclTupleNode) {
+func newVarDeclTupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string) (node *varDeclTupleNode) {
 	node = new(varDeclTupleNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "var, var"
 	node.low = identLow
 	node.high = identHigh
-	node.value = value
-	tp, _ := value.getType()
-	node.exprType = tp
 	return
 }
 
-func newVarDeclDivmodwTupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, remLow string, remHigh string, value ExprNodeIf) (node *varDeclQuadrupleNode) {
+func newVarDeclQuadrupleNode(ctx *context, parent TreeNodeIf, identLow string, identHigh string, remLow string, remHigh string) (node *varDeclQuadrupleNode) {
 	node = new(varDeclQuadrupleNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "divmodw"
@@ -608,9 +599,6 @@ func newVarDeclDivmodwTupleNode(ctx *context, parent TreeNodeIf, identLow string
 	node.high = identHigh
 	node.rlow = remLow
 	node.rhigh = remHigh
-	node.value = value
-	tp, _ := value.getType()
-	node.exprType = tp
 	return
 }
 
@@ -739,6 +727,18 @@ func newRuntimeArgNode(ctx *context, parent TreeNodeIf, op string, number string
 // Type checks
 //
 //--------------------------------------------------------------------------------------------------
+
+func (n *varDeclNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
+
+func (n *varDeclTupleNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
+
+func (n *varDeclQuadrupleNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
 
 func (n *exprLiteralNode) getType() (exprType, error) {
 	return n.exprType, nil
@@ -1114,11 +1114,18 @@ func printImpl(n TreeNodeIf, offset int) {
 }
 
 func (n *varDeclNode) String() string {
-	return fmt.Sprintf("var (%s) %s = %s", n.exprType, n.name, n.value)
+	t, _ := n.value.getType()
+	return fmt.Sprintf("var (%s) %s = %s", t, n.name, n.value)
 }
 
 func (n *varDeclTupleNode) String() string {
-	return fmt.Sprintf("var (%s) %s, %s = %s", n.exprType, n.high, n.low, n.value)
+	t, _ := n.value.getType()
+	return fmt.Sprintf("var (%s) %s, %s = %s", t, n.high, n.low, n.value)
+}
+
+func (n *varDeclQuadrupleNode) String() string {
+	t, _ := n.value.getType()
+	return fmt.Sprintf("var (%s) %s, %s, %s, %s = %s", t, n.high, n.low, n.rhigh, n.rlow, n.value)
 }
 
 func (n *constNode) String() string {
