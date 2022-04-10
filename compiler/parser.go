@@ -327,7 +327,9 @@ func (l *treeNodeListener) EnterMain(ctx *gen.MainContext) {
 
 func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 	ident := ctx.IDENT().GetText()
-	listener := newExprListener(l.ctx, l.parent)
+	node := newVarDeclNode(l.ctx, l.parent, ident)
+
+	listener := newExprListener(l.ctx, node)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
@@ -343,14 +345,18 @@ func (l *treeNodeListener) EnterDeclareVar(ctx *gen.DeclareVarContext) {
 		return
 	}
 
-	node := newVarDeclNode(l.ctx, l.parent, ident, exprNode)
+	node.setExpr(exprNode)
+
 	l.node = node
 }
 
 func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExprContext) {
 	identHigh := ctx.IDENT(0).GetText()
 	identLow := ctx.IDENT(1).GetText()
-	listener := newExprListener(l.ctx, l.parent)
+
+	node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh)
+
+	listener := newExprListener(l.ctx, node)
 	ctx.TupleExpr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
@@ -374,29 +380,9 @@ func (l *treeNodeListener) EnterDeclareVarTupleExpr(ctx *gen.DeclareVarTupleExpr
 		return
 	}
 
-	remhighctx := ctx.IDENT(2)
-	remlowctx := ctx.IDENT(3)
-	if remlowctx != nil && remhighctx != nil {
-		remhigh := remhighctx.GetText()
-		remlow := remlowctx.GetText()
+	node.setExpr(exprNode)
 
-		err = l.ctx.newVar(remlow, lType)
-		if err != nil {
-			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(3).GetSymbol(), ctx.GetRuleContext())
-			return
-		}
-		err = l.ctx.newVar(remhigh, hType)
-		if err != nil {
-			reportError(err.Error(), ctx.GetParser(), ctx.IDENT(2).GetSymbol(), ctx.GetRuleContext())
-			return
-		}
-		node := newVarDeclDivmodwTupleNode(l.ctx, l.parent, identLow, identHigh, remlow, remhigh, exprNode)
-		l.node = node
-	} else {
-		node := newVarDeclTupleNode(l.ctx, l.parent, identLow, identHigh, exprNode)
-		l.node = node
-	}
-
+	l.node = node
 }
 
 func (l *treeNodeListener) EnterDeclareQuadrupleExpr(ctx *gen.DeclareQuadrupleExprContext) {
@@ -405,7 +391,9 @@ func (l *treeNodeListener) EnterDeclareQuadrupleExpr(ctx *gen.DeclareQuadrupleEx
 	remHigh := ctx.IDENT(2).GetText()
 	remLow := ctx.IDENT(3).GetText()
 
-	listener := newExprListener(l.ctx, l.parent)
+	node := newVarDeclQuadrupleNode(l.ctx, l.parent, identLow, identHigh, remLow, remHigh)
+
+	listener := newExprListener(l.ctx, node)
 	ctx.TupleExpr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
@@ -439,7 +427,7 @@ func (l *treeNodeListener) EnterDeclareQuadrupleExpr(ctx *gen.DeclareQuadrupleEx
 		return
 	}
 
-	node := newVarDeclDivmodwTupleNode(l.ctx, l.parent, identLow, identHigh, remLow, remHigh, exprNode)
+	node.setExpr(exprNode)
 	l.node = node
 }
 
