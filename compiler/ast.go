@@ -264,6 +264,7 @@ type funDefNode struct {
 	name   string
 	args   []funArg
 	inline bool
+	void   bool
 }
 
 type blockNode struct {
@@ -405,8 +406,7 @@ type ifExprNode struct {
 
 type forStatementNode struct {
 	*TreeNode
-	condExpr     ExprNodeIf
-	condTrueExpr ExprNodeIf
+	condExpr ExprNodeIf
 }
 
 type ifStatementNode struct {
@@ -727,22 +727,6 @@ func newRuntimeArgNode(ctx *context, parent TreeNodeIf, op string, number string
 //
 //--------------------------------------------------------------------------------------------------
 
-func (n *varDeclNode) setExpr(value ExprNodeIf) {
-	n.value = value
-}
-
-func (n *varDeclTupleNode) setExpr(value ExprNodeIf) {
-	n.value = value
-}
-
-func (n *varDeclQuadrupleNode) setExpr(value ExprNodeIf) {
-	n.value = value
-}
-
-func (n *exprGroupNode) setExpr(value ExprNodeIf) {
-	n.value = value
-}
-
 func (n *exprLiteralNode) getType() (exprType, error) {
 	return n.exprType, nil
 }
@@ -869,7 +853,7 @@ func determineBlockReturnType(node TreeNodeIf, retTypeSeen []exprType) (exprType
 			retTypeSeen = append(retTypeSeen, tp)
 		case *errorNode:
 			retTypeSeen = append(retTypeSeen, intType) // error is ok
-		case *ifStatementNode, *blockNode:
+		case *ifStatementNode, *blockNode, *forStatementNode:
 			blockType, err := determineBlockReturnType(stmt, retTypeSeen)
 			if err != nil {
 				return invalidType, err
@@ -929,7 +913,7 @@ func (n *funCallNode) getType() (exprType, error) {
 	if err != nil {
 		_, builtin = builtinFun[n.name]
 		if !builtin {
-			return invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
+			return invalidType, fmt.Errorf("function '%s' lookup failed: %s", n.name, err.Error())
 		}
 	}
 
@@ -940,7 +924,7 @@ func (n *funCallNode) getType() (exprType, error) {
 			if idx, ok := builtinFunDependantTypes[n.name]; ok {
 				tp, err = n.childrenNodes[idx].(ExprNodeIf).getType()
 				if err != nil {
-					return invalidType, fmt.Errorf("function %s type deduction failed: %s", n.name, err.Error())
+					return invalidType, fmt.Errorf("function '%s' type deduction failed: %s", n.name, err.Error())
 				}
 			}
 		}
@@ -956,7 +940,7 @@ func (n *funCallNode) getTypeTuple() (exprType, exprType, error) {
 	builtin := false
 	_, builtin = builtinFun[n.name]
 	if !builtin {
-		return invalidType, invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
+		return invalidType, invalidType, fmt.Errorf("function '%s' lookup failed: %s", n.name, err.Error())
 	}
 
 	var tpl exprType = invalidType
@@ -984,7 +968,7 @@ func (n *funCallNode) getTypeQuadruple() (exprType, exprType, exprType, exprType
 	builtin := false
 	_, builtin = builtinFun[n.name]
 	if !builtin {
-		return invalidType, invalidType, invalidType, invalidType, fmt.Errorf("function %s lookup failed: %s", n.name, err.Error())
+		return invalidType, invalidType, invalidType, invalidType, fmt.Errorf("function '%s' lookup failed: %s", n.name, err.Error())
 	}
 
 	var tpl exprType = invalidType
@@ -1102,7 +1086,64 @@ func (n *TreeNode) parent() TreeNodeIf {
 	return n.parentNode
 }
 
+// root returns programNode node
+func (n *TreeNode) root() *programNode {
+	var node TreeNodeIf = n
+	for ; node != nil; node = node.parent() {
+		if p, ok := node.(*programNode); ok {
+			return p
+		}
+	}
+	return nil
+}
+
+//--------------------------------------------------------------------------------------------------
+//
+// helper methods
+//
+//--------------------------------------------------------------------------------------------------
+
+func (p *programNode) registerFunction(defNode *funDefNode) {
+	found := false
+	for _, ch := range p.nonInlineFunc {
+		if ch.name == defNode.name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		p.nonInlineFunc = append(p.nonInlineFunc, defNode)
+	}
+}
+
+func (ctx *context) registerFunCall(name string, node *funCallNode) {
+	if _, ok := ctx.functions[name]; !ok {
+		ctx.functions[name] = node
+	}
+}
+
+func (n *varDeclNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
+
+func (n *varDeclTupleNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
+
+func (n *varDeclQuadrupleNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
+
+func (n *exprGroupNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
+
+//--------------------------------------------------------------------------------------------------
+//
 // Print AST and context
+//
+//--------------------------------------------------------------------------------------------------
+
 func (n *TreeNode) Print() {
 	printImpl(n, 0)
 
@@ -1164,7 +1205,7 @@ func (n *ifExprNode) String() string {
 }
 
 func (n *forStatementNode) String() string {
-	return fmt.Sprintf("for %s { %s}", n.condExpr, n.condTrueExpr)
+	return fmt.Sprintf("for %s {}", n.condExpr)
 }
 
 func (n *returnNode) String() string {

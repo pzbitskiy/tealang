@@ -122,13 +122,15 @@ let e = if a > 0 {1} else {}
 	a.NotEmpty(errors)
 	a.Equal(1, len(errors))
 	a.Equal("a = 33", errors[0].excerpt[0])
-	a.Equal("^-----", errors[0].excerpt[1])
-	msg = `syntax error at line 1, col 0 near token 'a'
+	a.Equal("--^-----", errors[0].excerpt[1])
+	msg = `syntax error at line 1, col 2 near token '='
 a = 33
-^-----`
+--^-----`
 	a.Equal(msg, errors[0].String())
 
-	source = "let a = 33bbb"
+	source = `let a = 33bbb
+function logic() {return 1;}
+`
 	result, errors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(errors)

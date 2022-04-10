@@ -109,10 +109,10 @@ func reportParserError(err ParserError, parser antlr.Parser, token antlr.Token, 
 func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	root := newProgramNode(l.ctx, l.parent)
 
-	declarations := ctx.AllDeclaration()
-	for _, declaration := range declarations {
+	stmts := ctx.AllGlobalStatement()
+	for _, stmt := range stmts {
 		l := newRootTreeNodeListener(l.ctx, root, l.parseCtx)
-		declaration.EnterRule(l)
+		stmt.EnterRule(l)
 		node := l.getNode()
 		if node != nil {
 			root.append(node)
@@ -135,7 +135,7 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	block := main.children()[0]
 	if !ensureBlockReturns(block) {
 		reportError(
-			"main function does not return",
+			"function 'main' does not return",
 			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
 		)
 		return
@@ -151,7 +151,7 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	}
 	if tp != unknownType && tp != intType {
 		reportError(
-			fmt.Sprintf("main function must return int but got %s", tp),
+			fmt.Sprintf("function 'main' must return int but got %s", tp),
 			ctx.GetParser(), mainCtx.FUNC().GetSymbol(), mainCtx.GetRuleContext(),
 		)
 		return
@@ -160,6 +160,15 @@ func (l *treeNodeListener) EnterProgram(ctx *gen.ProgramContext) {
 	root.append(main)
 
 	l.node = root
+}
+
+func (l *treeNodeListener) EnterGlobalStatement(ctx *gen.GlobalStatementContext) {
+	if ctx.FunctionCallStatement() != nil {
+		ctx.FunctionCallStatement().EnterRule(l)
+	}
+	if ctx.Declaration() != nil {
+		ctx.Declaration().EnterRule(l)
+	}
 }
 
 // EnterModule is an entry point to AST
@@ -179,7 +188,18 @@ func (l *treeNodeListener) EnterModule(ctx *gen.ModuleContext) {
 	l.node = root
 }
 
-func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *gen.DeclarationContext, inline bool) {
+func parseFunCall(ctx *context, parent TreeNodeIf, name string, allExpr []gen.IExprContext, aux ...string) (node *funCallNode) {
+	node = newFunCallNode(ctx, parent, name, aux...)
+	for _, expr := range allExpr {
+		listener := newExprListener(ctx, node)
+		expr.EnterRule(listener)
+		arg := listener.getExpr()
+		node.append(arg)
+	}
+	return node
+}
+
+func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *gen.DeclarationContext, inline bool, void bool) {
 	// start new scoped context
 	name := ctx.IDENT(0).GetText()
 	scopedContext := newContext(name, l.ctx)
@@ -216,6 +236,7 @@ func parseFunDeclarationImpl(l *treeNodeListener, callNode *funCallNode, ctx *ge
 	node.name = name
 	node.args = args
 	node.inline = inline
+	node.void = void
 
 	// parse function body and add statements as children
 	listener := newTreeNodeListener(scopedContext, node)
@@ -232,14 +253,18 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 	} else if fun := ctx.FUNC(); fun != nil {
 		name := ctx.IDENT(0).GetText()
 		inline := false
+		void := false
 		if ctx.INLINE() != nil {
 			inline = true
+		}
+		if ctx.VOID() != nil {
+			void = true
 		}
 		// register now and parse it later just before the call
 		defParserCb := func(context *context, callNode *funCallNode, vi *varInfo) *funDefNode {
 			if inline || vi.node == nil {
 				listener := newTreeNodeListener(context, callNode)
-				parseFunDeclarationImpl(listener, callNode, ctx, inline)
+				parseFunDeclarationImpl(listener, callNode, ctx, inline, void)
 				node := listener.node
 				if node == nil {
 					return nil
@@ -306,6 +331,7 @@ func (l *treeNodeListener) EnterDeclaration(ctx *gen.DeclarationContext) {
 			default:
 				msg := fmt.Sprintf("module %s has %s but can only hold constants and functions", moduleName, ch.String())
 				reportError(msg, ctx.GetParser(), ctx.FUNC().GetSymbol(), ctx.GetRuleContext())
+				return
 			}
 		}
 	}
@@ -483,8 +509,8 @@ func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
 		ctx.Assignment().EnterRule(l)
 	} else if ctx.BuiltinVarStatement() != nil {
 		ctx.BuiltinVarStatement().EnterRule(l)
-	} else if ctx.LogStatement() != nil {
-		ctx.LogStatement().EnterRule(l)
+	} else if ctx.FunctionCallStatement() != nil {
+		ctx.FunctionCallStatement().EnterRule(l)
 	} else if ctx.Innertxn() != nil {
 		ctx.Innertxn().EnterRule(l)
 	}
@@ -493,8 +519,10 @@ func (l *treeNodeListener) EnterStatement(ctx *gen.StatementContext) {
 func (l *treeNodeListener) EnterTermReturn(ctx *gen.TermReturnContext) {
 	node := newReturnNode(l.ctx, l.parent)
 	listener := newExprListener(l.ctx, node)
-	ctx.Expr().EnterRule(listener)
-	node.value = listener.getExpr()
+	if ctx.Expr() != nil {
+		ctx.Expr().EnterRule(listener)
+		node.value = listener.getExpr()
+	}
 	l.node = node
 
 	parent := node.parent()
@@ -516,6 +544,22 @@ outer:
 		)
 		return
 	}
+	// allow only void + empty value, non-void + non-empty value
+	if definition.void && node.value != nil {
+		reportError(
+			fmt.Sprintf("void function '%s' cannot return a value", definition.name),
+			ctx.GetParser(), ctx.RET().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+	if !definition.void && node.value == nil {
+		reportError(
+			fmt.Sprintf("non-void function '%s' must return a value", definition.name),
+			ctx.GetParser(), ctx.RET().GetSymbol(), ctx.GetRuleContext(),
+		)
+		return
+	}
+
 	node.definition = definition
 }
 
@@ -1053,7 +1097,7 @@ func (l *exprListener) EnterTypeCastExpr(ctx *gen.TypeCastExprContext) {
 
 func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
 	listener := newExprListener(l.ctx, l.parent)
-	ctx.FunctionCall().EnterRule(listener)
+	ctx.FunctionCallExpresion().EnterRule(listener)
 	l.expr = listener.getExpr()
 }
 
@@ -1166,6 +1210,18 @@ func (l *treeNodeListener) EnterBuiltinVarStatement(ctx *gen.BuiltinVarStatement
 }
 
 func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.FunctionCall().EnterRule(listener)
+	l.expr = listener.getExpr()
+}
+
+func (l *treeNodeListener) EnterVoidFunCall(ctx *gen.VoidFunCallContext) {
+	listener := newExprListener(l.ctx, l.parent)
+	ctx.FunctionCall().EnterRule(listener)
+	l.node = listener.getExpr()
+}
+
+func (l *exprListener) EnterFunctionCall(ctx *gen.FunctionCallContext) {
 	name := ctx.IDENT().GetText()
 	parser := ctx.GetParser()
 	token := ctx.IDENT().GetSymbol()
@@ -1190,37 +1246,52 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	}
 	l.ctx.update(name, info) // save reference to funNodeDef
 
-	block := defNode.children()[0]
-	if !ensureBlockReturns(block) {
+	isStatement := false
+	if _, ok := funCallExprNode.parent().(*blockNode); ok {
+		isStatement = true
+	} else if _, ok := funCallExprNode.parent().(*programNode); ok {
+		isStatement = true
+	}
+
+	if isStatement && !defNode.void {
 		reportError(
-			fmt.Sprintf("%s function does not return", name),
+			fmt.Sprintf("non-void function '%s' used as a statement", name),
+			parser, token, rule,
+		)
+		return
+	}
+	if !isStatement && defNode.void {
+		reportError(
+			fmt.Sprintf("void function '%s' used as an expression", name),
 			parser, token, rule,
 		)
 		return
 	}
 
-	// save parsed functions at the root node to generate them
-	// save functions in the current context in order to refresh local vars bindings
+	// both regular and void functions must return
+	block := defNode.children()[0]
+	if !ensureBlockReturns(block) {
+		reportError(
+			fmt.Sprintf("function '%s' does not return", name),
+			parser, token, rule,
+		)
+		return
+	}
+
 	if !defNode.inline {
-		var node TreeNodeIf = defNode
-		for ; node != nil; node = node.parent() {
-			if p, ok := node.(*programNode); ok {
-				found := false
-				for _, ch := range p.nonInlineFunc {
-					if ch.name == defNode.name {
-						found = true
-						break
-					}
-				}
-				if !found {
-					p.nonInlineFunc = append(p.nonInlineFunc, defNode)
-				}
-				break
-			}
+		var p *programNode
+		if p = defNode.root(); p == nil {
+			reportError(
+				fmt.Sprintf("%s not in a program", name),
+				parser, token, rule,
+			)
+			return
 		}
-		if _, ok := l.ctx.functions[defNode.name]; !ok {
-			l.ctx.functions[defNode.name] = funCallExprNode
-		}
+		// save parsed functions at the root node to generate them
+		p.registerFunction(defNode)
+
+		// save functions in the current context in order to refresh local vars bindings
+		l.ctx.registerFunCall(defNode.name, funCallExprNode)
 	}
 
 	funCallExprNode.definition = defNode
@@ -1253,6 +1324,7 @@ func (l *exprListener) EnterExtractFunCall(ctx *gen.ExtractFunCallContext) {
 			token := ctx.EXTRACT().GetSymbol()
 			rule := ctx.GetRuleContext()
 			reportError(fmt.Sprintf("extract %s accepts only 2 args", field), parser, token, rule)
+			return
 		}
 		switch field {
 		case "UINT16":
@@ -1288,17 +1360,6 @@ func (l *exprListener) EnterExtractFunCall(ctx *gen.ExtractFunCallContext) {
 	l.expr = exprNode
 }
 
-func parseFunCall(ctx *context, parent TreeNodeIf, name string, allExpr []gen.IExprContext, aux ...string) (node *funCallNode) {
-	node = newFunCallNode(ctx, parent, name, aux...)
-	for _, expr := range allExpr {
-		listener := newExprListener(ctx, node)
-		expr.EnterRule(listener)
-		arg := listener.getExpr()
-		node.append(arg)
-	}
-	return node
-}
-
 func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 	if node := ctx.BuiltinVarTupleExpr(); node != nil {
 		listener := newExprListener(l.ctx, l.parent)
@@ -1327,6 +1388,7 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 	} else {
 		token := ctx.GetParser().GetCurrentToken()
 		reportError("unexpected token", ctx.GetParser(), token, ctx.GetRuleContext())
+		return
 	}
 
 	exprNode := parseFunCall(l.ctx, l.parent, name, ctx.AllExpr(), field)
@@ -1390,6 +1452,7 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 		err = exprNode.resolveFieldArg(fieldArgToken.GetText())
 		if err != nil {
 			reportError(err.Error(), ctx.GetParser(), fieldArgToken, ctx.GetRuleContext())
+			return
 		}
 	}
 

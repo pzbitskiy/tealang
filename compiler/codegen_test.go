@@ -354,13 +354,14 @@ func TestCodegenFunCall(t *testing.T) {
 	a := require.New(t)
 
 	source := `
+function true() {return 1;}
 function sum(x, y) { return x + y; }
 function logic() {
 	let a = 1
 	let b = sum (a, 2)
 	let x = 3
 	let c = sum (x, 1)
-	return 1
+	return true()
 }
 `
 	result, errors := Parse(source)
@@ -382,7 +383,7 @@ load 2
 intc 1
 callsub fun_sum
 store 3
-intc 1
+callsub fun_true
 return
 end_main:
 fun_sum:
@@ -393,11 +394,39 @@ load 4
 +
 retsub
 end_sum:
+fun_true:
+intc 1
+retsub
+end_true:
 `
 	CompareTEAL(a, expected, actual)
 	lines := strings.Split(actual, "\n")
 	a.Equal(lines[7], lines[13])               // callsub func_sum_*
 	a.True(lines[18][len(lines[18])-1] == ':') // func_sum_*:
+
+	source = `
+function test() {return 1;}
+let x = test()
+function logic() {return x;}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+	expected = `#pragma version *
+intcblock 0 1
+callsub fun_test
+store 0
+fun_main:
+load 0
+return
+end_main:
+fun_test:
+intc 1
+retsub
+end_test:
+`
+	CompareTEAL(a, expected, actual)
 }
 
 func TestCodegenGeneric(t *testing.T) {
@@ -861,7 +890,7 @@ function approval() {
 	a.NotEmpty(result, errors)
 	a.Empty(errors)
 	actual := Codegen(result)
-	fmt.Println(actual)
+
 	expected := `#pragma version *
 intcblock 0 1
 *
@@ -1550,6 +1579,59 @@ assert
 intc 1
 return
 end_main:
+`
+	CompareTEAL(a, expected, actual)
+}
+
+func TestCodegenVoidFunCall(t *testing.T) {
+	a := require.New(t)
+	source := `
+function test() void { return; }
+function logic() {
+	test()
+	return 1
+}
+`
+	result, errors := Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual := Codegen(result)
+
+	expected := `#pragma version *
+intcblock 0 1
+fun_main:
+callsub fun_test
+intc 1
+return
+end_main:
+fun_test:
+retsub
+end_test:
+`
+	CompareTEAL(a, expected, actual)
+
+	source = `
+function test() void { return; }
+test()
+function logic() {
+	return 1
+}
+`
+	result, errors = Parse(source)
+	a.NotEmpty(result, errors)
+	a.Empty(errors)
+	actual = Codegen(result)
+
+	expected = `#pragma version *
+intcblock 0 1
+callsub fun_test
+fun_main:
+intc 1
+return
+end_main:
+fun_test:
+retsub
+end_test:
 `
 	CompareTEAL(a, expected, actual)
 }

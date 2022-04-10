@@ -5,7 +5,7 @@ options {
 }
 
 program
-    :   declaration* (main) EOF
+    :   globalStatement* (main) EOF
     ;
 
 module
@@ -22,8 +22,8 @@ statement
     |   termination
     |   assignment
     |   builtinVarStatement
-    |   logStatement
     |   innertxn
+    |   functionCallStatement
     |   NEWLINE|SEMICOLON
     ;
 
@@ -35,17 +35,22 @@ main
     : FUNC MAINFUNC LEFTPARA RIGHTPARA block NEWLINE*
     ;
 
+globalStatement
+    :   declaration
+    |   functionCallStatement
+    ;
+
 declaration
     :   decl (NEWLINE|SEMICOLON)
     |   IMPORT MODULENAME MODULENAMEEND
-    |   INLINE? FUNC IDENT LEFTPARA (IDENT (COMMA IDENT)* )? RIGHTPARA block NEWLINE
+    |   INLINE? FUNC IDENT LEFTPARA (IDENT (COMMA IDENT)* )? RIGHTPARA VOID? block NEWLINE
     |   NEWLINE|SEMICOLON
     ;
 
 // named rules for tree-walking only
 condition
     :   IF condIfExpr condTrueBlock (NEWLINE? ELSE condFalseBlock)?   # IfStatement
-    |   FOR condForExpr condTrueBlock   # ForStatement
+    |   FOR condForExpr condTrueBlock                                 # ForStatement
     ;
 
 condTrueBlock
@@ -66,7 +71,7 @@ innertxn
 
 termination
     :   ERR (NEWLINE|SEMICOLON)                     # TermError
-    |   RET expr (NEWLINE|SEMICOLON)                # TermReturn
+    |   RET expr? (NEWLINE|SEMICOLON)               # TermReturn
     |   ASSERT LEFTPARA expr RIGHTPARA              # TermAssert
     |   BREAK (NEWLINE|SEMICOLON)                   # Break
     ;
@@ -89,13 +94,13 @@ expr
     :   IDENT                                       # Identifier
     |   NUMBER                                      # NumberLiteral
     |   STRING                                      # StringLiteral
-    |	LEFTPARA expr RIGHTPARA                     # Group
-    |   functionCall                                # FunctionCallExpr
+    |   LEFTPARA expr RIGHTPARA                     # Group
+    |   functionCallExpresion                       # FunctionCallExpr
     |   builtinVarExpr                              # BuiltinObject
     |   op=LNOT expr                                # Not
     |   op=BNOT expr                                # BitNot
-    |	expr op=(MUL|DIV|MOD) expr                  # MulDivMod
-    |	expr op=(PLUS|MINUS) expr                   # AddSub
+    |   expr op=(MUL|DIV|MOD) expr                  # MulDivMod
+    |   expr op=(PLUS|MINUS) expr                   # AddSub
     |   expr op=(LESS|LE|GREATER|GE|EE|NE) expr     # Relation
     |   expr op=(BOR|BXOR|BAND) expr                # BitOp
     |   expr op=(LAND|LOR) expr                     # AndOr
@@ -126,15 +131,20 @@ builtinVarStatement
     |   APPS LEFTSQUARE expr RIGHTSQUARE DOT (APPPUT|APPDEL) LEFTPARA expr (COMMA expr)? RIGHTPARA
     ;
 
-logStatement
-    :   LOG LEFTPARA expr RIGHTPARA                 # DoLog
+functionCallExpresion
+    :   BUILTINFUNC LEFTPARA ( expr (COMMA expr)* )? RIGHTPARA    # BuiltinFunCall
+    |   functionCall                                              # FunCall
+    |   ECDSAVERIFY LEFTPARA ( ECDSACURVE COMMA expr COMMA expr COMMA expr COMMA expr COMMA expr ) RIGHTPARA    # EcDsaFunCall
+    |   EXTRACT LEFTPARA ( (EXTRACTOPT COMMA)? expr COMMA expr (COMMA expr)? ) RIGHTPARA    # ExtractFunCall
+    ;
+
+functionCallStatement
+    :   functionCall                                              # VoidFunCall
+    |   LOG LEFTPARA expr RIGHTPARA                               # DoLog
     ;
 
 functionCall
-    :   BUILTINFUNC LEFTPARA ( expr (COMMA expr)* )? RIGHTPARA    # BuiltinFunCall
-    |   IDENT LEFTPARA ( expr (COMMA expr)* )? RIGHTPARA          # FunCall
-    |   ECDSAVERIFY LEFTPARA ( ECDSACURVE COMMA expr COMMA expr COMMA expr COMMA expr COMMA expr ) RIGHTPARA    # EcDsaFunCall
-    |   EXTRACT LEFTPARA ( (EXTRACTOPT COMMA)? expr COMMA expr (COMMA expr)? ) RIGHTPARA    # ExtractFunCall
+    :   IDENT LEFTPARA ( expr (COMMA expr)* )? RIGHTPARA
     ;
 
 builtinVarExpr

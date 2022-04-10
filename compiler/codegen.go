@@ -144,7 +144,9 @@ func (n *assignQuadrupleNode) Codegen(ostream io.Writer) {
 }
 
 func (n *returnNode) Codegen(ostream io.Writer) {
-	n.value.Codegen(ostream)
+	if n.value != nil {
+		n.value.Codegen(ostream)
+	}
 	if n.definition.name == mainFuncName {
 		fmt.Fprintf(ostream, "return\n")
 	} else if !n.definition.inline {

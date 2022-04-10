@@ -66,12 +66,18 @@ function logic() {
 
 ## Functions
 
-Functions must return some value and can not be recursive or re-entrant.
+There are three kinds of functions:
+* Inline
+* Regular
+* Void
+
+Non-void functions must return some value. All functions can not be recursive or re-entrant.
 
 ```
 inline function inc(x) { return x+1; }  // inlined at the calling point
 function dec(y) { return y-1; }         // uses callsub and retsub
 function logic() { return inc(0); }
+function noop() void { return; }
 ```
 
 ## Logic function
