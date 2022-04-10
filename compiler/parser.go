@@ -1489,30 +1489,32 @@ func (l *exprListener) EnterTxnSingleFieldExpr(ctx *gen.TxnSingleFieldExprContex
 
 func (l *exprListener) EnterTxnArrayFieldExpr(ctx *gen.TxnArrayFieldExprContext) {
 	field := ctx.TXNARRAYFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, l.parent, "txnaxx", field)
 
-	listener := newExprListener(l.ctx, l.parent)
+	listener := newExprListener(l.ctx, node)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
 	var errToken antlr.Token
-	var node ExprNodeIf
 
 	switch expr := exprNode.(type) {
 	case *constNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "txna", field, expr.value)
+			node.op = "txna"
+			node.index1 = expr.value
 
 		}
 	case *exprLiteralNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "txna", field, expr.value)
+			node.op = "txna"
+			node.index1 = expr.value
 		}
 	default:
-		node = newRuntimeFieldNode(l.ctx, l.parent, "txnas", field)
+		node.op = "txnas"
 		node.append(exprNode)
 	}
 
@@ -1538,30 +1540,31 @@ func (l *exprListener) EnterInnerTxnSingleFieldExpr(ctx *gen.InnerTxnSingleField
 
 func (l *exprListener) EnterInnerTxnArrayFieldExpr(ctx *gen.InnerTxnArrayFieldExprContext) {
 	field := ctx.TXNARRAYFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, l.parent, "itxnaxx", field)
 
-	listener := newExprListener(l.ctx, l.parent)
+	listener := newExprListener(l.ctx, node)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
 	var errToken antlr.Token
-	var node ExprNodeIf
 
 	switch expr := exprNode.(type) {
 	case *constNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "itxna", field, expr.value)
-
+			node.op = "itxna"
+			node.index1 = expr.value
 		}
 	case *exprLiteralNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "itxna", field, expr.value)
+			node.op = "itxna"
+			node.index1 = expr.value
 		}
 	default:
-		node = newRuntimeFieldNode(l.ctx, l.parent, "itxnas", field)
+		node.op = "itxnas"
 		node.append(exprNode)
 	}
 
@@ -1581,36 +1584,31 @@ func (l *exprListener) EnterGroupTxnFieldExpr(ctx *gen.GroupTxnFieldExprContext)
 
 func (l *exprListener) EnterGroupTxnSingleFieldExpr(ctx *gen.GroupTxnSingleFieldExprContext) {
 	field := ctx.TXNFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxnxx", field)
+
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
-	var op string
-	var groupIndex string
 	var errToken antlr.Token
-	var node ExprNodeIf
 
 	switch expr := exprNode.(type) {
 	case *constNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			groupIndex = expr.value
-			op = "gtxn"
-			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
-
+			node.op = "gtxn"
+			node.index1 = expr.value
 		}
 	case *exprLiteralNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			groupIndex = expr.value
-			op = "gtxn"
-			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+			node.op = "gtxn"
+			node.index1 = expr.value
 		}
 	default:
-		op = "gtxns"
-		node = newRuntimeFieldNode(l.ctx, l.parent, op, field)
+		node.op = "gtxns"
 		node.append(exprNode)
 	}
 
@@ -1624,20 +1622,20 @@ func (l *exprListener) EnterGroupTxnSingleFieldExpr(ctx *gen.GroupTxnSingleField
 
 func (l *exprListener) EnterGroupTxnArrayFieldExpr(ctx *gen.GroupTxnArrayFieldExprContext) {
 	field := ctx.TXNARRAYFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxnaxx", field)
 
 	groupIndexExpr := ctx.AllExpr()[0]
 	arrayIndexExpr := ctx.AllExpr()[1]
 
-	listener := newExprListener(l.ctx, l.parent)
+	listener := newExprListener(l.ctx, node)
 	groupIndexExpr.EnterRule(listener)
 	groupIndexExprNode := listener.getExpr()
 
-	listener = newExprListener(l.ctx, l.parent)
+	listener = newExprListener(l.ctx, node)
 	arrayIndexExpr.EnterRule(listener)
 	arrayIndexExprNode := listener.getExpr()
 
 	var errToken antlr.Token
-	var node ExprNodeIf
 
 	var groupIndex string
 	switch expr := groupIndexExprNode.(type) {
@@ -1685,17 +1683,21 @@ func (l *exprListener) EnterGroupTxnArrayFieldExpr(ctx *gen.GroupTxnArrayFieldEx
 	// and 4 opcodes to generate
 	if groupIndex != "" {
 		if arrayIndex != "" {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "gtxna", field, groupIndex, arrayIndex)
+			node.op = "gtxna"
+			node.index1 = groupIndex
+			node.index2 = arrayIndex
 		} else {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "gtxnas", field, groupIndex)
+			node.op = "gtxnas"
+			node.index1 = groupIndex
 			node.append(arrayIndexExprNode)
 		}
 	} else {
 		if arrayIndex != "" {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "gtxnsa", field, "", arrayIndex)
+			node.op = "gtxnsa"
+			node.index2 = arrayIndex
 			node.append(groupIndexExprNode)
 		} else {
-			node = newRuntimeFieldNode(l.ctx, l.parent, "gtxnsas", field)
+			node.op = "gtxnsas"
 			node.append(groupIndexExprNode)
 			node.append(arrayIndexExprNode)
 		}
@@ -1712,32 +1714,26 @@ func (l *exprListener) EnterGroupInnerTxnFieldExpr(ctx *gen.GroupInnerTxnFieldEx
 
 func (l *exprListener) EnterGroupInnerTxnSingleFieldExpr(ctx *gen.GroupInnerTxnSingleFieldExprContext) {
 	field := ctx.TXNFIELD().GetText()
-	listener := newExprListener(l.ctx, l.parent)
+	node := newRuntimeFieldNode(l.ctx, l.parent, "gitxn", field)
+
+	listener := newExprListener(l.ctx, node)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
-	var op string
-	var groupIndex string
 	var errToken antlr.Token
-	var node ExprNodeIf
 
 	switch expr := exprNode.(type) {
 	case *constNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			groupIndex = expr.value
-			op = "gitxn"
-			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
-
+			node.index1 = expr.value
 		}
 	case *exprLiteralNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			groupIndex = expr.value
-			op = "gitxn"
-			node = newRuntimeFieldNode(l.ctx, l.parent, op, field, groupIndex)
+			node.index1 = expr.value
 		}
 	default:
 		// group index must be either const or literal
@@ -1754,6 +1750,7 @@ func (l *exprListener) EnterGroupInnerTxnSingleFieldExpr(ctx *gen.GroupInnerTxnS
 
 func (l *exprListener) EnterGroupInnerTxnArrayFieldExpr(ctx *gen.GroupInnerTxnArrayFieldExprContext) {
 	field := ctx.TXNARRAYFIELD().GetText()
+	node := newRuntimeFieldNode(l.ctx, l.parent, "gitxnaxx", field)
 
 	groupIndexExpr := ctx.AllExpr()[0]
 	arrayIndexExpr := ctx.AllExpr()[1]
@@ -1767,7 +1764,6 @@ func (l *exprListener) EnterGroupInnerTxnArrayFieldExpr(ctx *gen.GroupInnerTxnAr
 	arrayIndexExprNode := listener.getExpr()
 
 	var errToken antlr.Token
-	var node ExprNodeIf
 
 	var groupIndex string
 	switch expr := groupIndexExprNode.(type) {
@@ -1816,9 +1812,12 @@ func (l *exprListener) EnterGroupInnerTxnArrayFieldExpr(ctx *gen.GroupInnerTxnAr
 	// unlike gtxn{..} opcodes, the array index must be provided as an immediate arg
 	// so there are only two combinations
 	if arrayIndex != "" {
-		node = newRuntimeFieldNode(l.ctx, l.parent, "gitxna", field, groupIndex, arrayIndex)
+		node.op = "gitxna"
+		node.index1 = groupIndex
+		node.index2 = arrayIndex
 	} else {
-		node = newRuntimeFieldNode(l.ctx, l.parent, "gitxnas", field, groupIndex)
+		node.op = "gitxnas"
+		node.index1 = groupIndex
 		node.append(arrayIndexExprNode)
 	}
 
@@ -1826,29 +1825,31 @@ func (l *exprListener) EnterGroupInnerTxnArrayFieldExpr(ctx *gen.GroupInnerTxnAr
 }
 
 func (l *exprListener) EnterArgsExpr(ctx *gen.ArgsExprContext) {
-	listener := newExprListener(l.ctx, l.parent)
+	node := newRuntimeArgNode(l.ctx, l.parent, "argxx", "")
+
+	listener := newExprListener(l.ctx, node)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
 	var errToken antlr.Token
-	var node ExprNodeIf
 
 	switch expr := exprNode.(type) {
 	case *constNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			node = newRuntimeArgNode(l.ctx, l.parent, "arg", expr.value)
-
+			node.op = "arg"
+			node.number = expr.value
 		}
 	case *exprLiteralNode:
 		if expr.exprType != intType {
 			errToken = ctx.Expr().GetStart()
 		} else {
-			node = newRuntimeArgNode(l.ctx, l.parent, "arg", expr.value)
+			node.op = "arg"
+			node.number = expr.value
 		}
 	default:
-		node = newRuntimeArgNode(l.ctx, l.parent, "args", "")
+		node.op = "args"
 		node.append(exprNode)
 	}
 
@@ -1861,7 +1862,9 @@ func (l *exprListener) EnterArgsExpr(ctx *gen.ArgsExprContext) {
 }
 
 func (l *treeNodeListener) EnterOnelinecond(ctx *gen.OnelinecondContext) {
-	listener := newExprListener(l.ctx, l.parent)
+	root := newProgramNode(l.ctx, l.parent)
+
+	listener := newExprListener(l.ctx, root)
 	ctx.Expr().EnterRule(listener)
 	expr := listener.getExpr()
 	_, err := expr.getType() // trigger type evaluation
@@ -1870,7 +1873,6 @@ func (l *treeNodeListener) EnterOnelinecond(ctx *gen.OnelinecondContext) {
 		return
 	}
 
-	root := newProgramNode(l.ctx, l.parent)
 	root.append(expr)
 	l.node = root
 }
