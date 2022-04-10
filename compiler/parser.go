@@ -1025,7 +1025,7 @@ func (l *exprListener) EnterNot(ctx *gen.NotContext) {
 
 func (l *exprListener) EnterGroup(ctx *gen.GroupContext) {
 	node := newExprGroupNode(l.ctx, l.parent)
-	listener := newExprListener(l.ctx, l.parent)
+	listener := newExprListener(l.ctx, node)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 	node.setExpr(exprNode)
@@ -1649,7 +1649,7 @@ func (l *exprListener) EnterGroupTxnSingleFieldExpr(ctx *gen.GroupTxnSingleField
 	field := ctx.TXNFIELD().GetText()
 	node := newRuntimeFieldNode(l.ctx, l.parent, "gtxnxx", field)
 
-	listener := newExprListener(l.ctx, l.parent)
+	listener := newExprListener(l.ctx, node)
 	ctx.Expr().EnterRule(listener)
 	exprNode := listener.getExpr()
 
@@ -1818,11 +1818,11 @@ func (l *exprListener) EnterGroupInnerTxnArrayFieldExpr(ctx *gen.GroupInnerTxnAr
 	groupIndexExpr := ctx.AllExpr()[0]
 	arrayIndexExpr := ctx.AllExpr()[1]
 
-	listener := newExprListener(l.ctx, l.parent)
+	listener := newExprListener(l.ctx, node)
 	groupIndexExpr.EnterRule(listener)
 	groupIndexExprNode := listener.getExpr()
 
-	listener = newExprListener(l.ctx, l.parent)
+	listener = newExprListener(l.ctx, node)
 	arrayIndexExpr.EnterRule(listener)
 	arrayIndexExprNode := listener.getExpr()
 
