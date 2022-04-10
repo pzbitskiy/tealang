@@ -303,8 +303,8 @@ function logic() {let x = sha256(1) ; return 1;}
 	a.Contains(parserErrors[0].msg, `incompatible types: (exp) byte[] vs uint64 (actual) in expr 'sha256 ([1])'`)
 
 	source = `
-function logic() {let x = 1; x = sha256("abc") ; return 1;}
-`
+	function logic() {let x = 1; x = sha256("abc") ; return 1;}
+	`
 	result, parserErrors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
@@ -322,7 +322,7 @@ function logic() {let x = 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `main function does not return`)
+	a.Contains(parserErrors[0].msg, `function 'main' does not return`)
 
 	source = `
 function approval() {let x = 1;}
@@ -331,7 +331,7 @@ function approval() {let x = 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `main function does not return`)
+	a.Contains(parserErrors[0].msg, `function 'main' does not return`)
 
 	source = `
 function clearstate() {let x = 1;}
@@ -340,7 +340,7 @@ function clearstate() {let x = 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `main function does not return`)
+	a.Contains(parserErrors[0].msg, `function 'main' does not return`)
 
 	source = `
 function logic() {return "test";}
@@ -349,7 +349,7 @@ function logic() {return "test";}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `main function must return int but got byte[]`)
+	a.Contains(parserErrors[0].msg, `function 'main' must return int but got byte[]`)
 
 	source = `
 function logic() {
@@ -377,7 +377,6 @@ function logic() {
 	result, parserErrors = Parse(source)
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors)
-
 }
 
 func TestDoubleVariable(t *testing.T) {
@@ -418,9 +417,9 @@ function logic() {
 
 	logicNode := pgNode.children()[0].(*funDefNode)
 	a.Equal(2, len(logicNode.ctx.vars))
-	info, _ := logicNode.ctx.vars["x"]
+	info := logicNode.ctx.vars["x"]
 	a.Equal(uint(0), info.address)
-	info, _ = logicNode.ctx.vars["y"]
+	info = logicNode.ctx.vars["y"]
 	a.Equal(uint(1), info.address)
 
 	a.Len(logicNode.children(), 1)
@@ -429,12 +428,12 @@ function logic() {
 
 	ifStmtTrueNode := ifStmtNode.children()[0].(*blockNode)
 	a.Equal(1, len(ifStmtTrueNode.ctx.vars))
-	info, _ = ifStmtTrueNode.ctx.vars["x"]
+	info = ifStmtTrueNode.ctx.vars["x"]
 	a.Equal(uint(1), info.address)
 
 	ifStmtFalseNode := ifStmtNode.children()[1].(*blockNode)
 	a.Equal(1, len(ifStmtFalseNode.ctx.vars))
-	info, _ = ifStmtFalseNode.ctx.vars["x"]
+	info = ifStmtFalseNode.ctx.vars["x"]
 	a.Equal(uint(1), info.address)
 }
 
@@ -597,6 +596,18 @@ function logic() {
 	a.Empty(parserErrors)
 }
 
+func TestFunctionTopScope(t *testing.T) {
+	a := require.New(t)
+	source := `
+function test() {return 1;}
+let x = test()
+function logic() {return x;}
+`
+	result, parserErrors := Parse(source)
+	a.NotEmpty(result)
+	a.Empty(parserErrors)
+}
+
 func TestFunctionReturn(t *testing.T) {
 	a := require.New(t)
 	source := `
@@ -606,7 +617,7 @@ function logic() {let x = 1;}
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
 	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `main function does not return`)
+	a.Contains(parserErrors[0].msg, `function 'main' does not return`)
 
 	source = `
 function test() {
@@ -623,8 +634,9 @@ function logic() {return test();}
 	result, parserErrors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
-	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `test function does not return`)
+	a.Equal(2, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `function 'test' does not return`)
+	a.Contains(parserErrors[1].msg, `non-void function 'main' must return a value`)
 
 	source = `
 function test() {
@@ -640,8 +652,9 @@ function logic() {return test();}
 	result, parserErrors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
-	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `test function does not return`)
+	a.Equal(2, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `function 'test' does not return`)
+	a.Contains(parserErrors[1].msg, `non-void function 'main' must return a value`)
 
 	source = `
 function test() {
@@ -657,8 +670,9 @@ function logic() {return test();}
 	result, parserErrors = Parse(source)
 	a.Empty(result)
 	a.NotEmpty(parserErrors)
-	a.Equal(1, len(parserErrors), parserErrors)
-	a.Contains(parserErrors[0].msg, `test function does not return`)
+	a.Equal(2, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `function 'test' does not return`)
+	a.Contains(parserErrors[1].msg, `non-void function 'main' must return a value`)
 
 	source = `
 function test() {
@@ -729,6 +743,92 @@ function test() {
 function logic() {return test();}
 `
 
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result, parserErrors)
+	a.Empty(parserErrors)
+
+	source = `
+function test() {
+	return
+}
+
+function logic() {return test();}
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result, parserErrors)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `non-void function 'test' must return a value`)
+}
+
+func TestVoidFunction(t *testing.T) {
+	a := require.New(t)
+	source := `
+function test() void { return; }
+function logic() {let x = test(); return 1; }
+`
+	result, parserErrors := Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `void function 'test' used as an expression`)
+
+	source = `
+function test() void { return; }
+function logic() { return test(); }
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result, parserErrors)
+	a.NotEmpty(parserErrors)
+	a.Equal(2, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `void function 'test' used as an expression`)
+	a.Contains(parserErrors[1].msg, `non-void function 'main' must return a value`)
+
+	source = `
+function test() void { return 1; }
+function logic() { return test(); }
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result, parserErrors)
+	a.NotEmpty(parserErrors)
+	a.Equal(3, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `void function 'test' cannot return a value`)
+	a.Contains(parserErrors[1].msg, `void function 'test' used as an expression`)
+	a.Contains(parserErrors[2].msg, `non-void function 'main' must return a value`)
+
+	source = `
+function test() { return 1; }
+function logic() { test(); return 1; }
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `non-void function 'test' used as a statement`)
+
+	source = `
+function test() void { }
+function logic() { test(); return 1; }
+`
+	result, parserErrors = Parse(source)
+	a.Empty(result)
+	a.NotEmpty(parserErrors)
+	a.Equal(1, len(parserErrors), parserErrors)
+	a.Contains(parserErrors[0].msg, `function 'test' does not return`)
+
+	source = `
+function test() void { return; }
+function logic() { test(); return 1; }
+`
+	result, parserErrors = Parse(source)
+	a.NotEmpty(result)
+	a.Empty(parserErrors)
+
+	source = `
+function test() void { return; }
+test()
+function logic() { return 1; }
+`
 	result, parserErrors = Parse(source)
 	a.NotEmpty(result, parserErrors)
 	a.Empty(parserErrors)

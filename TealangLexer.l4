@@ -220,6 +220,7 @@ CLEARSTATE  : 'clearstate' ;
 FOR         : 'for' ;
 BREAK       : 'break' ;
 INLINE      : 'inline' ;
+VOID        : 'void' ;
 
 GLOBAL      : 'global' ;
 INNERTXN    : 'itxn' ;

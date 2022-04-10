@@ -30,6 +30,10 @@ function sample2(a) {
     return a + 1
 }
 
+function noop() void {
+    return
+}
+
 function logic() {
     return sample1(2) + sample2(3)
 }
