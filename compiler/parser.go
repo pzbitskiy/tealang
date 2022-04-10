@@ -526,8 +526,7 @@ func (l *treeNodeListener) EnterTermError(ctx *gen.TermErrorContext) {
 func (l *treeNodeListener) EnterTermAssert(ctx *gen.TermAssertContext) {
 	name := ctx.ASSERT().GetText()
 
-	listener := newExprListener(l.ctx, l.parent)
-	exprNode := listener.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
+	exprNode := parseFunCall(l.ctx, l.parent, name, []gen.IExprContext{ctx.Expr()})
 
 	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -622,8 +621,7 @@ func (l *treeNodeListener) EnterInnerTxnEnd(ctx *gen.InnerTxnEndContext) {
 func (l *treeNodeListener) EnterDoLog(ctx *gen.DoLogContext) {
 	name := ctx.LOG().GetText()
 
-	listener := newExprListener(l.ctx, l.parent)
-	exprNode := listener.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
+	exprNode := parseFunCall(l.ctx, l.parent, name, []gen.IExprContext{ctx.Expr()})
 
 	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -982,9 +980,11 @@ func (l *exprListener) EnterNot(ctx *gen.NotContext) {
 }
 
 func (l *exprListener) EnterGroup(ctx *gen.GroupContext) {
+	node := newExprGroupNode(l.ctx, l.parent)
 	listener := newExprListener(l.ctx, l.parent)
 	ctx.Expr().EnterRule(listener)
-	node := newExprGroupNode(l.ctx, l.parent, listener.getExpr())
+	exprNode := listener.getExpr()
+	node.setExpr(exprNode)
 	l.expr = node
 }
 
@@ -1059,7 +1059,7 @@ func (l *exprListener) EnterFunctionCallExpr(ctx *gen.FunctionCallExprContext) {
 
 func (l *exprListener) EnterBuiltinFunCall(ctx *gen.BuiltinFunCallContext) {
 	name := ctx.BUILTINFUNC().GetText()
-	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+	exprNode := parseFunCall(l.ctx, l.parent, name, ctx.AllExpr())
 	// convert builtin function name or args if needed
 	if remapper, ok := builtinFunRemap[name]; ok {
 		errPos, err := remapper(exprNode)
@@ -1153,8 +1153,7 @@ func (l *treeNodeListener) EnterBuiltinVarStatement(ctx *gen.BuiltinVarStatement
 	}
 	tealOpName = fmt.Sprintf("%s_%s", tealOpName, token.GetText())
 
-	listener := newExprListener(l.ctx, l.parent)
-	exprNode := listener.funCallEnterImpl(tealOpName, exprs)
+	exprNode := parseFunCall(l.ctx, l.parent, tealOpName, exprs)
 
 	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -1182,7 +1181,7 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 	}
 
 	argExprNodes := ctx.AllExpr()
-	funCallExprNode := l.funCallEnterImpl(name, argExprNodes)
+	funCallExprNode := parseFunCall(l.ctx, l.parent, name, argExprNodes)
 	// parse function body
 	defNode := info.parser(l.ctx, funCallExprNode, &info)
 	if defNode == nil {
@@ -1231,7 +1230,7 @@ func (l *exprListener) EnterFunCall(ctx *gen.FunCallContext) {
 func (l *exprListener) EnterEcDsaFunCall(ctx *gen.EcDsaFunCallContext) {
 	name := ctx.ECDSAVERIFY().GetText()
 	field := ctx.ECDSACURVE().GetText()
-	exprNode := l.funCallEnterImpl(name, ctx.AllExpr(), field)
+	exprNode := parseFunCall(l.ctx, l.parent, name, ctx.AllExpr(), field)
 
 	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -1265,7 +1264,7 @@ func (l *exprListener) EnterExtractFunCall(ctx *gen.ExtractFunCallContext) {
 		}
 	}
 
-	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+	exprNode := parseFunCall(l.ctx, l.parent, name, ctx.AllExpr())
 	if remapper, ok := builtinFunRemap[name]; ok {
 		errPos, err := remapper(exprNode)
 		if err != nil {
@@ -1289,10 +1288,10 @@ func (l *exprListener) EnterExtractFunCall(ctx *gen.ExtractFunCallContext) {
 	l.expr = exprNode
 }
 
-func (l *exprListener) funCallEnterImpl(name string, allExpr []gen.IExprContext, aux ...string) (node *funCallNode) {
-	node = newFunCallNode(l.ctx, l.parent, name, aux...)
+func parseFunCall(ctx *context, parent TreeNodeIf, name string, allExpr []gen.IExprContext, aux ...string) (node *funCallNode) {
+	node = newFunCallNode(ctx, parent, name, aux...)
 	for _, expr := range allExpr {
-		listener := newExprListener(l.ctx, node)
+		listener := newExprListener(ctx, node)
 		expr.EnterRule(listener)
 		arg := listener.getExpr()
 		node.append(arg)
@@ -1330,7 +1329,7 @@ func (l *exprListener) EnterTupleExpr(ctx *gen.TupleExprContext) {
 		reportError("unexpected token", ctx.GetParser(), token, ctx.GetRuleContext())
 	}
 
-	exprNode := l.funCallEnterImpl(name, ctx.AllExpr(), field)
+	exprNode := parseFunCall(l.ctx, l.parent, name, ctx.AllExpr(), field)
 
 	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -1378,7 +1377,7 @@ func (l *exprListener) EnterBuiltinVarTupleExpr(ctx *gen.BuiltinVarTupleExprCont
 		name = "asset_params_get"
 	}
 
-	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+	exprNode := parseFunCall(l.ctx, l.parent, name, ctx.AllExpr())
 
 	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -1402,7 +1401,7 @@ func (l *exprListener) EnterAccountsBalanceExpr(ctx *gen.AccountsBalanceExprCont
 	if ctx.MINIMUMBALANCE() != nil {
 		name = "min_balance"
 	}
-	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr()})
+	exprNode := parseFunCall(l.ctx, l.parent, name, []gen.IExprContext{ctx.Expr()})
 
 	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -1420,7 +1419,7 @@ func (l *exprListener) EnterAccountsSingleMethodsExpr(ctx *gen.AccountsSingleMet
 	} else {
 		name = "app_local_get"
 	}
-	exprNode := l.funCallEnterImpl(name, ctx.AllExpr())
+	exprNode := parseFunCall(l.ctx, l.parent, name, ctx.AllExpr())
 
 	errPos, err := exprNode.checkBuiltinArgs()
 	if err != nil {
@@ -1441,7 +1440,7 @@ func (l *exprListener) EnterAppsSingleMethodsExpr(ctx *gen.AppsSingleMethodsExpr
 		return
 	}
 
-	exprNode := l.funCallEnterImpl(name, []gen.IExprContext{ctx.Expr(1)})
+	exprNode := parseFunCall(l.ctx, l.parent, name, []gen.IExprContext{ctx.Expr(1)})
 
 	_, err := exprNode.checkBuiltinArgs()
 	if err != nil {

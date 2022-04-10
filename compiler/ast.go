@@ -639,11 +639,10 @@ func newExprBinOpNode(ctx *context, parent TreeNodeIf, op string) (node *exprBin
 	return
 }
 
-func newExprGroupNode(ctx *context, parent TreeNodeIf, value ExprNodeIf) (node *exprGroupNode) {
+func newExprGroupNode(ctx *context, parent TreeNodeIf) (node *exprGroupNode) {
 	node = new(exprGroupNode)
 	node.TreeNode = newNode(ctx, parent)
 	node.nodeName = "(expr)"
-	node.value = value
 	return
 }
 
@@ -737,6 +736,10 @@ func (n *varDeclTupleNode) setExpr(value ExprNodeIf) {
 }
 
 func (n *varDeclQuadrupleNode) setExpr(value ExprNodeIf) {
+	n.value = value
+}
+
+func (n *exprGroupNode) setExpr(value ExprNodeIf) {
 	n.value = value
 }
 
