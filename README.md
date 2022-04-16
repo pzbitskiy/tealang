@@ -128,6 +128,8 @@ Check the [language documentation](GUIDE.md)!
 
 ### Prerequisites
 
+Ensure your system should already have installed Java Jdk and golang.
+
 1. Set up **ANTLR4**
     ```sh
     make antlr-install
